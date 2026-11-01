@@ -22,7 +22,9 @@ public class AutoTK extends Module {
 
     @Override
     public void onEnable() {
+        // 先置标志再通知，避免其它模块在通知回调中读到旧值
         ignoringFriends = true;
+        super.onEnable();
 
         if (notify.getValue()) {
             CommandManager.sendMessage("§aNow ignoring friends for team killing!");
@@ -31,7 +33,9 @@ public class AutoTK extends Module {
 
     @Override
     public void onDisable() {
+        // 先恢复好友保护，保证后续逻辑（含通知回调）读到安全状态
         ignoringFriends = false;
+        super.onDisable();
 
         if (notify.getValue()) {
             CommandManager.sendMessage("§aRestored friend protection!");
