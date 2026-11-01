@@ -17,7 +17,7 @@ public abstract class MixinEntityRenderer {
     @Inject(method = {"updateRenderState(Lnet/minecraft/entity/Entity;Lnet/minecraft/client/render/entity/state/EntityRenderState;F)V"},
             at = @At(value = "TAIL"))
     private void updateRenderState(Entity entity, EntityRenderState entityRenderState, float partialTicks, CallbackInfo ci) {
-        if (NameTags.INSTANCE.isOn() && entity instanceof PlayerEntity) {
+        if (NameTags.INSTANCE != null && NameTags.INSTANCE.isOn() && entity instanceof PlayerEntity) {
             entityRenderState.displayName = null;
         }
     }
@@ -25,7 +25,7 @@ public abstract class MixinEntityRenderer {
     @Inject(method = {"hasLabel(Lnet/minecraft/entity/Entity;D)Z"},
             at = @At(value = "HEAD"), cancellable = true)
     private void hasLabel(Entity entity, double squaredDistance, CallbackInfoReturnable<Boolean> cir) {
-        if (NameTags.INSTANCE.isOn() && entity instanceof PlayerEntity) {
+        if (NameTags.INSTANCE != null && NameTags.INSTANCE.isOn() && entity instanceof PlayerEntity) {
             cir.setReturnValue(false);
         }
     }
