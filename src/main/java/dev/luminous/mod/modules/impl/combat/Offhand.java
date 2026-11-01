@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.ClientTickEvent;
 import dev.luminous.api.events.impl.TotemEvent;
@@ -64,7 +64,7 @@ public class Offhand extends Module {
         if (!lethalCrystal.getValue()) {
             return false;
         }
-        for (final Entity entity : Alien.THREAD.getEntities()) {
+        for (final Entity entity : RiyueClient.THREAD.getEntities()) {
             if (entity instanceof EndCrystalEntity && mc.player.distanceTo(entity) <= 12.0f && AutoCrystal.INSTANCE.calculateDamage(new Vec3d(entity.getX(), entity.getY(), entity.getZ()), mc.player, mc.player) >= EntityUtil.getHealth(mc.player)) {
                 return true;
             }

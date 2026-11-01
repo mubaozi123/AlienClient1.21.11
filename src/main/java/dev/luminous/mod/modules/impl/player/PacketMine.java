@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.player;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.eventbus.EventPriority;
 import dev.luminous.api.events.impl.ClickBlockEvent;
@@ -471,7 +471,7 @@ public class PacketMine extends Module {
                         mc.world.setBlockState(breakPos, Blocks.AIR.getDefaultState());
                     }
                     if (endRotate.getValue() && !shouldYawStep()) {
-                        Alien.ROTATION.snapBack();
+                        RiyueClient.ROTATION.snapBack();
                     }
                     ghost = true;
                 };
@@ -509,7 +509,7 @@ public class PacketMine extends Module {
             }
             sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, breakPos, side, id));
             if (rotate.getValue() && !shouldYawStep()) {
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
             }
             startTime.reset();
         }
@@ -606,7 +606,7 @@ public class PacketMine extends Module {
         breakFinalTime = getBreakTime(breakPos, slot);
         sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, breakPos, side, id));
         if (rotate.getValue() && !shouldYawStep()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
         startTime.reset();
     }
@@ -652,12 +652,12 @@ public class PacketMine extends Module {
 
     boolean faceVector(Vec3d directionVec) {
         if (!shouldYawStep()) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
             return true;
         } else {
             this.sync.reset();
             this.directionVec = directionVec;
-            if (Alien.ROTATION.inFov(directionVec, fov.getValueFloat())) {
+            if (RiyueClient.ROTATION.inFov(directionVec, fov.getValueFloat())) {
                 return true;
             }
         }
@@ -912,7 +912,7 @@ public class PacketMine extends Module {
         if (PacketMine.mc.player.isSubmergedInWater()) {
             digSpeed *= (float)1.0;
         }
-        boolean bl = inWeb = this.checkWeb.getValue() && Alien.PLAYER.isInWeb((PlayerEntity)PacketMine.mc.player) && PacketMine.mc.world.getBlockState(this.breakPos).getBlock() == Blocks.COBWEB;
+        boolean bl = inWeb = this.checkWeb.getValue() && RiyueClient.PLAYER.isInWeb((PlayerEntity)PacketMine.mc.player) && PacketMine.mc.world.getBlockState(this.breakPos).getBlock() == Blocks.COBWEB;
         if ((!PacketMine.mc.player.isOnGround() || inWeb) && PacketMine.INSTANCE.checkGround.getValue() && (!this.smart.getValue() || Criticals.INSTANCE.mode.is(Criticals.Mode.Ground) && Criticals.INSTANCE.isOn() || PacketMine.mc.player.isGliding() || inWeb)) {
             digSpeed /= 5.0f;
         }

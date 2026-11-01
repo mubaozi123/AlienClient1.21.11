@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.TimerEvent;
 import net.minecraft.client.render.RenderTickCounter;
 import org.spongepowered.asm.mixin.Final;
@@ -25,9 +25,9 @@ public class MixinRenderTickCounter {
     @Inject(method={"beginRenderTick(J)I"}, at={@At(value="HEAD")}, cancellable=true)
     private void beginRenderTickHook(long timeMillis, CallbackInfoReturnable<Integer> cir) {
         TimerEvent event = TimerEvent.getEvent();
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (!event.isCancelled()) {
-            float timer = event.isModified() ? event.get() : Alien.TIMER.get();
+            float timer = event.isModified() ? event.get() : RiyueClient.TIMER.get();
             if (timer == 1.0f) {
                 return;
             }

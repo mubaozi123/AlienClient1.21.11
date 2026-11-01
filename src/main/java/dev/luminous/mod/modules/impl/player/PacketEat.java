@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.player;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.PacketEvent;
 import dev.luminous.api.events.impl.UpdateEvent;
@@ -26,7 +26,7 @@ public class PacketEat extends Module {
     @EventListener
     public void onUpdate(UpdateEvent event) {
         if (deSync.getValue() && mc.player.isUsingItem() && mc.player.getActiveItem().getItem().getComponents().contains(DataComponentTypes.FOOD)) {
-            Module.sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(mc.player.getActiveHand(), id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+            Module.sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(mc.player.getActiveHand(), id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
         }
     }
 

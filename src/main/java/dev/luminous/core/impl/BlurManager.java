@@ -24,8 +24,8 @@ import net.minecraft.util.Identifier;
 public class BlurManager
 implements Wrapper {
     private static final int UBO_SIZE = 112;
-    private static final RenderPipeline BLUR_PIPELINE = RenderPipelines.register(RenderPipeline.builder().withLocation(Identifier.of("alienclient", "pipeline/blur")).withVertexShader(Identifier.of("alienclient", "core/blit")).withFragmentShader(Identifier.of("alienclient", "core/blur")).withSampler("InSampler").withUniform("AlienParams", UniformType.UNIFORM_BUFFER).withBlend(BlendFunction.ENTITY_OUTLINE_BLIT).withDepthWrite(false).withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST).withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES).build());
-    private static final RenderPipeline COPY_PIPELINE = RenderPipelines.register(RenderPipeline.builder().withLocation(Identifier.of("alienclient", "pipeline/copy")).withVertexShader(Identifier.of("alienclient", "core/blit")).withFragmentShader(Identifier.of("alienclient", "core/copy")).withSampler("InSampler").withBlend(BlendFunction.ENTITY_OUTLINE_BLIT).withDepthWrite(false).withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST).withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES).build());
+    private static final RenderPipeline BLUR_PIPELINE = RenderPipelines.register(RenderPipeline.builder().withLocation(Identifier.of("riyueclient", "pipeline/blur")).withVertexShader(Identifier.of("riyueclient", "core/blit")).withFragmentShader(Identifier.of("riyueclient", "core/blur")).withSampler("InSampler").withUniform("RiyueParams", UniformType.UNIFORM_BUFFER).withBlend(BlendFunction.ENTITY_OUTLINE_BLIT).withDepthWrite(false).withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST).withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES).build());
+    private static final RenderPipeline COPY_PIPELINE = RenderPipelines.register(RenderPipeline.builder().withLocation(Identifier.of("riyueclient", "pipeline/copy")).withVertexShader(Identifier.of("riyueclient", "core/blit")).withFragmentShader(Identifier.of("riyueclient", "core/copy")).withSampler("InSampler").withBlend(BlendFunction.ENTITY_OUTLINE_BLIT).withDepthWrite(false).withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST).withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES).build());
     private Framebuffer blurBuffer;
 
     public void applyBlur(float radius, float startX, float startY, float width, float height) {
@@ -35,20 +35,20 @@ implements Wrapper {
             return;
         }
         if (this.blurBuffer == null) {
-            this.blurBuffer = new SimpleFramebuffer("alien_blur", main.textureWidth, main.textureHeight, false);
+            this.blurBuffer = new SimpleFramebuffer("riyue_blur", main.textureWidth, main.textureHeight, false);
         }
         if (this.blurBuffer.textureWidth != main.textureWidth || this.blurBuffer.textureHeight != main.textureHeight) {
             this.blurBuffer.resize(main.textureWidth, main.textureHeight);
         }
         float factor = (float)mc.getWindow().getScaleFactor();
-        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "alien_blur_pass", this.blurBuffer.getColorAttachmentView(), OptionalInt.of(0)); GpuBuffer uniforms = this.buildUniforms(radius, startX * factor, startY * factor, width * factor, height * factor)) {
+        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "riyue_blur_pass", this.blurBuffer.getColorAttachmentView(), OptionalInt.of(0)); GpuBuffer uniforms = this.buildUniforms(radius, startX * factor, startY * factor, width * factor, height * factor)) {
             pass.setPipeline(BLUR_PIPELINE);
-            pass.setUniform("AlienParams", uniforms);
+            pass.setUniform("RiyueParams", uniforms);
             pass.bindTexture("InSampler", main.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
             pass.draw(0, 3);
         }
         GpuTextureView depthView = main.useDepthAttachment ? main.getDepthAttachmentView() : null;
-        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "alien_blur_copy", main.getColorAttachmentView(), OptionalInt.empty(), depthView, OptionalDouble.empty())) {
+        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "riyue_blur_copy", main.getColorAttachmentView(), OptionalInt.empty(), depthView, OptionalDouble.empty())) {
             pass.setPipeline(COPY_PIPELINE);
             pass.bindTexture("InSampler", this.blurBuffer.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
             pass.draw(0, 3);
@@ -64,6 +64,6 @@ implements Wrapper {
         builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
         builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
         builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-        return RenderSystem.getDevice().createBuffer(() -> "alien_blur_uniforms", GpuBuffer.USAGE_UNIFORM, builder.get());
+        return RenderSystem.getDevice().createBuffer(() -> "riyue_blur_uniforms", GpuBuffer.USAGE_UNIFORM, builder.get());
     }
 }

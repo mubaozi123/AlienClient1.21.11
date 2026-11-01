@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.render;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.math.Easing;
 import dev.luminous.api.utils.player.InventoryUtil;
 import dev.luminous.api.utils.render.ColorUtil;
@@ -54,16 +54,16 @@ public class BreakESP extends Module {
     final Color doubleColor = new Color(255, 179, 96);
 
     private Color getFillColor(PlayerEntity player) {
-        return Alien.FRIEND.isFriend(player) ? fillFriend.getValue() : fill.getValue();
+        return RiyueClient.FRIEND.isFriend(player) ? fillFriend.getValue() : fill.getValue();
     }
 
     private Color getBoxColor(PlayerEntity player) {
-        return Alien.FRIEND.isFriend(player) ? boxFriend.getValue() : box.getValue();
+        return RiyueClient.FRIEND.isFriend(player) ? boxFriend.getValue() : box.getValue();
     }
 
     @Override
     public void onRender3D(MatrixStack matrixStack) {
-        for (BreakManager.BreakData breakData : Alien.BREAK.breakMap.values()) {
+        for (BreakManager.BreakData breakData : RiyueClient.BREAK.breakMap.values()) {
             if (breakData == null || breakData.getEntity() == null) continue;
             PlayerEntity player = (PlayerEntity) breakData.getEntity();
             double size = 0.5 * (1 - breakData.fade.ease(ease.getValue()));
@@ -80,13 +80,13 @@ public class BreakESP extends Module {
             }
         }
         if (second.getValue())
-            for (int i : Alien.BREAK.doubleMap.keySet()) {
-                BreakManager.BreakData breakData = Alien.BREAK.doubleMap.get(i);
+            for (int i : RiyueClient.BREAK.doubleMap.keySet()) {
+                BreakManager.BreakData breakData = RiyueClient.BREAK.doubleMap.get(i);
                 if (breakData == null || breakData.getEntity() == null || mc.world.isAir(breakData.pos)) {
-                    Alien.BREAK.doubleMap.remove(i);
+                    RiyueClient.BREAK.doubleMap.remove(i);
                     continue;
                 }
-                BreakManager.BreakData singleBreakData = Alien.BREAK.breakMap.get(i);
+                BreakManager.BreakData singleBreakData = RiyueClient.BREAK.breakMap.get(i);
                 if (singleBreakData != null) {
                     if (singleBreakData.pos.equals(breakData.pos)) continue;
                 }

@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.*;
 import dev.luminous.mod.modules.impl.exploit.AntiPacket;
 import dev.luminous.mod.modules.impl.exploit.Blink;
@@ -38,11 +38,11 @@ public abstract class MixinClientPlayNetworkHandler
     @Shadow
     private ClientWorld world;
     @Unique
-    private boolean alien$worldNotNull;
+    private boolean riyue$worldNotNull;
     @Unique
     private boolean ignore;
     @Unique
-    private boolean alien$ignoreExplosion;
+    private boolean riyue$ignoreExplosion;
 
     protected MixinClientPlayNetworkHandler(MinecraftClient client, ClientConnection connection, ClientConnectionState connectionState) {
         super(client, connection, connectionState);
@@ -50,18 +50,18 @@ public abstract class MixinClientPlayNetworkHandler
 
     @Inject(method={"onEnterReconfiguration"}, at={@At(value="INVOKE", target="Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V", shift=At.Shift.AFTER)})
     private void onEnterReconfiguration(EnterReconfigurationS2CPacket packet, CallbackInfo info) {
-        Alien.EVENT_BUS.post(GameLeftEvent.INSTANCE);
+        RiyueClient.EVENT_BUS.post(GameLeftEvent.INSTANCE);
     }
 
     @Inject(method={"onGameJoin"}, at={@At(value="HEAD")})
     private void onGameJoinHead(GameJoinS2CPacket packet, CallbackInfo info) {
-        this.alien$worldNotNull = this.world != null;
+        this.riyue$worldNotNull = this.world != null;
     }
 
     @Inject(method={"onGameJoin"}, at={@At(value="TAIL")})
     private void onGameJoinTail(GameJoinS2CPacket packet, CallbackInfo info) {
-        if (this.alien$worldNotNull) {
-            Alien.EVENT_BUS.post(GameLeftEvent.INSTANCE);
+        if (this.riyue$worldNotNull) {
+            RiyueClient.EVENT_BUS.post(GameLeftEvent.INSTANCE);
         }
     }
 
@@ -71,7 +71,7 @@ public abstract class MixinClientPlayNetworkHandler
     @Inject(method={"onInventory"}, at={@At(value="INVOKE", target="Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V", shift=At.Shift.AFTER)}, cancellable=true)
     public void onInventoryS2CPacket(InventoryS2CPacket packet, CallbackInfo ci) {
         InventoryS2CPacketEvent event = InventoryS2CPacketEvent.get(packet);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             ci.cancel();
         }
@@ -82,12 +82,12 @@ public abstract class MixinClientPlayNetworkHandler
         if (this.ignore) {
             return;
         }
-        if (message.startsWith(Alien.getPrefix())) {
-            Alien.COMMAND.command(message.split(" "));
+        if (message.startsWith(RiyueClient.getPrefix())) {
+            RiyueClient.COMMAND.command(message.split(" "));
             ci.cancel();
         } else {
             SendMessageEvent event = SendMessageEvent.get(message);
-            Alien.EVENT_BUS.post(event);
+            RiyueClient.EVENT_BUS.post(event);
             if (event.isCancelled()) {
                 ci.cancel();
             } else if (!event.message.equals(event.defaultMessage)) {
@@ -102,7 +102,7 @@ public abstract class MixinClientPlayNetworkHandler
     @Inject(method={"onCloseScreen"}, at={@At(value="INVOKE", target="Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V", shift=At.Shift.AFTER)}, cancellable=true)
     public void onCloseScreen(CloseScreenS2CPacket packet, CallbackInfo ci) {
         S2CCloseScreenEvent event = S2CCloseScreenEvent.get();
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             ci.cancel();
         }
@@ -111,7 +111,7 @@ public abstract class MixinClientPlayNetworkHandler
     @Redirect(method={"onEntityVelocityUpdate"}, at=@At(value="INVOKE", target="Lnet/minecraft/entity/Entity;setVelocityClient(Lnet/minecraft/util/math/Vec3d;)V"), require=0)
     private void velocityHook(Entity instance, Vec3d velocity) {
         EntityVelocityUpdateEvent event = EntityVelocityUpdateEvent.get(instance, velocity.x, velocity.y, velocity.z, false);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (!event.isCancelled()) {
             instance.setVelocityClient(new Vec3d(event.getX(), event.getY(), event.getZ()));
         }
@@ -121,7 +121,7 @@ public abstract class MixinClientPlayNetworkHandler
     private void velocityHook2(ExplosionS2CPacket packet, CallbackInfo ci) {
         packet.playerKnockback().ifPresent(vec3d -> {
             EntityVelocityUpdateEvent event = EntityVelocityUpdateEvent.get(MinecraftClient.getInstance().player, vec3d.getX(), vec3d.getY(), vec3d.getZ(), true);
-            Alien.EVENT_BUS.post(event);
+            RiyueClient.EVENT_BUS.post(event);
             if (!event.isCancelled()) {
                 MinecraftClient.getInstance().player.addVelocityInternal(new Vec3d(event.getX(), event.getY(), event.getZ()));
             }
@@ -131,20 +131,20 @@ public abstract class MixinClientPlayNetworkHandler
 
     @Inject(method={"onExplosion"}, at={@At(value="HEAD")}, cancellable=true)
     private void onExplosionHead(ExplosionS2CPacket packet, CallbackInfo ci) {
-        if (this.alien$ignoreExplosion || !Blink.INSTANCE.isOn() || !Blink.INSTANCE.velocity.getValue() || packet.playerKnockback().isEmpty()) {
+        if (this.riyue$ignoreExplosion || !Blink.INSTANCE.isOn() || !Blink.INSTANCE.velocity.getValue() || packet.playerKnockback().isEmpty()) {
             return;
         }
         ci.cancel();
         ExplosionS2CPacket cleanPacket = new ExplosionS2CPacket(packet.center(), packet.radius(), packet.blockCount(), Optional.empty(), packet.explosionParticle(), packet.explosionSound(), packet.blockParticles());
-        this.alien$ignoreExplosion = true;
+        this.riyue$ignoreExplosion = true;
         ((ClientPlayNetworkHandler)(Object)this).onExplosion(cleanPacket);
-        this.alien$ignoreExplosion = false;
+        this.riyue$ignoreExplosion = false;
     }
 
     @Inject(method={"onPlayerPositionLook"}, at={@At(value="INVOKE", target="Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V", shift=At.Shift.AFTER)}, cancellable=true)
     public void onPlayerPositionLook(PlayerPositionLookS2CPacket packet, CallbackInfo ci) {
         boolean noRotate;
-        boolean bl = noRotate = AntiPacket.INSTANCE.isOn() && AntiPacket.INSTANCE.s2CRotate.getValue() && Alien.SERVER.playerNull.passedS(0.25);
+        boolean bl = noRotate = AntiPacket.INSTANCE.isOn() && AntiPacket.INSTANCE.s2CRotate.getValue() && RiyueClient.SERVER.playerNull.passedS(0.25);
         if (noRotate) {
             double i;
             double h;
@@ -196,18 +196,18 @@ public abstract class MixinClientPlayNetworkHandler
                 float yaw = packet.change().yaw();
                 float pitch = packet.change().pitch();
                 if (packet.relatives().contains(PositionFlag.X_ROT)) {
-                    pitch += Alien.ROTATION.getLastPitch();
+                    pitch += RiyueClient.ROTATION.getLastPitch();
                 }
                 if (packet.relatives().contains(PositionFlag.Y_ROT)) {
-                    yaw += Alien.ROTATION.getLastYaw();
+                    yaw += RiyueClient.ROTATION.getLastYaw();
                 }
                 this.connection.send((Packet)new TeleportConfirmC2SPacket(packet.teleportId()));
                 this.connection.send((Packet)new PlayerMoveC2SPacket.Full(playerEntity.getX(), playerEntity.getY(), playerEntity.getZ(), yaw, pitch, false, false));
             } else {
                 this.connection.send((Packet)new TeleportConfirmC2SPacket(packet.teleportId()));
-                this.connection.send((Packet)new PlayerMoveC2SPacket.Full(playerEntity.getX(), playerEntity.getY(), playerEntity.getZ(), Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch(), false, false));
+                this.connection.send((Packet)new PlayerMoveC2SPacket.Full(playerEntity.getX(), playerEntity.getY(), playerEntity.getZ(), RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch(), false, false));
             }
-            Alien.EVENT_BUS.post(ServerChangePositionEvent.INSTANCE);
+            RiyueClient.EVENT_BUS.post(ServerChangePositionEvent.INSTANCE);
         }
     }
 }

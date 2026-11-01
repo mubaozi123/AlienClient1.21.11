@@ -111,7 +111,7 @@ implements Closeable {
     @Contract(value="-> new", pure=true)
     @NotNull
     public static Identifier randomIdentifier() {
-        return Identifier.of((String)"alienclient", (String)("temp/" + FontRenderer.randomString()));
+        return Identifier.of((String)"riyueclient", (String)("temp/" + FontRenderer.randomString()));
     }
 
     private static String randomString() {

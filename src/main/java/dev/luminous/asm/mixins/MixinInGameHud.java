@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.PreRender2DEvent;
 import dev.luminous.api.utils.player.EntityUtil;
 import dev.luminous.api.utils.render.ColorUtil;
@@ -120,12 +120,12 @@ public abstract class MixinInGameHud {
 
     @Inject(at = @At(value = "HEAD"), method = "render")
     public void renderStart(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
-        Alien.EVENT_BUS.post(PreRender2DEvent.get(context));
+        RiyueClient.EVENT_BUS.post(PreRender2DEvent.get(context));
     }
 
     @Inject(at = @At(value = "TAIL"), method = "render")
     public void renderHook(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
-        Alien.MODULE.onRender2D(context);
+        RiyueClient.MODULE.onRender2D(context);
     }
 
     @Inject(method = "clear", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/ChatHud;clear(Z)V"), cancellable = true)

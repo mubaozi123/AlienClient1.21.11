@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.player;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.PacketEvent;
 import dev.luminous.api.events.impl.UpdateEvent;
@@ -48,17 +48,17 @@ public class TimerModule extends Module {
 
     @Override
     public void onDisable() {
-        Alien.TIMER.reset();
+        RiyueClient.TIMER.reset();
     }
 
     @EventListener
     public void onUpdate(UpdateEvent event) {
-        Alien.TIMER.tryReset();
+        RiyueClient.TIMER.tryReset();
     }
 
     @Override
     public void onEnable() {
-        Alien.TIMER.reset();
+        RiyueClient.TIMER.reset();
     }
 
     @Override
@@ -80,18 +80,18 @@ public class TimerModule extends Module {
             timer.reset();
 
             if (timer2.passed(lastMs)) {
-                Alien.TIMER.reset();
+                RiyueClient.TIMER.reset();
             } else {
                 if (smooth.getValue()) {
-                    double timer = Alien.TIMER.getDefault() + (1 - end.ease(ease.getValue())) * (shiftTimer.getValueFloat() - 1) * (lastMs / accumulate.getValue());
-                    Alien.TIMER.set((float) Math.max(Alien.TIMER.getDefault(), timer));
+                    double timer = RiyueClient.TIMER.getDefault() + (1 - end.ease(ease.getValue())) * (shiftTimer.getValueFloat() - 1) * (lastMs / accumulate.getValue());
+                    RiyueClient.TIMER.set((float) Math.max(RiyueClient.TIMER.getDefault(), timer));
                 } else {
-                    Alien.TIMER.set(shiftTimer.getValueFloat());
+                    RiyueClient.TIMER.set(shiftTimer.getValueFloat());
                 }
             }
         } else {
             if (moving) {
-                Alien.TIMER.reset();
+                RiyueClient.TIMER.reset();
                 if (reset.getValue()) {
                     timer.reset();
                 } else {

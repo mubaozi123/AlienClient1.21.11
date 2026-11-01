@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.misc;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.utils.world.BlockUtil;
@@ -44,11 +44,11 @@ public class Nuker extends Module {
                 Direction side = BlockUtil.getClickSideStrict(sand);
                 if (side == null) continue;
                 PlaceRender.INSTANCE.create(sand);
-                Alien.ROTATION.snapAt(sand.toCenterPos());
+                RiyueClient.ROTATION.snapAt(sand.toCenterPos());
                 sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, sand, side, id));
                 sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, sand, side, id));
                 sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, sand, side, id));
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
                 b++;
                 if (b >= breaks.getValue()) {
                     return;

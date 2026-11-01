@@ -3,7 +3,7 @@
  */
 package dev.luminous.mod.commands.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.mod.commands.Command;
 import dev.luminous.mod.modules.Module;
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ extends Command {
             return;
         }
         String moduleName = parameters[0];
-        Module module = Alien.MODULE.getModuleByName(moduleName);
+        Module module = RiyueClient.MODULE.getModuleByName(moduleName);
         if (module == null) {
             this.sendChatMessage("\u00a7cUnknown module");
             return;
@@ -35,8 +35,8 @@ extends Command {
         if (count == 1) {
             String input = seperated.getLast().toLowerCase();
             ArrayList<String> correct = new ArrayList<String>();
-            for (Module x : Alien.MODULE.getModules()) {
-                if (!input.equalsIgnoreCase(Alien.getPrefix() + "toggle") && !x.getName().toLowerCase().startsWith(input)) continue;
+            for (Module x : RiyueClient.MODULE.getModules()) {
+                if (!input.equalsIgnoreCase(RiyueClient.getPrefix() + "toggle") && !x.getName().toLowerCase().startsWith(input)) continue;
                 correct.add(x.getName());
             }
             int numCmds = correct.size();

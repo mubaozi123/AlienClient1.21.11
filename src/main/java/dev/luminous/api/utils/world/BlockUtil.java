@@ -51,8 +51,8 @@
  */
 package dev.luminous.api.utils.world;
 
-import dev.luminous.Alien;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.Wrapper;
 import dev.luminous.api.utils.math.MathUtil;
 import dev.luminous.api.utils.player.EntityUtil;
@@ -154,7 +154,7 @@ implements Wrapper {
 
     public static List<Entity> getEntities(Box box) {
         ArrayList<Entity> list = new ArrayList<Entity>();
-        for (Entity entity : Alien.THREAD.getEntities()) {
+        for (Entity entity : RiyueClient.THREAD.getEntities()) {
             if (entity == null || entity instanceof ArmorStandEntity && AntiCheat.INSTANCE.ignoreArmorStand.getValue() || !entity.getBoundingBox().intersects(box)) continue;
             list.add(entity);
         }
@@ -163,7 +163,7 @@ implements Wrapper {
 
     public static List<EndCrystalEntity> getEndCrystals(Box box) {
         ArrayList<EndCrystalEntity> list = new ArrayList<EndCrystalEntity>();
-        for (Entity entity : Alien.THREAD.getEntities()) {
+        for (Entity entity : RiyueClient.THREAD.getEntities()) {
             EndCrystalEntity crystal;
             if (!(entity instanceof EndCrystalEntity) || !(crystal = (EndCrystalEntity)entity).getBoundingBox().intersects(box)) continue;
             list.add(crystal);
@@ -215,7 +215,7 @@ implements Wrapper {
         Direction facing = BlockUtil.getClickSide(obsPos);
         Vec3d vec = obsPos.toCenterPos().add((double)facing.getVector().getX() * 0.5, (double)facing.getVector().getY() * 0.5, (double)facing.getVector().getZ() * 0.5);
         if (rotate) {
-            Alien.ROTATION.lookAt(vec);
+            RiyueClient.ROTATION.lookAt(vec);
         }
         BlockUtil.clickBlock(obsPos, facing, false, offhand ? Hand.OFF_HAND : Hand.MAIN_HAND);
     }
@@ -253,7 +253,7 @@ implements Wrapper {
     public static void clickBlock(BlockPos pos, Direction side, boolean rotate, Hand hand, boolean packet) {
         Vec3d directionVec = new Vec3d((double)pos.getX() + 0.5 + (double)side.getVector().getX() * 0.5, (double)pos.getY() + 0.5 + (double)side.getVector().getY() * 0.5, (double)pos.getZ() + 0.5 + (double)side.getVector().getZ() * 0.5);
         if (rotate) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
         }
         EntityUtil.swingHand(hand, AntiCheat.INSTANCE.interactSwing.getValue());
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
@@ -264,21 +264,21 @@ implements Wrapper {
         }
         BlockUtil.mc.itemUseCooldown = 4;
         if (rotate) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
     }
 
     public static void clickBlock(BlockPos pos, Direction side, boolean rotate, Hand hand, SwingSide swingSide) {
         Vec3d directionVec = new Vec3d((double)pos.getX() + 0.5 + (double)side.getVector().getX() * 0.5, (double)pos.getY() + 0.5 + (double)side.getVector().getY() * 0.5, (double)pos.getZ() + 0.5 + (double)side.getVector().getZ() * 0.5);
         if (rotate) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
         }
         EntityUtil.swingHand(hand, swingSide);
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
         Module.sendSequencedPacket(id -> new PlayerInteractBlockC2SPacket(hand, result, id));
         BlockUtil.mc.itemUseCooldown = 4;
         if (rotate) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
     }
 
@@ -296,7 +296,7 @@ implements Wrapper {
         Direction side = BlockUtil.getClickSide(pos);
         Vec3d directionVec = new Vec3d((double)pos.getX() + 0.5 + (double)side.getVector().getX() * 0.5, (double)pos.getY() + 0.5 + (double)side.getVector().getY() * 0.5, (double)pos.getZ() + 0.5 + (double)side.getVector().getZ() * 0.5);
         if (rotate) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
         }
         EntityUtil.swingHand(hand, AntiCheat.INSTANCE.interactSwing.getValue());
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
@@ -308,7 +308,7 @@ implements Wrapper {
         }
         BlockUtil.mc.itemUseCooldown = 4;
         if (rotate) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
         if (bypass) {
             mc.getNetworkHandler().sendPacket((Packet)new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, new BlockPos(0, 0, 0), Direction.DOWN));

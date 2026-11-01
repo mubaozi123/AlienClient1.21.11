@@ -40,7 +40,7 @@ implements Wrapper {
     static {
         for (Shader shader : Shader.values()) {
             String name = SHADER_NAMES[shader.ordinal()];
-            RenderPipeline pipeline = RenderPipeline.builder().withLocation(Identifier.of("alienclient", "pipeline/" + name)).withVertexShader(Identifier.of("alienclient", "core/blit")).withFragmentShader(Identifier.of("alienclient", "core/" + name)).withSampler("InSampler").withUniform("AlienParams", UniformType.UNIFORM_BUFFER).withBlend(BlendFunction.ENTITY_OUTLINE_BLIT).withDepthWrite(false).withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST).withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES).build();
+            RenderPipeline pipeline = RenderPipeline.builder().withLocation(Identifier.of("riyueclient", "pipeline/" + name)).withVertexShader(Identifier.of("riyueclient", "core/blit")).withFragmentShader(Identifier.of("riyueclient", "core/" + name)).withSampler("InSampler").withUniform("RiyueParams", UniformType.UNIFORM_BUFFER).withBlend(BlendFunction.ENTITY_OUTLINE_BLIT).withDepthWrite(false).withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST).withVertexFormat(VertexFormats.EMPTY, VertexFormat.DrawMode.TRIANGLES).build();
             PIPELINES[shader.ordinal()] = RenderPipelines.register(pipeline);
         }
     }
@@ -78,15 +78,15 @@ implements Wrapper {
     }
 
     private void clearBuffer() {
-        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "alien_shader_clear", this.shaderBuffer.getColorAttachmentView(), OptionalInt.of(0), this.shaderBuffer.getDepthAttachmentView(), OptionalDouble.of(1.0))) {
+        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "riyue_shader_clear", this.shaderBuffer.getColorAttachmentView(), OptionalInt.of(0), this.shaderBuffer.getDepthAttachmentView(), OptionalDouble.of(1.0))) {
         }
     }
 
     private void blitToScreen(Shader mode, Framebuffer target) {
         GpuTextureView depthView = target.useDepthAttachment ? target.getDepthAttachmentView() : null;
-        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "alien_shader_blit", target.getColorAttachmentView(), OptionalInt.empty(), depthView, OptionalDouble.empty()); GpuBuffer uniforms = this.buildUniforms(mode)) {
+        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "riyue_shader_blit", target.getColorAttachmentView(), OptionalInt.empty(), depthView, OptionalDouble.empty()); GpuBuffer uniforms = this.buildUniforms(mode)) {
             pass.setPipeline(PIPELINES[mode.ordinal()]);
-            pass.setUniform("AlienParams", uniforms);
+            pass.setUniform("RiyueParams", uniforms);
             pass.bindTexture("InSampler", this.shaderBuffer.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
             pass.draw(0, 3);
         }
@@ -176,7 +176,7 @@ implements Wrapper {
             }
         }
         ByteBuffer data = builder.get();
-        return RenderSystem.getDevice().createBuffer(() -> "alien_shader_uniforms", GpuBuffer.USAGE_UNIFORM, data);
+        return RenderSystem.getDevice().createBuffer(() -> "riyue_shader_uniforms", GpuBuffer.USAGE_UNIFORM, data);
     }
 
     private void putColor(Std140Builder builder, Color color, float w) {
@@ -195,7 +195,7 @@ implements Wrapper {
             return true;
         }
         RenderSystem.assertOnRenderThread();
-        this.shaderBuffer = new SimpleFramebuffer("alien_shader", mc.getFramebuffer().textureWidth, mc.getFramebuffer().textureHeight, true);
+        this.shaderBuffer = new SimpleFramebuffer("riyue_shader", mc.getFramebuffer().textureWidth, mc.getFramebuffer().textureHeight, true);
         return true;
     }
 

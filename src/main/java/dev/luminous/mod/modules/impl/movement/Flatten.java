@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.movement;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.utils.combat.CombatUtil;
@@ -124,7 +124,7 @@ public class Flatten extends Module {
     }
 
     private boolean canPlace(BlockPos pos) {
-        if (checkMine.getValue() && Alien.BREAK.isMining(pos)) {
+        if (checkMine.getValue() && RiyueClient.BREAK.isMining(pos)) {
             return false;
         }
         if (cover.getValue() && mc.world.isAir(pos.up())) {

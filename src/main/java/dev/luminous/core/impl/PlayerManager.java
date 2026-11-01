@@ -17,7 +17,7 @@
  */
 package dev.luminous.core.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.BlockActivateEvent;
 import dev.luminous.api.events.impl.GameLeftEvent;
@@ -51,7 +51,7 @@ implements Wrapper {
     private int echestOpenedState;
 
     public PlayerManager() {
-        Alien.EVENT_BUS.subscribe(this);
+        RiyueClient.EVENT_BUS.subscribe(this);
     }
 
     @EventListener
@@ -102,7 +102,7 @@ implements Wrapper {
             screenToOpen = null;
         }
         this.inWebPlayers.clear();
-        for (PlayerEntity playerEntity : Alien.THREAD.getPlayers()) {
+        for (PlayerEntity playerEntity : RiyueClient.THREAD.getPlayers()) {
             this.map.put(playerEntity, new EntityAttribute(playerEntity.getArmor(), playerEntity.getAttributeValue(EntityAttributes.ARMOR_TOUGHNESS)));
             this.webUpdate(playerEntity);
         }

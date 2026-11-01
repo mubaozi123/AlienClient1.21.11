@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.EntitySpawnEvent;
 import dev.luminous.api.events.impl.EntitySpawnedEvent;
 import dev.luminous.api.events.impl.RemoveEntityEvent;
@@ -35,7 +35,7 @@ public abstract class MixinClientWorld extends World {
     @Inject(method = "tickEntity", at = @At("HEAD"), cancellable = true)
     public void onTickEntity(Entity entity, CallbackInfo ci) {
         TickEntityEvent event = TickEntityEvent.get(entity);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             ci.cancel();
         }
@@ -44,7 +44,7 @@ public abstract class MixinClientWorld extends World {
     @Inject(method = "addEntity", at = @At("HEAD"), cancellable = true)
     public void onAddEntity(Entity entity, CallbackInfo ci) {
         EntitySpawnEvent event = EntitySpawnEvent.get(entity);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             ci.cancel();
         }
@@ -57,13 +57,13 @@ public abstract class MixinClientWorld extends World {
             return;
         }
         RemoveEntityEvent removeEntityEvent = RemoveEntityEvent.get(entity, removalReason);
-        Alien.EVENT_BUS.post(removeEntityEvent);
+        RiyueClient.EVENT_BUS.post(removeEntityEvent);
     }
 
     @Inject(method = "addEntity", at = @At("TAIL"))
     public void onAddEntityTail(Entity entity, CallbackInfo ci) {
         EntitySpawnedEvent event = EntitySpawnedEvent.get(entity);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
     }
 
     @Override

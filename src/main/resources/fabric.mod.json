@@ -1,23 +1,23 @@
 {
   "schemaVersion": 1,
-  "id": "alien",
+  "id": "riyueclient",
   "version": "${version}",
-  "name": "Alien",
-  "description": "Alien client",
+  "name": "RiyueClient",
+  "description": "Riyue client",
   "authors": [
     "NRC4"
   ],
-  "accessWidener": "alien.accesswidener",
+  "accessWidener": "riyue.accesswidener",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "dev.luminous.Alien"
+      "dev.luminous.RiyueClient"
     ]
   },
   "mixins": [
-    "alien.mixins.json",
+    "riyue.mixins.json",
     {
-      "config": "alien.sodium.mixins.json",
+      "config": "riyue.sodium.mixins.json",
       "environment": "client"
     }
   ],

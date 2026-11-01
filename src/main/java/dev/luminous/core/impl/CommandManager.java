@@ -7,7 +7,7 @@
  */
 package dev.luminous.core.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.interfaces.IChatHudHook;
 import dev.luminous.api.utils.Wrapper;
 import dev.luminous.mod.commands.Command;
@@ -90,7 +90,7 @@ implements Wrapper {
             }
             Text text = Text.of((String)(ClientSetting.INSTANCE.hackName.getValue() + "\u00a7f " + message));
             if (CommandManager.mc.inGameHud.getChatHud() instanceof IChatHudHook hook) {
-                hook.alienClient$addMessage(text);
+                hook.riyueClient$addMessage(text);
             } else {
                 CommandManager.mc.inGameHud.getChatHud().addMessage(text);
             }
@@ -125,7 +125,7 @@ implements Wrapper {
 
     private static void addMessageWithFallback(Text text, int id) {
         if (CommandManager.mc.inGameHud.getChatHud() instanceof IChatHudHook hook) {
-            hook.alienClient$addMessage(text, id);
+            hook.riyueClient$addMessage(text, id);
         } else {
             CommandManager.mc.inGameHud.getChatHud().addMessage(text);
         }
@@ -144,7 +144,7 @@ implements Wrapper {
     }
 
     public void command(String[] commandIn) {
-        Command command = this.commands.get(commandIn[0].substring(Alien.getPrefix().length()).toLowerCase());
+        Command command = this.commands.get(commandIn[0].substring(RiyueClient.getPrefix().length()).toLowerCase());
         if (command == null) {
             CommandManager.sendMessage("\u00a74Invalid Command!");
         } else {

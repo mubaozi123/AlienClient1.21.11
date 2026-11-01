@@ -17,7 +17,7 @@
  */
 package dev.luminous.mod.modules.impl.movement;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.MoveEvent;
 import dev.luminous.api.events.impl.MovedEvent;
@@ -165,7 +165,7 @@ extends Module {
             }
             int collisions = 0;
             Box box = this.strict.getValue() ? Speed.mc.player.getBoundingBox() : Speed.mc.player.getBoundingBox().expand(1.0);
-            for (Entity entity : Alien.THREAD.getEntities()) {
+            for (Entity entity : RiyueClient.THREAD.getEntities()) {
                 Box entityBox = entity.getBoundingBox();
                 if (this.boat.getValue() && Speed.mc.player.isOnGround() && entity instanceof BoatEntity && box.intersects(entityBox.expand(this.boatExpand.getValue()))) {
                     double yaw = Math.toRadians(Sprint.getSprintYaw(Speed.mc.player.getYaw()));

@@ -27,7 +27,7 @@ public abstract class MixinItemRenderer {
             argsOnly = true,
             index = 2
     )
-    private static VertexConsumerProvider alien$tintHandItem(
+    private static VertexConsumerProvider riyue$tintHandItem(
             VertexConsumerProvider provider,
             ItemDisplayContext displayContext,
             MatrixStack matrices,

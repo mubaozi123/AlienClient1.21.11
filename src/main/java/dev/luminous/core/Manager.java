@@ -18,7 +18,7 @@ public class Manager {
     }
 
     public static File getFolder() {
-        File folder = new File(Manager.mc.runDirectory.getPath() + File.separator + dev.luminous.Alien.NAME.toLowerCase());
+        File folder = new File(Manager.mc.runDirectory.getPath() + File.separator + dev.luminous.RiyueClient.NAME.toLowerCase());
         if (!folder.exists()) {
             folder.mkdirs();
         }

@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.ClientTickEvent;
 import dev.luminous.api.events.impl.MoveEvent;
@@ -121,7 +121,7 @@ public class SelfTrap extends Module {
         super("SelfTrap", Category.Combat);
         setChinese("自我困住");
         INSTANCE = this;
-        Alien.EVENT_BUS.subscribe(new SelfTrapTick());
+        RiyueClient.EVENT_BUS.subscribe(new SelfTrapTick());
     }
 
     public static boolean selfIntersectPos(BlockPos pos) {
@@ -261,7 +261,7 @@ public class SelfTrap extends Module {
             BlockPos offsetPos = pos.offset(i);
 
             if (godMode.getValue()) {
-                for (BreakManager.BreakData breakData : Alien.BREAK.breakMap.values()) {
+                for (BreakManager.BreakData breakData : RiyueClient.BREAK.breakMap.values()) {
                     if (breakData.getEntity() == null) {
                         continue;
                     }
@@ -287,7 +287,7 @@ public class SelfTrap extends Module {
                     if (i2 == Direction.UP) continue;
                     BlockPos offsetPos2 = offsetPos.offset(i2);
                     if (godMode.getValue()) {
-                        for (BreakManager.BreakData breakData : Alien.BREAK.breakMap.values()) {
+                        for (BreakManager.BreakData breakData : RiyueClient.BREAK.breakMap.values()) {
                             if (breakData.getEntity() == null) {
                                 continue;
                             }
@@ -319,11 +319,11 @@ public class SelfTrap extends Module {
 
     private boolean faceVector(Vec3d directionVec) {
         if (!shouldYawStep()) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
             return true;
         } else {
             this.directionVec = directionVec;
-            if (Alien.ROTATION.inFov(directionVec, fov.getValueFloat())) {
+            if (RiyueClient.ROTATION.inFov(directionVec, fov.getValueFloat())) {
                 return true;
             }
         }
@@ -332,7 +332,7 @@ public class SelfTrap extends Module {
 
     private void clickDown(BlockPos pos) {
         if (pos == null) return;
-        if (detectMining.getValue() && Alien.BREAK.isMining(pos)) return;
+        if (detectMining.getValue() && RiyueClient.BREAK.isMining(pos)) return;
         int block = getBlock();
         if (block == -1) return;
         Direction side = Direction.DOWN;
@@ -359,7 +359,7 @@ public class SelfTrap extends Module {
             doSwap(old);
         }
         if (rotate.getValue() && !shouldYawStep()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
         progress++;
         timer.reset();
@@ -367,7 +367,7 @@ public class SelfTrap extends Module {
 
     private void tryPlaceBlock(BlockPos pos) {
         if (pos == null) return;
-        if (detectMining.getValue() && Alien.BREAK.isMining(pos)) return;
+        if (detectMining.getValue() && RiyueClient.BREAK.isMining(pos)) return;
         BlockPos self = EntityUtil.getPlayerPos(true);
         if (mineDownward.getValue()) {
             if (Objects.equals(PacketMine.getBreakPos(), self.down()) && Objects.equals(PacketMine.getBreakPos(), pos))
@@ -402,7 +402,7 @@ public class SelfTrap extends Module {
             doSwap(old);
         }
         if (rotate.getValue() && !shouldYawStep()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
         progress++;
     }
@@ -431,7 +431,7 @@ public class SelfTrap extends Module {
 
     public BlockPos getHelperPos(BlockPos pos) {
         for (Direction i : Direction.values()) {
-            if (detectMining.getValue() && Alien.BREAK.isMining(pos.offset(i))) continue;
+            if (detectMining.getValue() && RiyueClient.BREAK.isMining(pos.offset(i))) continue;
             if (!BlockUtil.isStrictDirection(pos.offset(i), i.getOpposite())) continue;
             if (BlockUtil.canPlace(pos.offset(i))) return pos.offset(i);
         }

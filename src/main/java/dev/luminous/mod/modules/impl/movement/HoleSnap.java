@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.movement;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.KeyboardInputEvent;
 import dev.luminous.api.events.impl.MoveEvent;
@@ -125,7 +125,7 @@ extends Module {
             return;
         }
         this.resetMove = false;
-        this.holePos = Alien.HOLE.getHole((float)this.range.getValue(), true, this.any.getValue(), this.up.getValue());
+        this.holePos = RiyueClient.HOLE.getHole((float)this.range.getValue(), true, this.any.getValue(), this.up.getValue());
     }
 
     @Override
@@ -169,7 +169,7 @@ extends Module {
     @EventListener
     public void onUpdate(UpdateEvent event) {
         Direction facing;
-        this.holePos = Alien.HOLE.getHole((float)this.range.getValue(), true, this.any.getValue(), this.up.getValue());
+        this.holePos = RiyueClient.HOLE.getHole((float)this.range.getValue(), true, this.any.getValue(), this.up.getValue());
         if (this.holePos == null) {
             this.disable();
             return;
@@ -197,7 +197,7 @@ extends Module {
         }
         Vec3d playerPos = HoleSnap.mc.player.getEntityPos();
         this.targetPos = new Vec3d((double)this.holePos.getX() + 0.5, HoleSnap.mc.player.getY(), (double)this.holePos.getZ() + 0.5);
-        if (Alien.HOLE.isDoubleHole(this.holePos) && (facing = Alien.HOLE.is3Block(this.holePos)) != null) {
+        if (RiyueClient.HOLE.isDoubleHole(this.holePos) && (facing = RiyueClient.HOLE.is3Block(this.holePos)) != null) {
             this.targetPos = this.targetPos.add(new Vec3d((double)facing.getVector().getX() * 0.5, (double)facing.getVector().getY() * 0.5, (double)facing.getVector().getZ() * 0.5));
         }
         this.applyTimer = true;
@@ -220,7 +220,7 @@ extends Module {
         if (this.grim.getValue() && this.holePos != null) {
             Direction facing;
             this.targetPos = new Vec3d((double)this.holePos.getX() + 0.5, HoleSnap.mc.player.getY(), (double)this.holePos.getZ() + 0.5);
-            if (Alien.HOLE.isDoubleHole(this.holePos) && (facing = Alien.HOLE.is3Block(this.holePos)) != null) {
+            if (RiyueClient.HOLE.isDoubleHole(this.holePos) && (facing = RiyueClient.HOLE.is3Block(this.holePos)) != null) {
                 this.targetPos = this.targetPos.add(new Vec3d((double)facing.getVector().getX() * 0.5, (double)facing.getVector().getY() * 0.5, (double)facing.getVector().getZ() * 0.5));
             }
             event.setTarget(this.targetPos, this.steps.getValueFloat(), this.priority.getValueFloat());
@@ -247,7 +247,7 @@ extends Module {
         }
         Vec3d playerPos = HoleSnap.mc.player.getEntityPos();
         this.targetPos = new Vec3d((double)this.holePos.getX() + 0.5, HoleSnap.mc.player.getY(), (double)this.holePos.getZ() + 0.5);
-        if (Alien.HOLE.isDoubleHole(this.holePos) && (facing = Alien.HOLE.is3Block(this.holePos)) != null) {
+        if (RiyueClient.HOLE.isDoubleHole(this.holePos) && (facing = RiyueClient.HOLE.is3Block(this.holePos)) != null) {
             this.targetPos = this.targetPos.add(new Vec3d((double)facing.getVector().getX() * 0.5, (double)facing.getVector().getY() * 0.5, (double)facing.getVector().getZ() * 0.5));
         }
         this.applyTimer = true;

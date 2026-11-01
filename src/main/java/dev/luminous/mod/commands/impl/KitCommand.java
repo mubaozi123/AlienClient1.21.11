@@ -3,7 +3,7 @@
  */
 package dev.luminous.mod.commands.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.core.Manager;
 import dev.luminous.mod.commands.Command;
 import java.io.File;
@@ -96,7 +96,7 @@ extends Command {
             ArrayList<String> correct = new ArrayList<String>();
             List<String> list = List.of("list", "create", "delete");
             for (String x : list) {
-                if (!input.equalsIgnoreCase(Alien.getPrefix() + "kit") && !x.toLowerCase().startsWith(input)) continue;
+                if (!input.equalsIgnoreCase(RiyueClient.getPrefix() + "kit") && !x.toLowerCase().startsWith(input)) continue;
                 correct.add(x);
             }
             int numCmds = correct.size();

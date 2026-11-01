@@ -1,6 +1,6 @@
 package dev.luminous.core.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.DoAttackEvent;
 import dev.luminous.api.events.impl.FireworkShooterRotationEvent;
@@ -58,7 +58,7 @@ public class RotationManager
     private float prevPitch;
 
     public RotationManager() {
-        Alien.EVENT_BUS.subscribe(this);
+        RiyueClient.EVENT_BUS.subscribe(this);
     }
 
     @EventListener
@@ -157,7 +157,7 @@ public class RotationManager
             event.setPitch(this.nextPitch);
         } else {
             UpdateRotateEvent updateRotateEvent = UpdateRotateEvent.get(event.getYaw(), event.getPitch());
-            Alien.EVENT_BUS.post(updateRotateEvent);
+            RiyueClient.EVENT_BUS.post(updateRotateEvent);
             event.setYaw(updateRotateEvent.getYaw());
             event.setPitch(updateRotateEvent.getPitch());
         }
@@ -170,7 +170,7 @@ public class RotationManager
         }
         if (AntiCheat.INSTANCE.movementSync() && !BaritoneUtil.isActive()) {
             UpdateRotateEvent updateRotateEvent = UpdateRotateEvent.get(RotationManager.mc.player.getYaw(), RotationManager.mc.player.getPitch());
-            Alien.EVENT_BUS.post(updateRotateEvent);
+            RiyueClient.EVENT_BUS.post(updateRotateEvent);
             this.nextYaw = updateRotateEvent.getYaw();
             this.nextPitch = updateRotateEvent.getPitch();
             fixYaw = this.nextYaw;
@@ -181,7 +181,7 @@ public class RotationManager
     @EventListener(priority=-200)
     public void onLastRotation(UpdateRotateEvent event) {
         RotationEvent rotationEvent = RotationEvent.get();
-        Alien.EVENT_BUS.post(rotationEvent);
+        RiyueClient.EVENT_BUS.post(rotationEvent);
         if (rotationEvent.getRotation()) {
             float[] newAngle = this.injectStep(new float[]{rotationEvent.getYaw(), rotationEvent.getPitch()}, rotationEvent.getSpeed());
             event.setYaw(newAngle[0]);
@@ -428,7 +428,7 @@ public class RotationManager
 
     public void setLastYaw(float lastYaw) {
         this.lastYaw = lastYaw;
-        if (AntiCheat.INSTANCE.forceSync.getValue() && Alien.SERVER.playerNull.passedS(0.15)) {
+        if (AntiCheat.INSTANCE.forceSync.getValue() && RiyueClient.SERVER.playerNull.passedS(0.15)) {
             ((IClientPlayerEntity)RotationManager.mc.player).setLastYaw(lastYaw);
         }
     }
@@ -439,7 +439,7 @@ public class RotationManager
 
     public void setLastPitch(float lastPitch) {
         this.lastPitch = lastPitch;
-        if (AntiCheat.INSTANCE.forceSync.getValue() && Alien.SERVER.playerNull.passedS(0.15)) {
+        if (AntiCheat.INSTANCE.forceSync.getValue() && RiyueClient.SERVER.playerNull.passedS(0.15)) {
             RotationManager.mc.player.lastPitch = lastPitch;
         }
     }

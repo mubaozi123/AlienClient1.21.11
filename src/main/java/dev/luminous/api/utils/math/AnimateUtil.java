@@ -1,11 +1,11 @@
 package dev.luminous.api.utils.math;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.Wrapper;
 
 public class AnimateUtil implements Wrapper {
     public static float deltaTime() {
-        return Alien.FPS.getFps() > 5 ? (1f / Alien.FPS.getFps()) : 0.016f;
+        return RiyueClient.FPS.getFps() > 5 ? (1f / RiyueClient.FPS.getFps()) : 0.016f;
     }
 
     public static float fast(float end, float start, float multiple) {

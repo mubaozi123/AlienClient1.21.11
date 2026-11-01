@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.ClientTickEvent;
 import dev.luminous.api.events.impl.Render3DEvent;
@@ -177,7 +177,7 @@ public class AutoAnchor extends Module {
         super("AutoAnchor", Category.Combat);
         setChinese("重生锚光环");
         INSTANCE = this;
-        Alien.EVENT_BUS.subscribe(new AnchorRender());
+        RiyueClient.EVENT_BUS.subscribe(new AnchorRender());
     }
 
     public static boolean canSee(Vec3d from, Vec3d to) {
@@ -306,7 +306,7 @@ public class AutoAnchor extends Module {
         BlockPos pos = currentPos;
         if (pos != null) {
             if (breakCrystal.getValue()) CombatUtil.attackCrystal(new BlockPos(pos), rotate.getValue(), false);
-            boolean shouldSpam = this.spam.getValue() && (!mineSpam.getValue() || Alien.BREAK.isMining(pos));
+            boolean shouldSpam = this.spam.getValue() && (!mineSpam.getValue() || RiyueClient.BREAK.isMining(pos));
             if (shouldSpam) {
                 if (!delayTimer.passed((long) (spamDelay.getValueFloat()))) {
                     return;
@@ -326,7 +326,7 @@ public class AutoAnchor extends Module {
                     if (shouldYawStep() && checkFov.getValue()) {
                         Direction side = getClickSide(pos);
                         Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + 0.5 + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
-                        if (Alien.ROTATION.inFov(directionVec, fov.getValueFloat())) {
+                        if (RiyueClient.ROTATION.inFov(directionVec, fov.getValueFloat())) {
                             CombatUtil.modifyPos = pos;
                             CombatUtil.modifyBlockState = Blocks.AIR.getDefaultState();
                             placeBlock(pos, rotate.getValue(), anchor);
@@ -365,7 +365,7 @@ public class AutoAnchor extends Module {
                             if (shouldYawStep() && checkFov.getValue()) {
                                 Direction side = getClickSide(pos);
                                 Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + 0.5 + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
-                                if (Alien.ROTATION.inFov(directionVec, fov.getValueFloat())) {
+                                if (RiyueClient.ROTATION.inFov(directionVec, fov.getValueFloat())) {
                                     CombatUtil.modifyPos = pos;
                                     CombatUtil.modifyBlockState = Blocks.AIR.getDefaultState();
                                     placeBlock(pos, rotate.getValue(), anchor);
@@ -520,7 +520,7 @@ public class AutoAnchor extends Module {
             doSwap(slot);
         }
         if (rotate && !shouldYawStep()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
     }
 
@@ -546,7 +546,7 @@ public class AutoAnchor extends Module {
             doSwap(slot);
         }
         if (rotate && !shouldYawStep()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
     }
 
@@ -560,11 +560,11 @@ public class AutoAnchor extends Module {
 
     public boolean faceVector(Vec3d directionVec) {
         if (!shouldYawStep()) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
             return true;
         } else {
             this.directionVec = directionVec;
-            if (Alien.ROTATION.inFov(directionVec, fov.getValueFloat())) {
+            if (RiyueClient.ROTATION.inFov(directionVec, fov.getValueFloat())) {
                 return true;
             }
         }
@@ -645,7 +645,7 @@ public class AutoAnchor extends Module {
 
     public BlockPos getHelper(BlockPos pos) {
         for (Direction i : Direction.values()) {
-            if (checkMine.getValue() && Alien.BREAK.isMining(pos.offset(i))) continue;
+            if (checkMine.getValue() && RiyueClient.BREAK.isMining(pos.offset(i))) continue;
             if (!BlockUtil.isStrictDirection(pos.offset(i), i.getOpposite())) continue;
             if (BlockUtil.canPlace(pos.offset(i))) return pos.offset(i);
         }

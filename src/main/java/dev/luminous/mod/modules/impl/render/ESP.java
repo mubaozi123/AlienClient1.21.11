@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.render;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.EntitySpawnedEvent;
 import dev.luminous.api.utils.math.MathUtil;
@@ -55,7 +55,7 @@ public class ESP extends Module {
     @Override
     public void onRender3D(MatrixStack matrixStack) {
         if (this.item.getValue()) {
-            for (Entity entity : Alien.THREAD.getEntities()) {
+            for (Entity entity : RiyueClient.THREAD.getEntities()) {
                 if (!(entity instanceof ItemEntity)) continue;
                 ItemEntity itemEntity = (ItemEntity)entity;
                 int itemCount = itemEntity.getStack().getCount();
@@ -66,7 +66,7 @@ public class ESP extends Module {
         }
         if (this.box.getValue()) {
             if (this.itemFill.booleanValue || this.itemOutline.booleanValue || this.playerFill.booleanValue || this.playerOutline.booleanValue) {
-                for (Entity entity : Alien.THREAD.getEntities()) {
+                for (Entity entity : RiyueClient.THREAD.getEntities()) {
                     Color color;
                     if (entity instanceof ItemEntity && (this.itemFill.booleanValue || this.itemOutline.booleanValue)) {
                         color = this.itemFill.getValue();

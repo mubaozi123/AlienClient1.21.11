@@ -1,6 +1,6 @@
 package dev.luminous.core.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.Render2DEvent;
 import dev.luminous.api.events.impl.Render3DEvent;
 import dev.luminous.api.utils.Wrapper;
@@ -237,7 +237,7 @@ public class ModuleManager implements Wrapper {
         }
 
         try {
-            Alien.EVENT_BUS.post(Render2DEvent.get(drawContext, mc.getRenderTickCounter().getDynamicDeltaTicks()));
+            RiyueClient.EVENT_BUS.post(Render2DEvent.get(drawContext, mc.getRenderTickCounter().getDynamicDeltaTicks()));
         } catch (Exception e) {
             e.printStackTrace();
             if (ClientSetting.INSTANCE.debug.getValue())
@@ -275,7 +275,7 @@ public class ModuleManager implements Wrapper {
                 }
             }
             try {
-                Alien.EVENT_BUS.post(Render3DEvent.get(matrices, mc.getRenderTickCounter().getTickProgress(true)));
+                RiyueClient.EVENT_BUS.post(Render3DEvent.get(matrices, mc.getRenderTickCounter().getTickProgress(true)));
             } catch (Exception e) {
                 e.printStackTrace();
                 if (!ClientSetting.INSTANCE.debug.getValue()) break block5;

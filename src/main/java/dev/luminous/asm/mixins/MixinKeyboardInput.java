@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.KeyboardInputEvent;
 import dev.luminous.api.events.impl.MovementInputEvent;
 import net.minecraft.client.input.KeyboardInput;
@@ -25,7 +25,7 @@ public class MixinKeyboardInput {
     )
     private void keyInput(CallbackInfo ci) {
         KeyboardInputEvent event = KeyboardInputEvent.get();
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             ci.cancel();
         }
@@ -33,6 +33,6 @@ public class MixinKeyboardInput {
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void keyInputTail(CallbackInfo ci) {
-        Alien.EVENT_BUS.post(MovementInputEvent.get());
+        RiyueClient.EVENT_BUS.post(MovementInputEvent.get());
     }
 }

@@ -1,7 +1,7 @@
 package dev.luminous.api.utils.render;
 
 import com.mojang.blaze3d.vertex.VertexFormat;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.Wrapper;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.*;
@@ -292,21 +292,21 @@ public class Render3DUtil implements Wrapper {
         Matrix4f matrix = stack.peek().getPositionMatrix();
         BufferBuilder bufferBuilder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION_COLOR);
         for (j = 0; j < vecs.size() - 1; ++j) {
-            float alpha = 1.0f - ((float) j + (float) (System.currentTimeMillis() - Alien.initTime) / 5.0f) % 360.0f / 60.0f;
+            float alpha = 1.0f - ((float) j + (float) (System.currentTimeMillis() - RiyueClient.initTime) / 5.0f) % 360.0f / 60.0f;
             bufferBuilder.vertex(matrix, (float) vecs.get(j).x, (float) vecs.get(j).y, (float) vecs.get(j).z).color(ColorUtil.injectAlpha(ColorUtil.pulseColor(color, (int) ((float) j / 20.0f), 10, 1.0), (int) (alpha * 255.0f)).getRGB());
             bufferBuilder.vertex(matrix, (float) vecs.get(j + 1).x, (float) vecs.get(j + 1).y + 0.1f, (float) vecs.get(j + 1).z).color(ColorUtil.injectAlpha(ColorUtil.pulseColor(color, (int) ((float) j / 20.0f), 10, 1.0), (int) (alpha * 255.0f)).getRGB());
         }
         Render3DUtil.endBuilding(bufferBuilder);
         bufferBuilder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION_COLOR);
         for (j = 0; j < vecs1.size() - 1; ++j) {
-            float alpha = 1.0f - ((float) j + (float) (System.currentTimeMillis() - Alien.initTime) / 5.0f) % 360.0f / 60.0f;
+            float alpha = 1.0f - ((float) j + (float) (System.currentTimeMillis() - RiyueClient.initTime) / 5.0f) % 360.0f / 60.0f;
             bufferBuilder.vertex(matrix, (float) vecs1.get(j).x, (float) vecs1.get(j).y, (float) vecs1.get(j).z).color(ColorUtil.injectAlpha(ColorUtil.pulseColor(color, (int) ((float) j / 20.0f), 10, 1.0), (int) (alpha * 255.0f)).getRGB());
             bufferBuilder.vertex(matrix, (float) vecs1.get(j + 1).x, (float) vecs1.get(j + 1).y + 0.1f, (float) vecs1.get(j + 1).z).color(ColorUtil.injectAlpha(ColorUtil.pulseColor(color, (int) ((float) j / 20.0f), 10, 1.0), (int) (alpha * 255.0f)).getRGB());
         }
         Render3DUtil.endBuilding(bufferBuilder);
         bufferBuilder = Tessellator.getInstance().begin(VertexFormat.DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION_COLOR);
         for (j = 0; j < vecs2.size() - 1; ++j) {
-            float alpha = 1.0f - ((float) j + (float) (System.currentTimeMillis() - Alien.initTime) / 5.0f) % 360.0f / 60.0f;
+            float alpha = 1.0f - ((float) j + (float) (System.currentTimeMillis() - RiyueClient.initTime) / 5.0f) % 360.0f / 60.0f;
             bufferBuilder.vertex(matrix, (float) vecs2.get(j).x, (float) vecs2.get(j).y, (float) vecs2.get(j).z).color(ColorUtil.injectAlpha(ColorUtil.pulseColor(color, (int) ((float) j / 20.0f), 10, 1.0), (int) (alpha * 255.0f)).getRGB());
             bufferBuilder.vertex(matrix, (float) vecs2.get(j + 1).x, (float) vecs2.get(j + 1).y + 0.1f, (float) vecs2.get(j + 1).z).color(ColorUtil.injectAlpha(ColorUtil.pulseColor(color, (int) ((float) j / 20.0f), 10, 1.0), (int) (alpha * 255.0f)).getRGB());
         }

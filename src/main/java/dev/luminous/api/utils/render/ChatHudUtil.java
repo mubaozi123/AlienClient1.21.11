@@ -39,11 +39,11 @@ public final class ChatHudUtil implements ChatHud.Backend {
             return this.delegate.text(y, opacity, text);
         }
 
-        FadeUtils fadeUtils = line.alienClient$getFade();
+        FadeUtils fadeUtils = line.riyueClient$getFade();
         double ease = fadeUtils == null ? 1.0 : fadeUtils.ease(ClientSetting.INSTANCE.ease.getValue());
         double fade = 1.0 - ease;
 
-        if (line.alienClient$getSync() && ClientSetting.INSTANCE.isOn()) {
+        if (line.riyueClient$getSync() && ClientSetting.INSTANCE.isOn()) {
             text = recolor(text, ClientSetting.INSTANCE.color.getValue().getRGB());
         }
 

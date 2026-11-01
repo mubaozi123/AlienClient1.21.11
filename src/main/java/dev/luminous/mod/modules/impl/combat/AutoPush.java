@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.utils.combat.CombatUtil;
@@ -54,13 +54,13 @@ public class AutoPush extends Module {
 
     public static void pistonFacing(Direction i) {
         if (i == Direction.EAST) {
-            Alien.ROTATION.snapAt(-90.0f, 5.0f);
+            RiyueClient.ROTATION.snapAt(-90.0f, 5.0f);
         } else if (i == Direction.WEST) {
-            Alien.ROTATION.snapAt(90.0f, 5.0f);
+            RiyueClient.ROTATION.snapAt(90.0f, 5.0f);
         } else if (i == Direction.NORTH) {
-            Alien.ROTATION.snapAt(180.0f, 5.0f);
+            RiyueClient.ROTATION.snapAt(180.0f, 5.0f);
         } else if (i == Direction.SOUTH) {
-            Alien.ROTATION.snapAt(0.0f, 5.0f);
+            RiyueClient.ROTATION.snapAt(0.0f, 5.0f);
         }
     }
 
@@ -180,7 +180,7 @@ public class AutoPush extends Module {
                         int pistonSlot = findClass(PistonBlock.class);
                         Direction side = BlockUtil.getPlaceSide(piston);
                         if (side != null) {
-                            if (rotate.getValue()) Alien.ROTATION.lookAt(piston.offset(side), side.getOpposite());
+                            if (rotate.getValue()) RiyueClient.ROTATION.lookAt(piston.offset(side), side.getOpposite());
                             if (yawDeceive.getValue()) pistonFacing(direction.getOpposite());
                             int old = mc.player.getInventory().selectedSlot;
                             doSwap(pistonSlot);
@@ -192,9 +192,9 @@ public class AutoPush extends Module {
                                 doSwap(old);
                             }
                             if (rotate.getValue() && yawDeceive.getValue())
-                                Alien.ROTATION.lookAt(piston.offset(side), side.getOpposite());
+                                RiyueClient.ROTATION.lookAt(piston.offset(side), side.getOpposite());
                             if (rotate.getValue()) {
-                                Alien.ROTATION.snapBack();
+                                RiyueClient.ROTATION.snapBack();
                             }
                             for (Direction i : Direction.values()) {
                                 if (getBlock(piston.offset(i)) == getBlockType()) {
@@ -262,7 +262,7 @@ public class AutoPush extends Module {
                         int pistonSlot = findClass(PistonBlock.class);
                         Direction side = BlockUtil.getPlaceSide(piston);
                         if (side != null) {
-                            if (rotate.getValue()) Alien.ROTATION.lookAt(piston.offset(side), side.getOpposite());
+                            if (rotate.getValue()) RiyueClient.ROTATION.lookAt(piston.offset(side), side.getOpposite());
                             if (yawDeceive.getValue()) pistonFacing(direction.getOpposite());
                             int old = mc.player.getInventory().selectedSlot;
                             doSwap(pistonSlot);
@@ -274,9 +274,9 @@ public class AutoPush extends Module {
                                 doSwap(old);
                             }
                             if (rotate.getValue() && yawDeceive.getValue())
-                                Alien.ROTATION.lookAt(piston.offset(side), side.getOpposite());
+                                RiyueClient.ROTATION.lookAt(piston.offset(side), side.getOpposite());
                             if (rotate.getValue()) {
-                                Alien.ROTATION.snapBack();
+                                RiyueClient.ROTATION.snapBack();
                             }
                         }
                         CombatUtil.modifyPos = null;
@@ -359,7 +359,7 @@ public class AutoPush extends Module {
 
     private Boolean canPush(PlayerEntity player) {
         if (onlyGround.getValue() && !player.isOnGround()) return false;
-        if (!allowWeb.getValue() && Alien.PLAYER.isInWeb(player)) return false;
+        if (!allowWeb.getValue() && RiyueClient.PLAYER.isInWeb(player)) return false;
         float[] offset = new float[]{-0.25f, 0f, 0.25f};
 
         int progress = 0;
@@ -404,7 +404,7 @@ public class AutoPush extends Module {
             }
         }
 
-        return progress > surroundCheck.getValue() - 1 || Alien.HOLE.isHard(new BlockPosX(player.getX(), player.getY() + 0.5, player.getZ()));
+        return progress > surroundCheck.getValue() - 1 || RiyueClient.HOLE.isHard(new BlockPosX(player.getX(), player.getY() + 0.5, player.getZ()));
     }
 
     private Block getBlock(BlockPos pos) {

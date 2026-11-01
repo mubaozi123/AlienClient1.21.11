@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.LightmapGammaEvent;
 import dev.luminous.mod.modules.impl.render.Ambience;
 import dev.luminous.mod.modules.impl.render.NoRender;
@@ -66,7 +66,7 @@ public abstract class MixinLightmapTextureManager {
     private void hookLightmapGamma(Args args) {
         float originalGamma = args.get(0);
         LightmapGammaEvent event = new LightmapGammaEvent(originalGamma);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             args.set(0, event.getGamma());
         }

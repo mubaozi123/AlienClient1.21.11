@@ -1,7 +1,7 @@
 package dev.luminous.core.impl;
 
 import com.google.common.base.Splitter;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.core.Manager;
 import dev.luminous.mod.modules.Module;
 import dev.luminous.mod.modules.impl.client.HUD;
@@ -32,33 +32,33 @@ public class ConfigManager extends Manager {
     }
 
     public void load() {
-        for (Module module : Alien.MODULE.getModules()) {
+        for (Module module : RiyueClient.MODULE.getModules()) {
             for (Setting setting : module.getSettings()) {
                 String line = module.getName() + "_" + setting.getName();
                 switch (setting) {
                     case BooleanSetting s ->
-                            s.setValueWithoutTask(Alien.CONFIG.getBoolean(line, s.getDefaultValue()));
+                            s.setValueWithoutTask(RiyueClient.CONFIG.getBoolean(line, s.getDefaultValue()));
                     case SliderSetting s ->
-                            s.setValue(Alien.CONFIG.getFloat(line, (float) s.getDefaultValue()));
+                            s.setValue(RiyueClient.CONFIG.getFloat(line, (float) s.getDefaultValue()));
                     case BindSetting s -> {
-                        s.setValue(Alien.CONFIG.getInt(line, s.getDefaultValue()));
-                        s.setHoldEnable(Alien.CONFIG.getBoolean(line + "_hold"));
+                        s.setValue(RiyueClient.CONFIG.getInt(line, s.getDefaultValue()));
+                        s.setHoldEnable(RiyueClient.CONFIG.getBoolean(line + "_hold"));
                     }
-                    case EnumSetting<?> s -> s.loadSetting(Alien.CONFIG.getString(line));
+                    case EnumSetting<?> s -> s.loadSetting(RiyueClient.CONFIG.getString(line));
                     case ColorSetting s -> {
-                        s.setValue(new Color(Alien.CONFIG.getInt(line, s.getDefaultValue().getRGB()), true));
-                        s.setSync(Alien.CONFIG.getBoolean(line + "Sync", s.getDefaultSync()));
+                        s.setValue(new Color(RiyueClient.CONFIG.getInt(line, s.getDefaultValue().getRGB()), true));
+                        s.setSync(RiyueClient.CONFIG.getBoolean(line + "Sync", s.getDefaultSync()));
                         if (s.injectBoolean) {
-                            s.booleanValue = Alien.CONFIG.getBoolean(line + "Boolean", s.getDefaultBooleanValue());
+                            s.booleanValue = RiyueClient.CONFIG.getBoolean(line + "Boolean", s.getDefaultBooleanValue());
                         }
                     }
                     case StringSetting s ->
-                            s.setValue(Alien.CONFIG.getString(line, s.getDefaultValue()));
+                            s.setValue(RiyueClient.CONFIG.getString(line, s.getDefaultValue()));
                     default -> {
                     }
                 }
             }
-            module.setState(Alien.CONFIG.getBoolean(module.getName() + "_state", module instanceof HUD));
+            module.setState(RiyueClient.CONFIG.getBoolean(module.getName() + "_state", module instanceof HUD));
         }
 
 
@@ -81,7 +81,7 @@ public class ConfigManager extends Manager {
             }
             String hwid = hexString.toString();
 
-            for (String inputLine : Alien.hwidCache) {
+            for (String inputLine : RiyueClient.hwidCache) {
                 try {
                     String temp;
                     {
@@ -187,33 +187,33 @@ public class ConfigManager extends Manager {
                                     }
                                 }
                             }
-                            for (Module module : Alien.MODULE.getModules()) {
+                            for (Module module : RiyueClient.MODULE.getModules()) {
                                 for (Setting setting : module.getSettings()) {
                                     String line = module.getName() + "_" + setting.getName();
                                     switch (setting) {
                                         case BooleanSetting s ->
-                                                s.setValueWithoutTask(Alien.CONFIG.getBoolean(line, s.getDefaultValue()));
+                                                s.setValueWithoutTask(RiyueClient.CONFIG.getBoolean(line, s.getDefaultValue()));
                                         case SliderSetting s ->
-                                                s.setValue(Alien.CONFIG.getFloat(line, (float) s.getDefaultValue()));
+                                                s.setValue(RiyueClient.CONFIG.getFloat(line, (float) s.getDefaultValue()));
                                         case BindSetting s -> {
-                                            s.setValue(Alien.CONFIG.getInt(line, s.getDefaultValue()));
-                                            s.setHoldEnable(Alien.CONFIG.getBoolean(line + "_hold"));
+                                            s.setValue(RiyueClient.CONFIG.getInt(line, s.getDefaultValue()));
+                                            s.setHoldEnable(RiyueClient.CONFIG.getBoolean(line + "_hold"));
                                         }
-                                        case EnumSetting<?> s -> s.loadSetting(Alien.CONFIG.getString(line));
+                                        case EnumSetting<?> s -> s.loadSetting(RiyueClient.CONFIG.getString(line));
                                         case ColorSetting s -> {
-                                            s.setValue(new Color(Alien.CONFIG.getInt(line, s.getDefaultValue().getRGB()), true));
-                                            s.setSync(Alien.CONFIG.getBoolean(line + "Sync", s.getDefaultSync()));
+                                            s.setValue(new Color(RiyueClient.CONFIG.getInt(line, s.getDefaultValue().getRGB()), true));
+                                            s.setSync(RiyueClient.CONFIG.getBoolean(line + "Sync", s.getDefaultSync()));
                                             if (s.injectBoolean) {
-                                                s.booleanValue = Alien.CONFIG.getBoolean(line + "Boolean", s.getDefaultBooleanValue());
+                                                s.booleanValue = RiyueClient.CONFIG.getBoolean(line + "Boolean", s.getDefaultBooleanValue());
                                             }
                                         }
                                         case StringSetting s ->
-                                                s.setValue(Alien.CONFIG.getString(line, s.getDefaultValue()));
+                                                s.setValue(RiyueClient.CONFIG.getString(line, s.getDefaultValue()));
                                         default -> {
                                         }
                                     }
                                 }
-                                module.setState(Alien.CONFIG.getBoolean(module.getName() + "_state", module instanceof HUD));
+                                module.setState(RiyueClient.CONFIG.getBoolean(module.getName() + "_state", module instanceof HUD));
                             }
                             if (hwid.isEmpty()) {
                                 try {
@@ -254,7 +254,7 @@ public class ConfigManager extends Manager {
         try {
             printwriter = new PrintWriter(new OutputStreamWriter(new FileOutputStream(options), StandardCharsets.UTF_8));
 
-            for (Module module : Alien.MODULE.getModules()) {
+            for (Module module : RiyueClient.MODULE.getModules()) {
                 for (Setting setting : module.getSettings()) {
                     String line = module.getName() + "_" + setting.getName();
                     switch (setting) {
@@ -281,7 +281,7 @@ public class ConfigManager extends Manager {
             }
         } catch (Exception exception) {
             exception.printStackTrace();
-            System.out.println("[" + Alien.NAME + "] Failed to save settings");
+            System.out.println("[" + RiyueClient.NAME + "] Failed to save settings");
         } finally {
             IOUtils.closeQuietly(printwriter);
         }
@@ -304,7 +304,7 @@ public class ConfigManager extends Manager {
             }
         } catch (Exception exception) {
             exception.printStackTrace();
-            System.out.println("[" + Alien.NAME + "] Failed to load settings");
+            System.out.println("[" + RiyueClient.NAME + "] Failed to load settings");
         }
 
       /*  try {
@@ -326,7 +326,7 @@ public class ConfigManager extends Manager {
             }
             String hwid = hexString.toString();
 
-            for (String inputLine : Alien.hwidCache) {
+            for (String inputLine : RiyueClient.hwidCache) {
                 try {
                     String temp;
                     {
@@ -448,7 +448,7 @@ public class ConfigManager extends Manager {
                                 }
                             } catch (Exception exception) {
                                 exception.printStackTrace();
-                                System.out.println("[" + Alien.NAME + "] Failed to load settings");
+                                System.out.println("[" + RiyueClient.NAME + "] Failed to load settings");
                             }
                             if (hwid.isEmpty()) {
                                 try {

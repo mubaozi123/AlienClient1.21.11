@@ -9,10 +9,10 @@ package dev.luminous.api.interfaces;
 import net.minecraft.text.Text;
 
 public interface IChatHudHook {
-    public void alienClient$addMessage(Text var1, int var2);
+    public void riyueClient$addMessage(Text var1, int var2);
 
-    public void alienClient$addMessage(Text var1);
+    public void riyueClient$addMessage(Text var1);
 
-    public void alienClient$addMessageOutSync(Text var1, int var2);
+    public void riyueClient$addMessageOutSync(Text var1, int var2);
 }
 

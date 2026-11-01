@@ -3,7 +3,7 @@
  */
 package dev.luminous.mod.commands.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.mod.commands.Command;
 import dev.luminous.mod.modules.impl.misc.FakePlayer;
 import java.util.ArrayList;
@@ -45,7 +45,7 @@ extends Command {
             ArrayList<String> correct = new ArrayList<String>();
             List<String> list = List.of("record", "play");
             for (String x : list) {
-                if (!input.equalsIgnoreCase(Alien.getPrefix() + "fakeplayer") && !x.toLowerCase().startsWith(input)) continue;
+                if (!input.equalsIgnoreCase(RiyueClient.getPrefix() + "fakeplayer") && !x.toLowerCase().startsWith(input)) continue;
                 correct.add(x);
             }
             int numCmds = correct.size();

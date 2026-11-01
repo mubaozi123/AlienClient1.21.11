@@ -35,15 +35,15 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.*;
 
-public class Alien implements ModInitializer {
+public class RiyueClient implements ModInitializer {
     private static final int AES_KEY_SIZE = 256; // AES-256
     private static final int GCM_IV_LENGTH = 12; // GCM推荐IV长度
     private static final int GCM_TAG_LENGTH = 16; // GCM认证标签长度
     private static final int PBKDF2_ITERATIONS = 600000; // 迭代次数
     private static final int SALT_LENGTH = 16; // 盐值长度
 
-    public static final String NAME = "Alien";
-    public static final String VERSION = "1.21.11+build";
+    public static final String NAME = "RiyueClient";
+    public static final String VERSION = "1.3.3";
     public static final EventBus EVENT_BUS = new EventBus();
     public static HoleManager HOLE;
     public static PlayerManager PLAYER;
@@ -72,13 +72,13 @@ public class Alien implements ModInitializer {
     }
 
     public static void save() {
-        System.out.println("[" + Alien.NAME + "] Saving");
+        System.out.println("[" + RiyueClient.NAME + "] Saving");
         CONFIG.save();
         CLEANER.save();
         FRIEND.save();
         XRAY.save();
         TRADE.save();
-        System.out.println("[" + Alien.NAME + "] Saved");
+        System.out.println("[" + RiyueClient.NAME + "] Saved");
     }
 
     public static final List<String> hwidCache = new ArrayList<>();
@@ -125,9 +125,9 @@ public class Alien implements ModInitializer {
 
         initTime = System.currentTimeMillis();
         loaded = true;
-        Alien.EVENT_BUS.post(new InitEvent());
+        RiyueClient.EVENT_BUS.post(new InitEvent());
 
-        File folder = new File(MinecraftClient.getInstance().runDirectory.getPath() + File.separator + Alien.NAME.toLowerCase() + File.separator + "cfg");
+        File folder = new File(MinecraftClient.getInstance().runDirectory.getPath() + File.separator + RiyueClient.NAME.toLowerCase() + File.separator + "cfg");
         if (!folder.exists()) {
             folder.mkdirs();
         }
@@ -302,9 +302,9 @@ public class Alien implements ModInitializer {
 
                                     initTime = System.currentTimeMillis();
                                     loaded = true;
-                                    Alien.EVENT_BUS.post(new InitEvent());
+                                    RiyueClient.EVENT_BUS.post(new InitEvent());
 
-                                    File folder = new File(MinecraftClient.getInstance().runDirectory.getPath() + File.separator + Alien.NAME.toLowerCase() + File.separator + "cfg");
+                                    File folder = new File(MinecraftClient.getInstance().runDirectory.getPath() + File.separator + RiyueClient.NAME.toLowerCase() + File.separator + "cfg");
                                     if (!folder.exists()) {
                                         folder.mkdirs();
                                     }

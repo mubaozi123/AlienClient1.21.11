@@ -4,7 +4,7 @@ uniform sampler2D InSampler;
 in vec2 texCoord;
 out vec4 fragColor;
 
-uniform AlienParams {
+uniform RiyueParams {
     vec4 Color;
     vec4 Color2;
     vec4 Resolution;

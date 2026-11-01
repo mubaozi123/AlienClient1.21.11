@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.movement;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.EntityVelocityUpdateEvent;
 import dev.luminous.api.events.impl.PacketEvent;
@@ -68,7 +68,7 @@ public class Velocity extends Module {
     @EventListener
     public void onRotate(UpdateRotateEvent event) {
         if (noRotation()) {
-            event.setRotation(Alien.ROTATION.rotationYaw, 89);
+            event.setRotation(RiyueClient.ROTATION.rotationYaw, 89);
         }
     }
 
@@ -162,7 +162,7 @@ public class Velocity extends Module {
         if (Blink.INSTANCE.isOn() && Blink.INSTANCE.pauseModule.getValue()) return;
         if (flag) {
             if (lagBackTimer.passedMs(lagPause.getValue()) && (flagInWall.getValue() && (!pushOutOfBlocks || whenPushOutOfBlocks.getValue()) || !EntityUtil.isInsideBlock())) {
-                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.Full(Velocity.mc.player.getX(), Velocity.mc.player.getY(), Velocity.mc.player.getZ(), Alien.ROTATION.rotationYaw, Alien.ROTATION.rotationPitch, Velocity.mc.player.isOnGround(), false));
+                mc.getNetworkHandler().sendPacket((Packet)new PlayerMoveC2SPacket.Full(Velocity.mc.player.getX(), Velocity.mc.player.getY(), Velocity.mc.player.getZ(), RiyueClient.ROTATION.rotationYaw, RiyueClient.ROTATION.rotationPitch, Velocity.mc.player.isOnGround(), false));
                 BlockPos pos = getPos();
                 if (pos != null) {
                     mc.getNetworkHandler().sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK,

@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.movement;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.eventbus.EventPriority;
 import dev.luminous.api.events.impl.TimerEvent;
@@ -47,7 +47,7 @@ public class FastWeb extends Module {
 
     @EventListener
     public void onUpdate(UpdateEvent event) {
-        work = (!mc.player.isOnGround()) && (mc.options.sneakKey.isPressed() || !onlySneak.getValue()) && Alien.PLAYER.isInWeb(mc.player);
+        work = (!mc.player.isOnGround()) && (mc.options.sneakKey.isPressed() || !onlySneak.getValue()) && RiyueClient.PLAYER.isInWeb(mc.player);
         if (work && mode.is(Mode.Vanilla)) {
             MovementUtil.setMotionY(-fastSpeed.getValue());
         }

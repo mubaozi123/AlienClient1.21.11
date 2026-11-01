@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.client;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.PacketEvent;
 import dev.luminous.api.events.impl.UpdateEvent;
@@ -79,7 +79,7 @@ public class IRC extends Module {
 
     public void start() {
         connect = true;
-        Alien.THREAD.execute(() -> {
+        RiyueClient.THREAD.execute(() -> {
             Scanner scanner = new Scanner(System.in);
 
             try (Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
@@ -87,7 +87,7 @@ public class IRC extends Module {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Send username to server
-                out.println(mc.getSession().getUsername() + "[" + Alien.userId + "]");
+                out.println(mc.getSession().getUsername() + "[" + RiyueClient.userId + "]");
                 IRC.printWriter = out;
 
                 // Start a thread to read messages from server

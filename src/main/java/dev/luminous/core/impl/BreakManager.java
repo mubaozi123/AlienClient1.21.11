@@ -11,7 +11,7 @@
  */
 package dev.luminous.core.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.BlockBreakingProgressEvent;
 import dev.luminous.api.events.impl.ClientTickEvent;
@@ -39,7 +39,7 @@ implements Wrapper {
     public final ConcurrentHashMap<Integer, BreakData> doubleMap = new ConcurrentHashMap();
 
     public BreakManager() {
-        Alien.EVENT_BUS.subscribe(this);
+        RiyueClient.EVENT_BUS.subscribe(this);
     }
 
     @EventListener
@@ -54,12 +54,12 @@ implements Wrapper {
             return;
         }
         if (AntiCheat.INSTANCE.detectDouble.getValue()) {
-            Iterator<Object> iterator = ((ConcurrentHashMap.KeySetView)Alien.BREAK.doubleMap.keySet()).iterator();
+            Iterator<Object> iterator = ((ConcurrentHashMap.KeySetView)RiyueClient.BREAK.doubleMap.keySet()).iterator();
             while (iterator.hasNext()) {
                 int i = (Integer)iterator.next();
-                BreakData breakData = Alien.BREAK.doubleMap.get(i);
+                BreakData breakData = RiyueClient.BREAK.doubleMap.get(i);
                 if (breakData != null && breakData.getEntity() != null && !BreakManager.mc.world.isAir(breakData.pos) && !breakData.timer.passedMs(Math.max(AntiCheat.INSTANCE.minTimeout.getValue() * 1000.0, breakData.breakTime * AntiCheat.INSTANCE.doubleMineTimeout.getValue()))) continue;
-                Alien.BREAK.doubleMap.remove(i);
+                RiyueClient.BREAK.doubleMap.remove(i);
             }
         }
         for (BreakData breakData : this.breakMap.values()) {
@@ -124,7 +124,7 @@ implements Wrapper {
                 return;
             }
             this.breakMap.put(packet2.getEntityId(), breakData);
-            Alien.EVENT_BUS.post(BlockBreakingProgressEvent.get(packet2.getPos(), packet2.getEntityId(), packet2.getProgress()));
+            RiyueClient.EVENT_BUS.post(BlockBreakingProgressEvent.get(packet2.getPos(), packet2.getEntityId(), packet2.getProgress()));
             if (AntiCheat.INSTANCE.detectDouble.getValue() && !this.doubleMap.containsKey(packet2.getEntityId()) && !PacketMine.unbreakable(packet2.getPos())) {
                 this.doubleMap.put(packet2.getEntityId(), new BreakData(packet2.getPos(), packet2.getEntityId(), true));
             }

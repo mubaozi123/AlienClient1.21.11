@@ -1,7 +1,7 @@
 package dev.luminous.mod.modules.impl.render;
 
 import com.google.common.collect.Maps;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.PacketEvent;
 import dev.luminous.api.events.impl.UpdateEvent;
@@ -94,7 +94,7 @@ public class LogoutSpots extends Module {
     @EventListener
     public void onUpdate(UpdateEvent event) {
         playerCache.clear();
-        for (AbstractClientPlayerEntity player : Alien.THREAD.getPlayers()) {
+        for (AbstractClientPlayerEntity player : RiyueClient.THREAD.getPlayers()) {
             if (player == null || player.equals(mc.player)) continue;
             playerCache.put(player.getGameProfile().id(), player);
         }
@@ -115,7 +115,7 @@ public class LogoutSpots extends Module {
                 data.render(matrixStack, chamsFill, chamsLine);
             }
             if (text.booleanValue) {
-                Render3DUtil.drawText3D(player.getName().getString() + (health.getValue() ? TextRadar.getHealthColor(player) + " " + round2(player.getHealth() + player.getAbsorptionAmount()) : "") + (totem.getValue() && Alien.POP.getPop(player) > 0 ? TextRadar.getPopColor(Alien.POP.getPop(player)) + " -" + (Alien.POP.getPop(player)) : ""), new Vec3d(player.getX(), ((IEntity) player).getDimensions().getBoxAt(player.getEntityPos()).maxY + 0.5, player.getZ()), text.getValue());
+                Render3DUtil.drawText3D(player.getName().getString() + (health.getValue() ? TextRadar.getHealthColor(player) + " " + round2(player.getHealth() + player.getAbsorptionAmount()) : "") + (totem.getValue() && RiyueClient.POP.getPop(player) > 0 ? TextRadar.getPopColor(RiyueClient.POP.getPop(player)) + " -" + (RiyueClient.POP.getPop(player)) : ""), new Vec3d(player.getX(), ((IEntity) player).getDimensions().getBoxAt(player.getEntityPos()).maxY + 0.5, player.getZ()), text.getValue());
             }
         }
     }

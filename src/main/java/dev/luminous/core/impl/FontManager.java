@@ -45,7 +45,7 @@ public class FontManager {
             icon = nextIcon;
         } catch (Exception e) {
             // Keep the GUI usable when bundled font resources are unavailable.
-            System.err.println("[Alien] Custom fonts unavailable, using system fallback: " + e.getMessage());
+            System.err.println("[RiyueClient] Custom fonts unavailable, using system fallback: " + e.getMessage());
             Font fallback = new Font(Font.SANS_SERIF, Font.PLAIN, 8);
             Font smallFallback = fallback.deriveFont(6.0f);
             Font iconFallback = new Font(Font.SANS_SERIF, Font.PLAIN, 8);
@@ -57,7 +57,7 @@ public class FontManager {
 
     public static FontRenderer assets(float size, String font, int style, String alternate) throws IOException, FontFormatException {
         ClassLoader classLoader = FontManager.class.getClassLoader();
-        InputStream primary = classLoader.getResourceAsStream("assets/alienclient/font/" + font + ".ttf");
+        InputStream primary = classLoader.getResourceAsStream("assets/riyueclient/font/" + font + ".ttf");
         InputStream fallback = classLoader.getResourceAsStream("assets/minecraft/font/default.ttf");
         InputStream stream = primary != null ? primary : fallback;
         if (stream == null) {
@@ -74,7 +74,7 @@ public class FontManager {
 
     public static FontRenderer assetsWithoutOffset(float size, String name, int style) throws IOException, FontFormatException {
         ClassLoader classLoader = FontManager.class.getClassLoader();
-        InputStream primary = classLoader.getResourceAsStream("assets/alienclient/font/" + name + ".ttf");
+        InputStream primary = classLoader.getResourceAsStream("assets/riyueclient/font/" + name + ".ttf");
         InputStream fallback = classLoader.getResourceAsStream("assets/minecraft/font/default.ttf");
         InputStream stream = primary != null ? primary : fallback;
         if (stream == null) {
@@ -85,7 +85,7 @@ public class FontManager {
 
     public static FontRenderer assets(float size, String name, int style) throws IOException, FontFormatException {
         ClassLoader classLoader = FontManager.class.getClassLoader();
-        InputStream primary = classLoader.getResourceAsStream("assets/alienclient/font/" + name + ".ttf");
+        InputStream primary = classLoader.getResourceAsStream("assets/riyueclient/font/" + name + ".ttf");
         InputStream fallback = classLoader.getResourceAsStream("assets/minecraft/font/default.ttf");
         InputStream stream = primary != null ? primary : fallback;
         return new FontRenderer(Font.createFont(0, Objects.requireNonNull(stream)).deriveFont(style, size), size){

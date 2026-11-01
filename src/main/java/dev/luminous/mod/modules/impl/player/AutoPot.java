@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.player;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.ClientTickEvent;
 import dev.luminous.api.events.impl.UpdateEvent;
@@ -57,7 +57,7 @@ public class AutoPot extends Module {
         super("AutoPot", Category.Player);
         setChinese("自动药水");
         INSTANCE = this;
-        Alien.EVENT_BUS.subscribe(new AutoPotTick());
+        RiyueClient.EVENT_BUS.subscribe(new AutoPotTick());
     }
 
     public static int findPotionInventorySlot(StatusEffect targetEffect) {
@@ -97,7 +97,7 @@ public class AutoPot extends Module {
     public void onUpdate(UpdateEvent event) {
         if (inventory.getValue() && !EntityUtil.inInventory()) return;
         if (!delayTimer.passedMs(delay.getValue() * 1000)) return;
-        if (!onlyGround.getValue() || (mc.player.isOnGround() || Alien.PLAYER.isInWeb(mc.player)) && !mc.world.isAir(new BlockPosX(mc.player.getEntityPos().add(0, -1, 0)))) {
+        if (!onlyGround.getValue() || (mc.player.isOnGround() || RiyueClient.PLAYER.isInWeb(mc.player)) && !mc.world.isAir(new BlockPosX(mc.player.getEntityPos().add(0, -1, 0)))) {
             if (resistance.getValue() && (!mc.player.hasStatusEffect(StatusEffects.RESISTANCE) || mc.player.getStatusEffect(StatusEffects.RESISTANCE).getAmplifier() < 2)) {
                 throwing = checkThrow(StatusEffects.RESISTANCE.value());
                 if (isThrow()) {
@@ -132,19 +132,19 @@ public class AutoPot extends Module {
         int oldSlot = mc.player.getInventory().selectedSlot;
         int newSlot;
         if (inventory.getValue() && (newSlot = findPotionInventorySlot(targetEffect)) != -1) {
-            Alien.ROTATION.snapAt(Alien.ROTATION.rotationYaw, 90);
+            RiyueClient.ROTATION.snapAt(RiyueClient.ROTATION.rotationYaw, 90);
             InventoryUtil.inventorySwap(newSlot, mc.player.getInventory().selectedSlot);
-            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             InventoryUtil.inventorySwap(newSlot, mc.player.getInventory().selectedSlot);
             EntityUtil.syncInventory();
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
             delayTimer.reset();
         } else if ((newSlot = findPotion(targetEffect)) != -1) {
-            Alien.ROTATION.snapAt(Alien.ROTATION.rotationYaw, 90);
+            RiyueClient.ROTATION.snapAt(RiyueClient.ROTATION.rotationYaw, 90);
             InventoryUtil.switchToSlot(newSlot);
-            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             InventoryUtil.switchToSlot(oldSlot);
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
             delayTimer.reset();
         }
     }

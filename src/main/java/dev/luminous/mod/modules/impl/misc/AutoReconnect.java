@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.misc;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.PacketEvent;
 import dev.luminous.api.events.impl.ServerConnectBeginEvent;
@@ -45,7 +45,7 @@ public class AutoReconnect extends Module {
         super("AutoReconnect", Category.Misc);
         setChinese("自动重连");
         INSTANCE = this;
-        Alien.EVENT_BUS.subscribe(new StaticListener());
+        RiyueClient.EVENT_BUS.subscribe(new StaticListener());
     }
 
     @EventListener
@@ -56,7 +56,7 @@ public class AutoReconnect extends Module {
         }
         if (autoQueue.getValue() && InventoryUtil.findItem(Items.COMPASS) != -1 && queueTimer.passedS(joinQueueDelay.getValue())) {
             InventoryUtil.switchToSlot(InventoryUtil.findItem(Items.COMPASS));
-            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             queueTimer.reset();
         }
         if (nullCheck()) {

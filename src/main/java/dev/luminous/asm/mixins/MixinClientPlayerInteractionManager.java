@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.ClickBlockEvent;
 import dev.luminous.api.events.impl.InteractBlockEvent;
 import dev.luminous.api.events.impl.InteractItemEvent;
@@ -39,7 +39,7 @@ public class MixinClientPlayerInteractionManager {
     @Inject(method = "interactItem", at = @At("HEAD"), cancellable = true)
     private void hookInteractItem(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
         InteractItemEvent event = InteractItemEvent.getPre(hand);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             cir.setReturnValue(ActionResult.PASS);
         }
@@ -47,13 +47,13 @@ public class MixinClientPlayerInteractionManager {
 
     @Inject(method = "interactItem", at = @At("RETURN"))
     private void hookInteractItemReturn(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
-        Alien.EVENT_BUS.post(InteractItemEvent.getPost(hand));
+        RiyueClient.EVENT_BUS.post(InteractItemEvent.getPost(hand));
     }
 
     @Inject(method = "interactBlock", at = @At("HEAD"), cancellable = true)
     private void hookInteractBlock(ClientPlayerEntity player, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
         InteractBlockEvent event = InteractBlockEvent.getPre(hand);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             cir.setReturnValue(ActionResult.PASS);
         }
@@ -61,7 +61,7 @@ public class MixinClientPlayerInteractionManager {
 
     @Inject(method = "interactBlock", at = @At("RETURN"))
     private void hookInteractBlockReturn(ClientPlayerEntity player, Hand hand, BlockHitResult hitResult, CallbackInfoReturnable<ActionResult> cir) {
-        Alien.EVENT_BUS.post(InteractBlockEvent.getPost(hand));
+        RiyueClient.EVENT_BUS.post(InteractBlockEvent.getPost(hand));
     }
 
     @Inject(method = "cancelBlockBreaking", at = @At("HEAD"), cancellable = true)
@@ -73,7 +73,7 @@ public class MixinClientPlayerInteractionManager {
     @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)
     private void onAttackBlock(BlockPos pos, Direction direction, CallbackInfoReturnable<Boolean> cir) {
         ClickBlockEvent event = ClickBlockEvent.get(pos, direction);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             cir.setReturnValue(false);
         }

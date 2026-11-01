@@ -28,7 +28,7 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 
 public final class ImmediateDrawUtil {
-	private static final ProjectionMatrix2 GUI_PROJECTION_MATRIX = new ProjectionMatrix2("alien_gui", 1000.0F, 11000.0F, true);
+	private static final ProjectionMatrix2 GUI_PROJECTION_MATRIX = new ProjectionMatrix2("riyue_gui", 1000.0F, 11000.0F, true);
 	private static float colorModulatorAlpha = 1.0F;
 	private static final RenderPipeline POS_COLOR_QUADS_NO_DEPTH = registerPosColorNoDepth("quads", VertexFormat.DrawMode.QUADS);
 	private static final RenderPipeline POS_COLOR_LINES_NO_DEPTH = registerPosColorNoDepth("lines", VertexFormat.DrawMode.LINES);
@@ -45,7 +45,7 @@ public final class ImmediateDrawUtil {
 
 	private static final RenderPipeline LINES_WIDE_NO_DEPTH = RenderPipelines.register(
 			RenderPipeline.builder(RenderPipelines.RENDERTYPE_LINES_SNIPPET)
-					.withLocation(Identifier.of("alienclient", "pipeline/lines_wide_no_depth"))
+					.withLocation(Identifier.of("riyueclient", "pipeline/lines_wide_no_depth"))
 					.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
 					.withDepthWrite(false)
 					.build()
@@ -65,7 +65,7 @@ public final class ImmediateDrawUtil {
 	private static RenderPipeline registerPosColorNoDepth(String name, VertexFormat.DrawMode drawMode) {
 		return RenderPipelines.register(
 				RenderPipeline.builder(RenderPipelines.POSITION_COLOR_SNIPPET)
-						.withLocation(Identifier.of("alienclient", "pipeline/pos_color_no_depth_" + name))
+						.withLocation(Identifier.of("riyueclient", "pipeline/pos_color_no_depth_" + name))
 						.withCull(false)
 						.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
 						.withDepthWrite(false)
@@ -77,7 +77,7 @@ public final class ImmediateDrawUtil {
 	private static RenderPipeline registerPosTexColorNoDepth(String name, VertexFormat.DrawMode drawMode) {
 		return RenderPipelines.register(
 				RenderPipeline.builder(RenderPipelines.POSITION_TEX_COLOR_SNIPPET)
-						.withLocation(Identifier.of("alienclient", "pipeline/pos_tex_color_no_depth_" + name))
+						.withLocation(Identifier.of("riyueclient", "pipeline/pos_tex_color_no_depth_" + name))
 						.withCull(false)
 						.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
 						.withDepthWrite(false)
@@ -141,7 +141,7 @@ public final class ImmediateDrawUtil {
 
 			try (RenderPass renderPass = RenderSystem.getDevice()
 					.createCommandEncoder()
-					.createRenderPass(() -> "alien_immediate_nodepth", colorView, OptionalInt.empty(), depthView, OptionalDouble.empty())) {
+					.createRenderPass(() -> "riyue_immediate_nodepth", colorView, OptionalInt.empty(), depthView, OptionalDouble.empty())) {
 				RenderSystem.bindDefaultUniforms(renderPass);
 				renderPass.setUniform("DynamicTransforms", dynamicTransforms);
 				renderPass.setPipeline(pipeline);

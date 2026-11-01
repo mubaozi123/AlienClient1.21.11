@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.Wrapper;
 import dev.luminous.core.impl.CommandManager;
 import dev.luminous.mod.modules.impl.client.ClientSetting;
@@ -23,10 +23,10 @@ public class MixinKeyboard
             try {
                 int key = input.key();
                 if (action == 1) {
-                    Alien.MODULE.onKeyPressed(key);
+                    RiyueClient.MODULE.onKeyPressed(key);
                 }
                 if (action == 0) {
-                    Alien.MODULE.onKeyReleased(key);
+                    RiyueClient.MODULE.onKeyReleased(key);
                 }
             }
             catch (Exception e) {

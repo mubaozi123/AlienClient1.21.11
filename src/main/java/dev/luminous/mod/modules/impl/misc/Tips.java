@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.misc;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.*;
 import dev.luminous.api.utils.math.Timer;
@@ -58,7 +58,7 @@ public class Tips extends Module {
             return;
         }
         String playerName = event.getEntity().getDisplayName().getString();
-        boolean isFriend = Alien.FRIEND.isFriend(playerName);
+        boolean isFriend = RiyueClient.FRIEND.isFriend(playerName);
         if (isFriend && !friends.getValue() || event.getEntity() == mc.player) {
             return;
         }
@@ -72,7 +72,7 @@ public class Tips extends Module {
             return;
         }
         String playerName = event.getEntity().getDisplayName().getString();
-        boolean isFriend = Alien.FRIEND.isFriend(playerName);
+        boolean isFriend = RiyueClient.FRIEND.isFriend(playerName);
         if (isFriend && !friends.getValue() || event.getEntity() == mc.player) {
             return;
         }
@@ -138,8 +138,8 @@ public class Tips extends Module {
     public void onPlayerDeath(DeathEvent event) {
         PlayerEntity player = event.getPlayer();
         if (popCounter.getValue()) {
-            if (Alien.POP.popContainer.containsKey(player.getName().getString())) {
-                int l_Count = Alien.POP.popContainer.get(player.getName().getString());
+            if (RiyueClient.POP.popContainer.containsKey(player.getName().getString())) {
+                int l_Count = RiyueClient.POP.popContainer.get(player.getName().getString());
                 if (l_Count == 1) {
                     if (player.equals(mc.player)) {
                         sendMessage("§fYou§r died after popping " + "§f" + l_Count + "§r totem.", player.getId());
@@ -171,8 +171,8 @@ public class Tips extends Module {
         if (popCounter.getValue()) {
             PlayerEntity player = event.getPlayer();
             int l_Count = 1;
-            if (Alien.POP.popContainer.containsKey(player.getName().getString())) {
-                l_Count = Alien.POP.popContainer.get(player.getName().getString());
+            if (RiyueClient.POP.popContainer.containsKey(player.getName().getString())) {
+                l_Count = RiyueClient.POP.popContainer.get(player.getName().getString());
             }
             if (l_Count == 1) {
                 if (player.equals(mc.player)) {

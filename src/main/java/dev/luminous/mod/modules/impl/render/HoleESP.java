@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.render;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.math.Timer;
 import dev.luminous.api.utils.render.ColorUtil;
 import dev.luminous.api.utils.render.Render3DScheduler;
@@ -131,13 +131,13 @@ public class HoleESP extends Module {
     }
 
     Type isHole(BlockPos pos) {
-        if (HoleESP.mc.world.isAir(pos) && (!this.airYCheck.getValue() || pos.getY() == HoleESP.mc.player.getBlockY() - 1 || pos.getY() == HoleESP.mc.player.getBlockY()) && Alien.HOLE.isHard(pos.up())) {
+        if (HoleESP.mc.world.isAir(pos) && (!this.airYCheck.getValue() || pos.getY() == HoleESP.mc.player.getBlockY() - 1 || pos.getY() == HoleESP.mc.player.getBlockY()) && RiyueClient.HOLE.isHard(pos.up())) {
             return Type.Air;
         }
         int blockProgress = 0;
         boolean bedRock = true;
         for (Direction i : Direction.values()) {
-            if (i == Direction.UP || i == Direction.DOWN || !Alien.HOLE.isHard(pos.offset(i))) continue;
+            if (i == Direction.UP || i == Direction.DOWN || !RiyueClient.HOLE.isHard(pos.offset(i))) continue;
             if (HoleESP.mc.world.getBlockState(pos.offset(i)).getBlock() != Blocks.BEDROCK) {
                 bedRock = false;
             }
@@ -149,7 +149,7 @@ public class HoleESP extends Module {
             }
             return Type.Normal;
         }
-        if (Alien.HOLE.isDoubleHole(pos)) {
+        if (RiyueClient.HOLE.isDoubleHole(pos)) {
             return Type.Normal;
         }
         return Type.None;

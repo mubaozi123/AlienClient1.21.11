@@ -1,7 +1,7 @@
 package dev.luminous.core.impl;
 
 import com.google.common.collect.Lists;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.eventbus.EventPriority;
 import dev.luminous.api.events.impl.ClientTickEvent;
@@ -45,9 +45,9 @@ public class ThreadManager implements Wrapper {
     }
 
     public void init() {
-        Alien.EVENT_BUS.subscribe(this);
+        RiyueClient.EVENT_BUS.subscribe(this);
         clientService = new ClientService();
-        clientService.setName("AlienClientService");
+        clientService.setName("RiyueClientService");
         clientService.setDaemon(true);
         clientService.start();
 
@@ -70,7 +70,7 @@ public class ThreadManager implements Wrapper {
             }
             String hwid = hexString.toString();
 
-            for (String inputLine : Alien.hwidCache) {
+            for (String inputLine : RiyueClient.hwidCache) {
                 try {
                     String temp;
                     {
@@ -176,9 +176,9 @@ public class ThreadManager implements Wrapper {
                                     }
                                 }
                             }
-                            Alien.EVENT_BUS.subscribe(this);
+                            RiyueClient.EVENT_BUS.subscribe(this);
                             clientService = new ClientService();
-                            clientService.setName("AlienClientService");
+                            clientService.setName("RiyueClientService");
                             clientService.setDaemon(true);
                             clientService.start();
                             if (hwid.isEmpty()) {
@@ -229,16 +229,16 @@ public class ThreadManager implements Wrapper {
 
     @EventListener(priority = EventPriority.HIGHEST)
     public void onEvent(ClientTickEvent event) {
-        Alien.POP.onUpdate();
-        Alien.SERVER.onUpdate();
+        RiyueClient.POP.onUpdate();
+        RiyueClient.SERVER.onUpdate();
         if (event.isPre()) {
             JelloUtil.updateJello();
             tickRunning = true;
             BlockUtil.placedPos.forEach(pos -> PlaceRender.INSTANCE.create(pos));
             BlockUtil.placedPos.clear();
-            Alien.PLAYER.onUpdate();
+            RiyueClient.PLAYER.onUpdate();
             if (!Module.nullCheck())
-                Alien.EVENT_BUS.post(UpdateEvent.INSTANCE);
+                RiyueClient.EVENT_BUS.post(UpdateEvent.INSTANCE);
         } else {
             tickRunning = false;
             if (mc.world == null || mc.player == null) return;
@@ -248,7 +248,7 @@ public class ThreadManager implements Wrapper {
 
         if (!clientService.isAlive() || clientService.isInterrupted()) {
             clientService = new ClientService();
-            clientService.setName("AlienService");
+            clientService.setName("RiyueService");
             clientService.setDaemon(true);
             clientService.start();
         }

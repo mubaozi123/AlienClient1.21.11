@@ -1,7 +1,7 @@
 package dev.luminous.mod.modules.impl.misc;
 
 import com.mojang.authlib.GameProfile;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.PacketEvent;
 import dev.luminous.api.events.impl.UpdateEvent;
@@ -145,7 +145,7 @@ public class FakePlayer extends Module {
                         fakePlayer.setHealth(fakePlayer.getHealth() - damage2);
                     }
                     if (fakePlayer.isDead()) {
-                        Alien.POP.onTotemPop(fakePlayer);
+                        RiyueClient.POP.onTotemPop(fakePlayer);
                         if (fakePlayer.tryUseDeathProtector(FakePlayer.mc.world.getDamageSources().generic())) {
                             fakePlayer.setHealth(10.0f);
                             new EntityStatusS2CPacket((Entity)fakePlayer, (byte)35).apply((ClientPlayPacketListener)mc.getNetworkHandler());
@@ -175,7 +175,7 @@ public class FakePlayer extends Module {
                 fakePlayer.setHealth(fakePlayer.getHealth() - damage2);
             }
             if (fakePlayer.isDead()) {
-                Alien.POP.onTotemPop((PlayerEntity)fakePlayer);
+                RiyueClient.POP.onTotemPop((PlayerEntity)fakePlayer);
                 if (fakePlayer.tryUseDeathProtector(FakePlayer.mc.world.getDamageSources().generic())) {
                     fakePlayer.setHealth(10.0f);
                     new EntityStatusS2CPacket((Entity)fakePlayer, (byte)35).apply((ClientPlayPacketListener)mc.getNetworkHandler());

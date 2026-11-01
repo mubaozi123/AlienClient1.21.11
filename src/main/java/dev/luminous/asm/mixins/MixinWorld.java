@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.combat.CombatUtil;
 import dev.luminous.mod.modules.impl.client.ClientSetting;
 import dev.luminous.mod.modules.impl.combat.SelfTrap;
@@ -44,7 +44,7 @@ public abstract class MixinWorld {
                     }
 
                     if (terrainIgnore) {
-                        if (Alien.HOLE.isHard(tempState.getBlock())) return;
+                        if (RiyueClient.HOLE.isHard(tempState.getBlock())) return;
                         cir.setReturnValue(Blocks.AIR.getDefaultState());
                     }
                 } else if (InteractTweaks.INSTANCE.isActive) {

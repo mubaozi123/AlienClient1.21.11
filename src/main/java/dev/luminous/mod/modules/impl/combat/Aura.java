@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.ClientTickEvent;
 import dev.luminous.api.events.impl.PacketEvent;
@@ -211,7 +211,7 @@ public class Aura extends Module {
             cooldownProgress = mc.player.getAttackCooldownProgress(0f);
         } else {
             int at = (int) (tick.getMs() / 50);
-            at = (int) (at * Alien.SERVER.getTPSFactor());
+            at = (int) (at * RiyueClient.SERVER.getTPSFactor());
             cooldownProgress = Math.max(at / getAttackCooldownProgressPerTick(), 0.0F);
         }
         if(cooldownMode.getValue() == Cooldown.Vanilla) {
@@ -246,7 +246,7 @@ public class Aura extends Module {
         EntityUtil.swingHand(Hand.MAIN_HAND, swingMode.getValue());
         tick.reset();
         if (rotate.getValue() && !shouldYawStep()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
     }
 
@@ -262,11 +262,11 @@ public class Aura extends Module {
 
     public boolean faceVector(Vec3d directionVec) {
         if (!shouldYawStep()) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
             return true;
         } else {
             this.directionVec = directionVec;
-            if (Alien.ROTATION.inFov(directionVec, fov.getValueFloat())) {
+            if (RiyueClient.ROTATION.inFov(directionVec, fov.getValueFloat())) {
                 return true;
             }
         }
@@ -277,7 +277,7 @@ public class Aura extends Module {
         Entity target = null;
         double distance = range;
         double maxHealth = 36.0;
-        for (Entity entity : Alien.THREAD.getEntities()) {
+        for (Entity entity : RiyueClient.THREAD.getEntities()) {
             if (!isEnemy(entity)) continue;
             Vec3d hitVec = getAttackVec(entity);
             if (mc.player.getEyePos().distanceTo(hitVec) > range) continue;

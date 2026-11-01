@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.movement;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.eventbus.EventPriority;
 import dev.luminous.api.events.impl.MoveEvent;
@@ -144,7 +144,7 @@ public class Scaffold extends Module {
             BlockUtil.placeBlock(placePos, false, packetPlace.getValue());
             InventoryUtil.switchToSlot(old);
             if (rotate.getValue()) {
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
             }
             pos = placePos;
             if (tower.getValue() && mc.options.jumpKey.isPressed() && !MovementUtil.isMoving()) {
@@ -169,10 +169,10 @@ public class Scaffold extends Module {
 
     private boolean faceVector(Vec3d directionVec) {
         if (!shouldYawStep()) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
             return true;
         } else {
-            if (Alien.ROTATION.inFov(directionVec, fov.getValueFloat())) {
+            if (RiyueClient.ROTATION.inFov(directionVec, fov.getValueFloat())) {
                 return true;
             }
         }

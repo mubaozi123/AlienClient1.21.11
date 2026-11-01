@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.interfaces.IMouseHook;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.Mouse;
@@ -31,15 +31,15 @@ public class MixinMouse
     private void onMouse(long window, MouseInput input, int action, CallbackInfo ci) {
         int key = -(input.button() + 2);
         if (action == 1) {
-            Alien.MODULE.onKeyPressed(key);
+            RiyueClient.MODULE.onKeyPressed(key);
         }
         if (action == 0) {
-            Alien.MODULE.onKeyReleased(key);
+            RiyueClient.MODULE.onKeyReleased(key);
         }
     }
 
     @Override
-    public void alienClient$lock() {
+    public void riyueClient$lock() {
         if (this.client.isWindowFocused() && !this.cursorLocked) {
             if (true) {
                 KeyBinding.updatePressedStates();

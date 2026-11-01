@@ -49,7 +49,7 @@ public abstract class MixinChatHud implements IChatHudHook {
     }
 
     @Override
-    public void alienClient$addMessage(Text message, int id) {
+    public void riyueClient$addMessage(Text message, int id) {
         this.nextMessageId = id;
         this.nextSync = true;
         this.addMessage(message);
@@ -58,14 +58,14 @@ public abstract class MixinChatHud implements IChatHudHook {
     }
 
     @Override
-    public void alienClient$addMessage(Text message) {
+    public void riyueClient$addMessage(Text message) {
         this.nextSync = true;
         this.addMessage(message);
         this.nextSync = false;
     }
 
     @Override
-    public void alienClient$addMessageOutSync(Text message, int id) {
+    public void riyueClient$addMessageOutSync(Text message, int id) {
         this.nextMessageId = id;
         this.addMessage(message);
         this.nextMessageId = 0;
@@ -75,9 +75,9 @@ public abstract class MixinChatHud implements IChatHudHook {
     private void onAddMessageAfterNewChatHudLineVisible(ChatHudLine message, CallbackInfo ci) {
         IChatHudLineHook line = (IChatHudLineHook) (Object) this.visibleMessages.getFirst();
         if (line != null) {
-            line.alienClient$setMessageId(this.nextMessageId);
-            line.alienClient$setSync(this.nextSync);
-            line.alienClient$setFade(new FadeUtils(ClientSetting.INSTANCE.animationTime.getValueInt()));
+            line.riyueClient$setMessageId(this.nextMessageId);
+            line.riyueClient$setSync(this.nextSync);
+            line.riyueClient$setFade(new FadeUtils(ClientSetting.INSTANCE.animationTime.getValueInt()));
         }
     }
 
@@ -85,17 +85,17 @@ public abstract class MixinChatHud implements IChatHudHook {
     private void onAddMessageAfterNewChatHudLine(ChatHudLine message, CallbackInfo ci) {
         IChatHudLineHook line = (IChatHudLineHook) (Object) this.messages.getFirst();
         if (line != null) {
-            line.alienClient$setMessageId(this.nextMessageId);
-            line.alienClient$setSync(this.nextSync);
-            line.alienClient$setFade(new FadeUtils(ClientSetting.INSTANCE.animationTime.getValueInt()));
+            line.riyueClient$setMessageId(this.nextMessageId);
+            line.riyueClient$setSync(this.nextSync);
+            line.riyueClient$setFade(new FadeUtils(ClientSetting.INSTANCE.animationTime.getValueInt()));
         }
     }
 
     @Inject(at = { @At(value = "HEAD") }, method = { "addMessage(Lnet/minecraft/text/Text;Lnet/minecraft/network/message/MessageSignatureData;Lnet/minecraft/client/gui/hud/MessageIndicator;)V" })
     private void onAddMessage(Text message, MessageSignatureData signatureData, MessageIndicator indicator, CallbackInfo ci) {
         if (this.nextMessageId != 0) {
-            this.visibleMessages.removeIf(msg -> ((IChatHudLineHook) (Object) msg).alienClient$getMessageId() == this.nextMessageId);
-            this.messages.removeIf(msg -> ((IChatHudLineHook) (Object) msg).alienClient$getMessageId() == this.nextMessageId);
+            this.visibleMessages.removeIf(msg -> ((IChatHudLineHook) (Object) msg).riyueClient$getMessageId() == this.nextMessageId);
+            this.messages.removeIf(msg -> ((IChatHudLineHook) (Object) msg).riyueClient$getMessageId() == this.nextMessageId);
         }
     }
 
@@ -114,11 +114,11 @@ public abstract class MixinChatHud implements IChatHudHook {
         if (!ClientSetting.INSTANCE.isOn()) {
             return drawer;
         }
-        return new ChatHudUtil(drawer, this::alienClient$findLine);
+        return new ChatHudUtil(drawer, this::riyueClient$findLine);
     }
 
     @Unique
-    private IChatHudLineHook alienClient$findLine(OrderedText text) {
+    private IChatHudLineHook riyueClient$findLine(OrderedText text) {
         for (ChatHudLine.Visible visible : this.visibleMessages) {
             if (visible.content() == text) {
                 return (IChatHudLineHook) (Object) visible;

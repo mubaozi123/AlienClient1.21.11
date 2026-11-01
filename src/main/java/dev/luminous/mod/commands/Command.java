@@ -3,7 +3,7 @@
  */
 package dev.luminous.mod.commands;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.Wrapper;
 import dev.luminous.core.impl.CommandManager;
 import java.util.List;
@@ -32,7 +32,7 @@ implements Wrapper {
     public abstract String[] getAutocorrect(int var1, List<String> var2);
 
     public void sendUsage() {
-        this.sendChatMessage("\u00a74Parameter error \u00a7r" + Alien.getPrefix() + this.getName() + " \u00a77" + this.getSyntax());
+        this.sendChatMessage("\u00a74Parameter error \u00a7r" + RiyueClient.getPrefix() + this.getName() + " \u00a77" + this.getSyntax());
     }
 
     public void sendChatMessage(String message) {

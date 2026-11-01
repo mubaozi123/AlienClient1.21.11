@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.misc;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.eventbus.EventPriority;
 import dev.luminous.api.events.impl.PacketEvent;
@@ -149,7 +149,7 @@ public class Bot extends Module {
     private void openAutoTradeEdit() {
         edit.setValueWithoutTask(false);
         if (!nullCheck()) {
-            mc.setScreen(new WindowsScreen(new ItemSelectWindow(Alien.TRADE)));
+            mc.setScreen(new WindowsScreen(new ItemSelectWindow(RiyueClient.TRADE)));
         }
     }
 
@@ -205,7 +205,7 @@ public class Bot extends Module {
         Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + 0.5 + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
         if (!BlockUtil.canPlace(pos, 6, true)) return;
         if (rotate.getValue()) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
         }
         if (BlockUtil.hasEntity(pos, false)) return;
         int old = mc.player.getInventory().selectedSlot;
@@ -223,7 +223,7 @@ public class Bot extends Module {
             doSwap(old);
         }
         if (rotate.getValue()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
         placeProgress++;
         slabPlacerDelay.reset();
@@ -380,7 +380,7 @@ public class Bot extends Module {
                 }
                 mc.options.useKey.setPressed(true);
                 endEat = true;
-                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             }
             BaritoneUtil.cancelEverything();
             return;
@@ -446,7 +446,7 @@ public class Bot extends Module {
                         if (i >= repeatSetting.getValue()) return;
                         TradeOffer tradeOffer = list.get(size);
                         if (!tradeOffer.isDisabled()) {
-                            if (Alien.TRADE.inWhitelist(tradeOffer.getSellItem().getItem().getTranslationKey())) {
+                            if (RiyueClient.TRADE.inWhitelist(tradeOffer.getSellItem().getItem().getTranslationKey())) {
                                 while (i < repeatSetting.getValue()) {
                                     if (!tradeOffer.getDisplayedFirstBuyItem().isEmpty()) {
                                         int count = InventoryUtil.getItemCount(tradeOffer.getDisplayedFirstBuyItem().getItem());
@@ -482,16 +482,16 @@ public class Bot extends Module {
                 } else {
                     timeoutTimer.reset();
                     if (autoOpenSetting.getValue()) {
-                        for (Entity entity : Alien.THREAD.getEntities()) {
+                        for (Entity entity : RiyueClient.THREAD.getEntities()) {
                             if (entity instanceof VillagerEntity villager) {
                                 if (mc.player.distanceTo(villager) <= range.getValue()) {
                                     if (tradedVillager.contains(villager)) {
                                         continue;
                                     }
                                     tradedVillager.add(villager);
-                                    if (rotate.getValue()) Alien.ROTATION.snapAt(villager.getEyePos());
+                                    if (rotate.getValue()) RiyueClient.ROTATION.snapAt(villager.getEyePos());
                                     mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.interact(villager, mc.player.isSneaking(), Hand.MAIN_HAND));
-                                    if (rotate.getValue()) Alien.ROTATION.snapBack();
+                                    if (rotate.getValue()) RiyueClient.ROTATION.snapBack();
                                     return;
                                 } else {
                                     tradedVillager.remove(villager);
@@ -519,7 +519,7 @@ public class Bot extends Module {
                 tick++;
                 int shulker = InventoryUtil.findClass(ShulkerBoxBlock.class);
                 if (shulker != -1) {
-                    for (Entity entity : Alien.THREAD.getEntities()) {
+                    for (Entity entity : RiyueClient.THREAD.getEntities()) {
                         if (entity instanceof ItemFrameEntity itemFrameEntity) {
                             if (entity.distanceTo(mc.player) > 3) continue;
                             InventoryUtil.switchToSlot(shulker);
@@ -611,7 +611,7 @@ public class Bot extends Module {
                     return;
                 }
                 Entity hasShulkerItemEntity = null;
-                for (Entity entity : Alien.THREAD.getEntities()) {
+                for (Entity entity : RiyueClient.THREAD.getEntities()) {
                     if (entity instanceof ItemEntity itemEntity) {
                         if (itemEntity.getStack().getItem() instanceof BlockItem item && (item.getBlock() instanceof ShulkerBoxBlock || item.getBlock() == Blocks.ENDER_CHEST)) {
                             hasShulkerItemEntity = itemEntity;
@@ -796,11 +796,11 @@ public class Bot extends Module {
                                 Direction side = BlockUtil.getClickSideStrict(sand);
                                 if (side == null) continue;
                                 PlaceRender.INSTANCE.create(sand);
-                                Alien.ROTATION.snapAt(sand.toCenterPos());
+                                RiyueClient.ROTATION.snapAt(sand.toCenterPos());
                                 sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, sand, side, id));
                                 sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, sand, side, id));
                                 sendSequencedPacket(id -> new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, sand, side, id));
-                                Alien.ROTATION.snapBack();
+                                RiyueClient.ROTATION.snapBack();
                                 b++;
                                 if (b >= breaks.getValue()) {
                                     return;
@@ -847,7 +847,7 @@ public class Bot extends Module {
                 }
                 double distance = 0;
                 TurtleEntity target = null;
-                for (Entity entity : Alien.THREAD.getEntities()) {
+                for (Entity entity : RiyueClient.THREAD.getEntities()) {
                     if (entity instanceof TurtleEntity turtle) {
                         if (turtle.isBaby()) continue;
                         if (inLove.contains(turtle)) continue;
@@ -872,11 +872,11 @@ public class Bot extends Module {
                 if (mc.player.distanceTo(target) < 3) {
                     BaritoneUtil.cancelEverything();
                     InventoryUtil.switchToSlot(seagrass);
-                    Alien.ROTATION.snapAt(target.getEntityPos());
+                    RiyueClient.ROTATION.snapAt(target.getEntityPos());
                     mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.interact(target, mc.player.isSneaking(), Hand.MAIN_HAND));
                     EntityUtil.swingHand(Hand.MAIN_HAND, AntiCheat.INSTANCE.interactSwing.getValue());
                     //InventoryUtil.switchToSlot(selectedSlot);
-                    Alien.ROTATION.snapBack();
+                    RiyueClient.ROTATION.snapBack();
                     inLove.add(target);
                 } else {
                     BaritoneUtil.gotoPos(target.getBlockPos());
@@ -893,7 +893,7 @@ public class Bot extends Module {
                 }
                 double distance = 0;
                 TurtleEntity target = null;
-                for (Entity entity : Alien.THREAD.getEntities()) {
+                for (Entity entity : RiyueClient.THREAD.getEntities()) {
                     if (entity instanceof TurtleEntity turtle) {
                         if (turtle.isBaby()) continue;
                         if (inLove.contains(turtle)) continue;
@@ -913,11 +913,11 @@ public class Bot extends Module {
                     return;
                 }
                 InventoryUtil.switchToSlot(seagrass);
-                Alien.ROTATION.snapAt(target.getEntityPos());
+                RiyueClient.ROTATION.snapAt(target.getEntityPos());
                 mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.interact(target, mc.player.isSneaking(), Hand.MAIN_HAND));
                 EntityUtil.swingHand(Hand.MAIN_HAND, AntiCheat.INSTANCE.interactSwing.getValue());
                 //InventoryUtil.switchToSlot(selectedSlot);
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
                 inLove.add(target);
             }
             case NPlusOneDupe -> {
@@ -1089,7 +1089,7 @@ public class Bot extends Module {
                             stage = Stage.Open;
                             return;
                         }
-                        for (Entity entity : Alien.THREAD.getEntities()) {
+                        for (Entity entity : RiyueClient.THREAD.getEntities()) {
                             if (entity instanceof LlamaEntity llamaEntity && mc.player.getEyePos().distanceTo(entity.getEntityPos()) < 10 && entity.isAlive()) {
                                 if (mc.player.getEyePos().distanceTo(entity.getEntityPos()) < 5) {
                                     llama = llamaEntity;
@@ -1105,8 +1105,8 @@ public class Bot extends Module {
 
                         int slot = InventoryUtil.findItemInventorySlot(Items.EGG);
                         InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
-                        Alien.ROTATION.snapAt(Alien.ROTATION.getLastYaw(), 89);
-                        sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+                        RiyueClient.ROTATION.snapAt(RiyueClient.ROTATION.getLastYaw(), 89);
+                        sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
                         InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
                     }
                     case Tame -> {
@@ -1175,7 +1175,7 @@ public class Bot extends Module {
 
                                 int slot = InventoryUtil.findBlockInventorySlot(Blocks.HAY_BLOCK);
                                 InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
-                                Alien.ROTATION.lookAt(llama.getEntityPos());
+                                RiyueClient.ROTATION.lookAt(llama.getEntityPos());
                                 mc.interactionManager.interactEntity(mc.player, llama, Hand.MAIN_HAND);
                                 InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
                             } else {
@@ -1203,7 +1203,7 @@ public class Bot extends Module {
                                         //mc.setScreen(null);
 
                                         InventoryUtil.inventorySwap(chestSlot, mc.player.getInventory().selectedSlot);
-                                        Alien.ROTATION.lookAt(llama.getEntityPos());
+                                        RiyueClient.ROTATION.lookAt(llama.getEntityPos());
                                         mc.interactionManager.interactEntity(mc.player, llama, Hand.MAIN_HAND);
                                         InventoryUtil.inventorySwap(chestSlot, mc.player.getInventory().selectedSlot);
                                     }
@@ -1253,7 +1253,7 @@ public class Bot extends Module {
                         }
                         InventoryUtil.switchToSlot(swordSlot);
                         if (check()) {
-                            Alien.ROTATION.lookAt(llama.getEyePos());
+                            RiyueClient.ROTATION.lookAt(llama.getEyePos());
                             mc.interactionManager.attackEntity(mc.player, llama);
                             EntityUtil.swingHand(Hand.MAIN_HAND, SwingSide.All);
                         }

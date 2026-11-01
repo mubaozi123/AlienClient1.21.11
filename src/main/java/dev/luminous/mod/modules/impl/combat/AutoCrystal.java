@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.*;
 import dev.luminous.api.utils.combat.CombatUtil;
@@ -180,7 +180,7 @@ public class AutoCrystal
         super("AutoCrystal", Module.Category.Combat);
         this.setChinese("\u81ea\u52a8\u6c34\u6676");
         INSTANCE = this;
-        Alien.EVENT_BUS.subscribe(new CrystalRender());
+        RiyueClient.EVENT_BUS.subscribe(new CrystalRender());
     }
 
     @Override
@@ -365,7 +365,7 @@ public class AutoCrystal
             float damage;
             float selfDamage;
             Vec3d attackVec;
-            for (Entity entity : Alien.THREAD.getEntities()) {
+            for (Entity entity : RiyueClient.THREAD.getEntities()) {
                 if (!(entity instanceof EndCrystalEntity)) continue;
                 EndCrystalEntity crystal = (EndCrystalEntity)entity;
                 if (entity.age < this.minAge.getValueInt() || (attackVec = this.getAttackVec(crystal.getEntityPos())) == null || !AutoCrystal.mc.player.canSee((Entity)crystal) && AutoCrystal.mc.player.getEyePos().distanceTo(attackVec) > this.wallRange.getValue()) continue;
@@ -391,7 +391,7 @@ public class AutoCrystal
                     CombatUtil.modifyBlockState = Blocks.OBSIDIAN.getDefaultState();
                     base = true;
                 }
-                if (base && Alien.BREAK.isMining(pos.down()) && this.detectMining.getValue() || (attackVec = this.getAttackVec(pos.toBottomCenterPos())) == null || this.behindWall(pos, attackVec) || !this.canTouch(pos.down()) || !this.canPlaceCrystal(pos, true, false)) continue;
+                if (base && RiyueClient.BREAK.isMining(pos.down()) && this.detectMining.getValue() || (attackVec = this.getAttackVec(pos.toBottomCenterPos())) == null || this.behindWall(pos, attackVec) || !this.canTouch(pos.down()) || !this.canPlaceCrystal(pos, true, false)) continue;
                 selfDamage = base ? this.calculateBaseDamage(pos, self.player, self.predict) : this.calculateDamage(pos, self.player, self.predict);
                 for (PlayerEntityPredict pap : list) {
                     if (base && this.onlyBelow.getValue() && (double)pos.getY() - 0.5 > pap.player.getY()) continue;
@@ -494,7 +494,7 @@ public class AutoCrystal
         if (!this.baseTimer.passed((long)this.delay.getValue())) {
             return;
         }
-        if (this.detectMining.getValue() && Alien.BREAK.isMining(pos)) {
+        if (this.detectMining.getValue() && RiyueClient.BREAK.isMining(pos)) {
             return;
         }
         int block = this.getBlock();
@@ -622,14 +622,14 @@ public class AutoCrystal
         if (this.breakRemove.getValue()) {
             AutoCrystal.mc.world.removeEntity(entity.getId(), Entity.RemovalReason.KILLED);
         }
-        if ((crystalPos = this.crystalPos) != null && this.displayTarget != null && (double)this.lastDamage >= this.getDamage(this.displayTarget) && this.afterBreak.getValue() && (!this.rotate.getValue() || !this.shouldYawStep() || !this.checkFov.getValue() || Alien.ROTATION.inFov(entity.getEntityPos(), this.fov.getValueFloat()))) {
+        if ((crystalPos = this.crystalPos) != null && this.displayTarget != null && (double)this.lastDamage >= this.getDamage(this.displayTarget) && this.afterBreak.getValue() && (!this.rotate.getValue() || !this.shouldYawStep() || !this.checkFov.getValue() || RiyueClient.ROTATION.inFov(entity.getEntityPos(), this.fov.getValueFloat()))) {
             this.doPlace(crystalPos, false);
         }
         if (this.forceWeb.getValue() && AutoWeb.INSTANCE.isOn()) {
             AutoWeb.force = true;
         }
         if (this.rotate.getValue() && !this.shouldYawStep()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
     }
 
@@ -680,14 +680,14 @@ public class AutoCrystal
             if (this.breakRemove.getValue()) {
                 AutoCrystal.mc.world.removeEntity(entity.getId(), Entity.RemovalReason.KILLED);
             }
-            if ((crystalPos = this.crystalPos) != null && this.displayTarget != null && (double)this.lastDamage >= this.getDamage(this.displayTarget) && this.afterBreak.getValue() && (!this.rotate.getValue() || !this.shouldYawStep() || !this.checkFov.getValue() || Alien.ROTATION.inFov(entity.getEntityPos(), this.fov.getValueFloat()))) {
+            if ((crystalPos = this.crystalPos) != null && this.displayTarget != null && (double)this.lastDamage >= this.getDamage(this.displayTarget) && this.afterBreak.getValue() && (!this.rotate.getValue() || !this.shouldYawStep() || !this.checkFov.getValue() || RiyueClient.ROTATION.inFov(entity.getEntityPos(), this.fov.getValueFloat()))) {
                 this.doPlace(crystalPos, false);
             }
             if (this.forceWeb.getValue() && AutoWeb.INSTANCE.isOn()) {
                 AutoWeb.force = true;
             }
             if (this.rotate.getValue() && !this.shouldYawStep()) {
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
             }
             return;
         }
@@ -744,7 +744,7 @@ public class AutoCrystal
             }
         }
         if (rotate && !this.shouldYawStep()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
     }
 
@@ -793,11 +793,11 @@ public class AutoCrystal
             return false;
         }
         if (!this.shouldYawStep()) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
             return true;
         }
         this.directionVec = directionVec;
-        if (Alien.ROTATION.inFov(directionVec, this.fov.getValueFloat())) {
+        if (RiyueClient.ROTATION.inFov(directionVec, this.fov.getValueFloat())) {
             return true;
         }
         return !this.checkFov.getValue();

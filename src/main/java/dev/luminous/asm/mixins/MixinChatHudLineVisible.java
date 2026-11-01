@@ -16,32 +16,32 @@ public class MixinChatHudLineVisible implements IChatHudLineHook {
     private FadeUtils fade;
 
     @Override
-    public int alienClient$getMessageId() {
+    public int riyueClient$getMessageId() {
         return id;
     }
 
     @Override
-    public void alienClient$setMessageId(int id) {
+    public void riyueClient$setMessageId(int id) {
         this.id = id;
     }
 
     @Override
-    public boolean alienClient$getSync() {
+    public boolean riyueClient$getSync() {
         return sync;
     }
 
     @Override
-    public void alienClient$setSync(boolean sync) {
+    public void riyueClient$setSync(boolean sync) {
         this.sync = sync;
     }
 
     @Override
-    public FadeUtils alienClient$getFade() {
+    public FadeUtils riyueClient$getFade() {
         return fade;
     }
 
     @Override
-    public void alienClient$setFade(FadeUtils fade) {
+    public void riyueClient$setFade(FadeUtils fade) {
         this.fade = fade;
     }
 }

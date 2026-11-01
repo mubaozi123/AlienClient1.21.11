@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.render;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.render.Render3DUtil;
 import dev.luminous.api.utils.world.BlockUtil;
 import dev.luminous.mod.modules.Module;
@@ -34,7 +34,7 @@ public class Tracers extends Module {
     public void onRender3D(MatrixStack matrixStack) {
         mc.options.getBobView().setValue(false);
         if (item.booleanValue || player.booleanValue) {
-            for (Entity entity : Alien.THREAD.getEntities()) {
+            for (Entity entity : RiyueClient.THREAD.getEntities()) {
                 if (entity instanceof ItemEntity && item.booleanValue) {
                     drawLine(entity.getEntityPos(), item.getValue());
                 } else if (entity instanceof PlayerEntity && player.booleanValue && entity != mc.player) {

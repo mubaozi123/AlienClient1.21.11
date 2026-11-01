@@ -17,40 +17,40 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinLivingEntityRenderer<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>> {
 
     @Unique
-    private boolean alien$rotating;
+    private boolean riyue$rotating;
     @Unique
-    private float alien$originalYaw;
+    private float riyue$originalYaw;
     @Unique
-    private float alien$originalHeadYaw;
+    private float riyue$originalHeadYaw;
     @Unique
-    private float alien$originalBodyYaw;
+    private float riyue$originalBodyYaw;
     @Unique
-    private float alien$originalPitch;
+    private float riyue$originalPitch;
     @Unique
-    private float alien$originalLastYaw;
+    private float riyue$originalLastYaw;
     @Unique
-    private float alien$originalLastHeadYaw;
+    private float riyue$originalLastHeadYaw;
     @Unique
-    private float alien$originalLastBodyYaw;
+    private float riyue$originalLastBodyYaw;
     @Unique
-    private float alien$originalLastPitch;
+    private float riyue$originalLastPitch;
 
     @Inject(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At("HEAD"))
-    private void alien$beforeUpdateRenderState(LivingEntity entity, LivingEntityRenderState state, float tickProgress, CallbackInfo ci) {
+    private void riyue$beforeUpdateRenderState(LivingEntity entity, LivingEntityRenderState state, float tickProgress, CallbackInfo ci) {
         MinecraftClient mc = MinecraftClient.getInstance();
-        this.alien$rotating = mc.player != null && entity == mc.player && ClientSetting.INSTANCE.rotations.getValue();
-        if (!this.alien$rotating) {
+        this.riyue$rotating = mc.player != null && entity == mc.player && ClientSetting.INSTANCE.rotations.getValue();
+        if (!this.riyue$rotating) {
             return;
         }
 
-        this.alien$originalYaw = entity.getYaw();
-        this.alien$originalHeadYaw = entity.headYaw;
-        this.alien$originalBodyYaw = entity.bodyYaw;
-        this.alien$originalPitch = entity.getPitch();
-        this.alien$originalLastYaw = entity.lastYaw;
-        this.alien$originalLastHeadYaw = entity.lastHeadYaw;
-        this.alien$originalLastBodyYaw = entity.lastBodyYaw;
-        this.alien$originalLastPitch = entity.lastPitch;
+        this.riyue$originalYaw = entity.getYaw();
+        this.riyue$originalHeadYaw = entity.headYaw;
+        this.riyue$originalBodyYaw = entity.bodyYaw;
+        this.riyue$originalPitch = entity.getPitch();
+        this.riyue$originalLastYaw = entity.lastYaw;
+        this.riyue$originalLastHeadYaw = entity.lastHeadYaw;
+        this.riyue$originalLastBodyYaw = entity.lastBodyYaw;
+        this.riyue$originalLastPitch = entity.lastPitch;
 
         entity.setYaw(RotationManager.getRenderYawOffset());
         entity.headYaw = RotationManager.getRotationYawHead();
@@ -63,19 +63,19 @@ public abstract class MixinLivingEntityRenderer<T extends LivingEntity, S extend
     }
 
     @Inject(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At("TAIL"))
-    private void alien$afterUpdateRenderState(LivingEntity entity, LivingEntityRenderState state, float tickProgress, CallbackInfo ci) {
-        if (!this.alien$rotating) {
+    private void riyue$afterUpdateRenderState(LivingEntity entity, LivingEntityRenderState state, float tickProgress, CallbackInfo ci) {
+        if (!this.riyue$rotating) {
             return;
         }
-        this.alien$rotating = false;
+        this.riyue$rotating = false;
 
-        entity.setYaw(this.alien$originalYaw);
-        entity.headYaw = this.alien$originalHeadYaw;
-        entity.bodyYaw = this.alien$originalBodyYaw;
-        entity.setPitch(this.alien$originalPitch);
-        entity.lastYaw = this.alien$originalLastYaw;
-        entity.lastHeadYaw = this.alien$originalLastHeadYaw;
-        entity.lastBodyYaw = this.alien$originalLastBodyYaw;
-        entity.lastPitch = this.alien$originalLastPitch;
+        entity.setYaw(this.riyue$originalYaw);
+        entity.headYaw = this.riyue$originalHeadYaw;
+        entity.bodyYaw = this.riyue$originalBodyYaw;
+        entity.setPitch(this.riyue$originalPitch);
+        entity.lastYaw = this.riyue$originalLastYaw;
+        entity.lastHeadYaw = this.riyue$originalLastHeadYaw;
+        entity.lastBodyYaw = this.riyue$originalLastBodyYaw;
+        entity.lastPitch = this.riyue$originalLastPitch;
     }
 }

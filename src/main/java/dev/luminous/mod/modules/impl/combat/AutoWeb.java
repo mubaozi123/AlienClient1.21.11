@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.ClientTickEvent;
 import dev.luminous.api.events.impl.RotationEvent;
@@ -164,7 +164,7 @@ public class AutoWeb extends Module {
                         BlockPosX pos = new BlockPosX(playerPos.getX() + x, playerPos.getY() + y, playerPos.getZ() + z);
                         if (!list.contains(pos)) {
                             list.add(pos);
-                            if (isTargetHere(pos, player) && mc.world.getBlockState(pos).getBlock() == Blocks.COBWEB && !Alien.BREAK.isMining(pos)) {
+                            if (isTargetHere(pos, player) && mc.world.getBlockState(pos).getBlock() == Blocks.COBWEB && !RiyueClient.BREAK.isMining(pos)) {
                                 webs++;
                             }
                         }
@@ -223,7 +223,7 @@ public class AutoWeb extends Module {
         if (getWebSlot() == -1) {
             return false;
         }
-        if (detectMining.getValue() && (Alien.BREAK.isMining(pos))) return false;
+        if (detectMining.getValue() && (RiyueClient.BREAK.isMining(pos))) return false;
         if (BlockUtil.getPlaceSide(pos, placeRange.getValue()) != null && (mc.world.isAir(pos) || ignore && getBlock(pos) == Blocks.COBWEB) && pos.getY() < 320) {
             int oldSlot = mc.player.getInventory().selectedSlot;
             int webSlot = getWebSlot();
@@ -264,18 +264,18 @@ public class AutoWeb extends Module {
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
         Module.sendSequencedPacket(id -> new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, id));
         if (rotate && !shouldYawStep()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
         return true;
     }
 
     private boolean faceVector(Vec3d directionVec) {
         if (!shouldYawStep()) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
             return true;
         } else {
             this.directionVec = directionVec;
-            if (Alien.ROTATION.inFov(directionVec, fov.getValueFloat())) {
+            if (RiyueClient.ROTATION.inFov(directionVec, fov.getValueFloat())) {
                 return true;
             }
         }

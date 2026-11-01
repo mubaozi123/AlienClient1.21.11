@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.client;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.Render2DEvent;
 import dev.luminous.api.events.impl.UpdateEvent;
@@ -65,7 +65,7 @@ public class ClickGui
         super("ClickGui", Category.Client);
         setChinese("点击界面");
         INSTANCE = this;
-        Alien.EVENT_BUS.subscribe(new FadeOut());
+        RiyueClient.EVENT_BUS.subscribe(new FadeOut());
     }
 
     public static ClickGui getInstance() {
@@ -103,7 +103,7 @@ public class ClickGui
         if (mc.currentScreen instanceof ClickGuiScreen) {
             mc.currentScreen.close();
         }
-        if (autoSave.getValue()) Alien.save();
+        if (autoSave.getValue()) RiyueClient.save();
     }
 
     @EventListener

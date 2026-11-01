@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.core.impl.CommandManager;
 import dev.luminous.mod.Mod;
 import dev.luminous.mod.modules.impl.client.*;
@@ -119,7 +119,7 @@ public abstract class Module extends Mod {
             }
         }
         this.state = true;
-        Alien.EVENT_BUS.subscribe(this);
+        RiyueClient.EVENT_BUS.subscribe(this);
         this.onToggle();
         this.onEnable();
     }
@@ -146,7 +146,7 @@ public abstract class Module extends Mod {
             }
         }
         this.state = false;
-        Alien.EVENT_BUS.unsubscribe(this);
+        RiyueClient.EVENT_BUS.unsubscribe(this);
         this.onToggle();
         this.onDisable();
     }

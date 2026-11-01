@@ -12,8 +12,8 @@
  */
 package dev.luminous.core.impl;
 
-import dev.luminous.Alien;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.DeathEvent;
 import dev.luminous.api.events.impl.PacketEvent;
@@ -41,7 +41,7 @@ implements Wrapper {
     }
 
     public void init() {
-        Alien.EVENT_BUS.subscribe(this);
+        RiyueClient.EVENT_BUS.subscribe(this);
     }
 
     public int getPop(String s) {
@@ -56,13 +56,13 @@ implements Wrapper {
         if (Module.nullCheck()) {
             return;
         }
-        for (AbstractClientPlayerEntity player : Alien.THREAD.getPlayers()) {
+        for (AbstractClientPlayerEntity player : RiyueClient.THREAD.getPlayers()) {
             if (player == null || !player.isDead()) {
                 this.deadPlayer.remove(player);
                 continue;
             }
             if (this.deadPlayer.contains(player)) continue;
-            Alien.EVENT_BUS.post(DeathEvent.get((PlayerEntity)player));
+            RiyueClient.EVENT_BUS.post(DeathEvent.get((PlayerEntity)player));
             this.onDeath((PlayerEntity)player);
             this.deadPlayer.add((PlayerEntity)player);
         }
@@ -94,7 +94,7 @@ implements Wrapper {
         } else {
             this.popContainer.put(player.getName().getString(), l_Count);
         }
-        Alien.EVENT_BUS.post(TotemEvent.get(player));
+        RiyueClient.EVENT_BUS.post(TotemEvent.get(player));
     }
 }
 

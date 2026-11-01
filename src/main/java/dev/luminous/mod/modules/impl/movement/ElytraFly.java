@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.movement;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.*;
 import dev.luminous.api.utils.math.MathUtil;
@@ -87,13 +87,13 @@ public class ElytraFly extends Module {
         super("ElytraFly", Category.Movement);
         setChinese("鞘翅飞行");
         INSTANCE = this;
-        Alien.EVENT_BUS.subscribe(new FireWorkTweak());
+        RiyueClient.EVENT_BUS.subscribe(new FireWorkTweak());
     }
 
     public void off() {
         if (inventory.getValue() && !EntityUtil.inInventory()) return;
         if (onlyOne.getValue()) {
-            for (Entity entity : Alien.THREAD.getEntities()) {
+            for (Entity entity : RiyueClient.THREAD.getEntities()) {
                 if (entity instanceof FireworkRocketEntity fireworkRocketEntity) {
                     if (((IFireworkRocketEntity) fireworkRocketEntity).getShooter() == mc.player) {
                         return;
@@ -105,14 +105,14 @@ public class ElytraFly extends Module {
         int firework;
         if (mc.player.getMainHandStack().getItem() == Items.FIREWORK_ROCKET) {
             if (packetInteract.getValue()) {
-                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             } else {
                 mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
             }
         } else if (inventory.getValue() && (firework = InventoryUtil.findItemInventorySlot(Items.FIREWORK_ROCKET)) != -1) {
             InventoryUtil.inventorySwap(firework, mc.player.getInventory().selectedSlot);
             if (packetInteract.getValue()) {
-                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             } else {
                 mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
             }
@@ -122,7 +122,7 @@ public class ElytraFly extends Module {
             int old = mc.player.getInventory().selectedSlot;
             InventoryUtil.switchToSlot(firework);
             if (packetInteract.getValue()) {
-                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             } else {
                 mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
             }
@@ -276,7 +276,7 @@ public class ElytraFly extends Module {
         double z = mc.player.getZ() - mc.player.lastZ;
         double dist = Math.sqrt(x * x + z * z + y * y) / 1000.0;
         double div = 0.05 / 3600.0;
-        float timer = Alien.TIMER.get();
+        float timer = RiyueClient.TIMER.get();
         final double speed = dist / div * timer;
         if (mode.getValue() == Mode.Boost) {
             boost();

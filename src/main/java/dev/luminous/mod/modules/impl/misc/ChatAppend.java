@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.misc;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.SendMessageEvent;
 import dev.luminous.mod.modules.Module;
@@ -8,7 +8,7 @@ import dev.luminous.mod.modules.settings.impl.StringSetting;
 
 public class ChatAppend extends Module {
     public static ChatAppend INSTANCE;
-    private final StringSetting message = add(new StringSetting("Text", Alien.NAME));
+    private final StringSetting message = add(new StringSetting("Text", RiyueClient.NAME));
 
     public ChatAppend() {
         super("ChatAppend", Category.Misc);

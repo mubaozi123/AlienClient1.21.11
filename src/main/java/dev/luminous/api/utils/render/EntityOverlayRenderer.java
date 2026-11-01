@@ -30,7 +30,7 @@ public final class EntityOverlayRenderer {
             if (throughWallDepth != null) {
                 throughWallDepth.delete();
             }
-            throughWallDepth = new SimpleFramebuffer("alien_entity_overlay_depth", width, height, true);
+            throughWallDepth = new SimpleFramebuffer("riyue_entity_overlay_depth", width, height, true);
         }
 
         RenderSystem.getDevice()

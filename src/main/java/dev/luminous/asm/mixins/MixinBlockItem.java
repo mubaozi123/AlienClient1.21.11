@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.PlaceBlockEvent;
 import dev.luminous.mod.modules.Module;
 import net.minecraft.block.BlockState;
@@ -18,6 +18,6 @@ public class MixinBlockItem {
     private void onPlace(@NotNull ItemPlacementContext context, BlockState state, CallbackInfoReturnable<Boolean> info) {
         if (Module.nullCheck()) return;
         if (context.getWorld().isClient)
-            Alien.EVENT_BUS.post(PlaceBlockEvent.get(context.getBlockPos(), state.getBlock()));
+            RiyueClient.EVENT_BUS.post(PlaceBlockEvent.get(context.getBlockPos(), state.getBlock()));
     }
 }

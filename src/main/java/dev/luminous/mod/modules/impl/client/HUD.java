@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.client;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.ClientTickEvent;
 import dev.luminous.api.events.impl.InitEvent;
@@ -98,7 +98,7 @@ public class HUD extends Module {
         super("HUD", Category.Client);
         setChinese("界面");
         INSTANCE = this;
-        Alien.EVENT_BUS.subscribe(new InitHandler());
+        RiyueClient.EVENT_BUS.subscribe(new InitHandler());
         for (StatusEffect potionEffect : Registries.STATUS_EFFECT) {
             try {
                 //noinspection SuspiciousMethodCalls,unchecked
@@ -120,14 +120,14 @@ public class HUD extends Module {
         }
         infoList.add(new Info(() -> "ServerBrand §f" + (mc.isInSingleplayer() ? "Vanilla" : mc.getNetworkHandler().getBrand().replaceAll("\\(.*?\\)", "")), brand::getValue));
         infoList.add(new Info(() -> ("Server §f" + (mc.isInSingleplayer() ? "SinglePlayer" : mc.getCurrentServerEntry().address)), ip::getValue));
-        infoList.add(new Info(() -> ("TPS §f" + Alien.SERVER.getTPS() + " [" + Alien.SERVER.getCurrentTPS() + "]"), tps::getValue));
+        infoList.add(new Info(() -> ("TPS §f" + RiyueClient.SERVER.getTPS() + " [" + RiyueClient.SERVER.getCurrentTPS() + "]"), tps::getValue));
         infoList.add(new Info(() -> {
             double x = mc.player.getX() - mc.player.lastX;
             // double y = mc.player.getY() - mc.player.prevY;
             double z = mc.player.getZ() - mc.player.lastZ;
             double dist = Math.sqrt(x * x + z * z) / 1000.0;
             double div = 0.05 / 3600.0;
-            float timer = Alien.TIMER.get();
+            float timer = RiyueClient.TIMER.get();
             final double playerSpeed = dist / div * timer;
             return String.format("Speed §f%skm/h",
                     decimal.format(playerSpeed));
@@ -143,7 +143,7 @@ public class HUD extends Module {
             }
             return "Ping §f" + playerPing;
         }, ping::getValue));
-        infoList.add(new Info(() -> "FPS §f" + Alien.FPS.getFps(), fps::getValue));
+        infoList.add(new Info(() -> "FPS §f" + RiyueClient.FPS.getFps(), fps::getValue));
     }
 
     public static String getDuration(StatusEffectInstance pe) {
@@ -162,9 +162,9 @@ public class HUD extends Module {
     public void onRender2D(DrawContext drawContext, float tickDelta) {
         if (waterMark.getValue()) {
             if (pulse.booleanValue) {
-                TextUtil.drawStringPulse(drawContext, waterMarkString.getValue().replaceAll("%version%", Alien.VERSION).replaceAll("%hackname%", Alien.NAME), waterMarkOffset.getValueInt(), waterMarkOffset.getValueInt(), color.getValue(), pulse.getValue(), pulseSpeed.getValue(), pulseCounter.getValueInt(), font.getValue(), shadow.getValue());
+                TextUtil.drawStringPulse(drawContext, waterMarkString.getValue().replaceAll("%version%", RiyueClient.VERSION).replaceAll("%hackname%", RiyueClient.NAME), waterMarkOffset.getValueInt(), waterMarkOffset.getValueInt(), color.getValue(), pulse.getValue(), pulseSpeed.getValue(), pulseCounter.getValueInt(), font.getValue(), shadow.getValue());
             } else {
-                TextUtil.drawString(drawContext, waterMarkString.getValue().replaceAll("%version%", Alien.VERSION).replaceAll("%hackname%", Alien.NAME), waterMarkOffset.getValueInt(), waterMarkOffset.getValueInt(), color.getValue().getRGB(), font.getValue(), shadow.getValue());
+                TextUtil.drawString(drawContext, waterMarkString.getValue().replaceAll("%version%", RiyueClient.VERSION).replaceAll("%hackname%", RiyueClient.NAME), waterMarkOffset.getValueInt(), waterMarkOffset.getValueInt(), color.getValue().getRGB(), font.getValue(), shadow.getValue());
             }
         }
         int fontHeight = getHeight();
@@ -337,7 +337,7 @@ public class HUD extends Module {
                     counter += fromUp ? fade : -fade;
                     int c = ColorUtil.injectAlpha(getColor(counter), (int) (color.getValue().getAlpha() * fade));
                     if (blur.getValue()) {
-                        Alien.BLUR.applyBlur((float) (radius.getValue() * fade),
+                        RiyueClient.BLUR.applyBlur((float) (radius.getValue() * fade),
                                 (float) (windowWidth - width - HUD.this.width.getValueFloat() / 2),
                                 (float) currentY - 1 - interval.getValueFloat() / 2,
                                 (float) width + HUD.this.width.getValueFloat() - xOffset.getValueFloat(),
@@ -380,10 +380,10 @@ public class HUD extends Module {
     public class InitHandler {
         @EventListener
         public void onInit(InitEvent event) {
-            for (Module module : Alien.MODULE.getModules()) {
+            for (Module module : RiyueClient.MODULE.getModules()) {
                 moduleList.add(new Info(module::getArrayName, () -> module.isOn() && module.drawn.getValue()));
             }
-            Alien.EVENT_BUS.unsubscribe(this);
+            RiyueClient.EVENT_BUS.unsubscribe(this);
         }
     }
 }

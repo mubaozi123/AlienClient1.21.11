@@ -4,6 +4,6 @@
 package dev.luminous.api.interfaces;
 
 public interface IMouseHook {
-    public void alienClient$lock();
+    public void riyueClient$lock();
 }
 

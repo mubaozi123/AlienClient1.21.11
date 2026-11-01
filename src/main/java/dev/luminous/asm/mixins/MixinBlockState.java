@@ -1,7 +1,7 @@
 package dev.luminous.asm.mixins;
 
 import com.mojang.serialization.MapCodec;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.BlockActivateEvent;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
 import net.minecraft.block.AbstractBlock;
@@ -22,7 +22,7 @@ public abstract class MixinBlockState extends AbstractBlock.AbstractBlockState {
 
     @Override
     public ActionResult onUse(World world, PlayerEntity player, BlockHitResult hit) {
-        Alien.EVENT_BUS.post(BlockActivateEvent.get(BlockState.class.cast(this)));
+        RiyueClient.EVENT_BUS.post(BlockActivateEvent.get(BlockState.class.cast(this)));
         return super.onUse(world, player, hit);
     }
 }

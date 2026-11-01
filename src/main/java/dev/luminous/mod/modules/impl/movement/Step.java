@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.movement;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.TickEvent;
 import dev.luminous.api.events.impl.UpdateEvent;
@@ -51,7 +51,7 @@ public class Step extends Module {
     public void onDisable() {
         if (nullCheck()) return;
         setStepHeight(0.6f);
-        Alien.TIMER.reset();
+        RiyueClient.TIMER.reset();
     }
 
     @Override
@@ -61,7 +61,7 @@ public class Step extends Module {
 
     @EventListener
     public void onUpdate(UpdateEvent event) {
-        if (pathingPause.getValue() && BaritoneUtil.isActive() || sneakingPause.getValue() && mc.player.isSneaking() || inBlockPause.getValue() && EntityUtil.isInsideBlock() || mc.player.isInLava() || mc.player.isTouchingWater() || inWebPause.getValue() && Alien.PLAYER.isInWeb(mc.player) || !mc.player.isOnGround() || onlyMoving.getValue() && !MovementUtil.isMoving() || surroundPause.getValue() && (Surround.INSTANCE.isOn() || SelfTrap.INSTANCE.isOn())) {
+        if (pathingPause.getValue() && BaritoneUtil.isActive() || sneakingPause.getValue() && mc.player.isSneaking() || inBlockPause.getValue() && EntityUtil.isInsideBlock() || mc.player.isInLava() || mc.player.isTouchingWater() || inWebPause.getValue() && RiyueClient.PLAYER.isInWeb(mc.player) || !mc.player.isOnGround() || onlyMoving.getValue() && !MovementUtil.isMoving() || surroundPause.getValue() && (Surround.INSTANCE.isOn() || SelfTrap.INSTANCE.isOn())) {
             setStepHeight(0.6f);
             return;
         }
@@ -75,7 +75,7 @@ public class Step extends Module {
             return;
         }
         if (timer && packets <= 0) {
-            Alien.TIMER.reset();
+            RiyueClient.TIMER.reset();
             timer = false;
         }
         boolean strict = mode.getValue() == Mode.NCP;
@@ -88,7 +88,7 @@ public class Step extends Module {
             double[] offsets = getOffset(stepHeight);
             if (offsets != null && offsets.length > 1) {
                 if (useTimer.getValue()) {
-                    Alien.TIMER.set((float) getTimer(stepHeight));
+                    RiyueClient.TIMER.set((float) getTimer(stepHeight));
                     timer = true;
                     packets = 2;
                 }

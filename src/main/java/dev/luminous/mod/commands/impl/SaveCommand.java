@@ -3,7 +3,7 @@
  */
 package dev.luminous.mod.commands.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.core.Manager;
 import dev.luminous.core.impl.ConfigManager;
 import dev.luminous.mod.commands.Command;
@@ -20,17 +20,17 @@ extends Command {
     public void runCommand(String[] parameters) {
         if (parameters.length == 1) {
             this.sendChatMessage("\u00a7fSaving config named " + parameters[0]);
-            File folder = new File(SaveCommand.mc.runDirectory.getPath() + File.separator + dev.luminous.Alien.NAME.toLowerCase() + File.separator + "cfg");
+            File folder = new File(SaveCommand.mc.runDirectory.getPath() + File.separator + dev.luminous.RiyueClient.NAME.toLowerCase() + File.separator + "cfg");
             if (!folder.exists()) {
                 folder.mkdirs();
             }
             ConfigManager.options = Manager.getFile("cfg" + File.separator + parameters[0] + ".cfg");
-            Alien.save();
+            RiyueClient.save();
             ConfigManager.options = Manager.getFile("options.txt");
         } else {
             this.sendChatMessage("\u00a7fSaving..");
         }
-        Alien.save();
+        RiyueClient.save();
     }
 
     @Override

@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.movement;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.eventbus.EventPriority;
 import dev.luminous.api.events.impl.*;
@@ -132,7 +132,7 @@ public class Sprint extends Module {
                 && MovementUtil.isMoving()
                 && !pause
                 && (!mc.player.isSneaking() || !sneakingPause.getValue())
-                && (!Alien.PLAYER.isInWeb(mc.player) || !inWebPause.getValue())
+                && (!RiyueClient.PLAYER.isInWeb(mc.player) || !inWebPause.getValue())
                 && (!mc.player.isUsingItem() || !usingPause.getValue())
                 && !mc.player.isRiding()
                 && (!mc.player.hasStatusEffect(StatusEffects.BLINDNESS) || !blindnessPause.getValue())) {
@@ -147,7 +147,7 @@ public class Sprint extends Module {
                     if (AntiCheat.INSTANCE.movementSync()) {
                         return Sprint.mc.player.forwardSpeed > 0.0f && collideOk && groundOk;
                     } else {
-                        return (HoleSnap.INSTANCE.isOn() || MathHelper.angleBetween(getSprintYaw(mc.player.getYaw()), Alien.ROTATION.rotationYaw) < 40)
+                        return (HoleSnap.INSTANCE.isOn() || MathHelper.angleBetween(getSprintYaw(mc.player.getYaw()), RiyueClient.ROTATION.rotationYaw) < 40)
                                 && collideOk && groundOk;
                     }
                 }
@@ -166,7 +166,7 @@ public class Sprint extends Module {
                 && MovementUtil.isMoving()
                 && !Freecam.INSTANCE.isOn()
                 && !mc.player.isGliding()
-                && (!Alien.PLAYER.isInWeb(mc.player) || !inWebPause.getValue())
+                && (!RiyueClient.PLAYER.isInWeb(mc.player) || !inWebPause.getValue())
                 && (!mc.player.isSneaking() || !sneakingPause.getValue())
                 && !mc.player.isRiding()
                 && (!mc.player.isUsingItem() || !usingPause.getValue())

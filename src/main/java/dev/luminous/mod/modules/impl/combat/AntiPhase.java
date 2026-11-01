@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.utils.combat.CombatUtil;
@@ -131,7 +131,7 @@ public class AntiPhase extends Module {
                                 int old = mc.player.getInventory().selectedSlot;
                                 doSwap(block);
                                 if (rotate.getValue()) {
-                                    Alien.ROTATION.snapAt(hitVec);
+                                    RiyueClient.ROTATION.snapAt(hitVec);
                                 }
                                 mc.player.networkHandler.sendPacket(PlayerInteractEntityC2SPacket.interact(itemFrameEntity, mc.player.isSneaking(), Hand.MAIN_HAND));
                                 timer.reset();
@@ -142,7 +142,7 @@ public class AntiPhase extends Module {
                                     doSwap(old);
                                 }
                                 if (rotate.getValue()) {
-                                    Alien.ROTATION.snapBack();
+                                    RiyueClient.ROTATION.snapBack();
                                 }
                             }
                         }
@@ -280,7 +280,7 @@ public class AntiPhase extends Module {
             if (!BlockUtil.isStrictDirection(bp, direction.getOpposite()))
                 continue;
             if (onlyHard.getValue()) {
-                if (!Alien.HOLE.isHard(bp)) continue;
+                if (!RiyueClient.HOLE.isHard(bp)) continue;
             } else {
                 if (BlockUtil.canReplace(bp)) continue;
                 if (!BlockUtil.canClick(bp)) continue;

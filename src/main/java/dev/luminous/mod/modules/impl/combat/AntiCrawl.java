@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.utils.world.BlockPosX;
@@ -31,7 +31,7 @@ public class AntiCrawl extends Module {
     public void onUpdate(UpdateEvent event) {
         work = false;
         if (mc.player.isGliding()) return;
-        if (whileSetting.is(While.Always) && BlockUtil.getBlock(mc.player.getBlockPos()) != Blocks.BEDROCK || mc.player.isCrawling() || whileSetting.is(While.Mining) && Alien.BREAK.isMining(mc.player.getBlockPos())) {
+        if (whileSetting.is(While.Always) && BlockUtil.getBlock(mc.player.getBlockPos()) != Blocks.BEDROCK || mc.player.isCrawling() || whileSetting.is(While.Mining) && RiyueClient.BREAK.isMining(mc.player.getBlockPos())) {
             for (double offset : xzOffset) {
                 for (double offset2 : xzOffset) {
                     BlockPos pos = new BlockPosX(mc.player.getX() + offset, mc.player.getY() + 1.2, mc.player.getZ() + offset2);

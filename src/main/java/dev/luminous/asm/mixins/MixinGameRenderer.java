@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.mod.modules.impl.render.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
@@ -111,7 +111,7 @@ public class MixinGameRenderer {
 
     @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;renderHand(FZLorg/joml/Matrix4f;)V", shift = At.Shift.AFTER))
     public void postRender3dHook(RenderTickCounter tickCounter, CallbackInfo ci) {
-        Alien.SHADER.renderShaders();
+        RiyueClient.SHADER.renderShaders();
     }
 
     @Inject(method = "getBasicProjectionMatrix(F)Lorg/joml/Matrix4f;", at = @At("TAIL"), cancellable = true)

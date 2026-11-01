@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.ClientTickEvent;
 import dev.luminous.api.events.impl.MoveEvent;
@@ -97,7 +97,7 @@ public class Surround extends Module {
     }
 
     public static boolean otherIntersectPos(BlockPos pos) {
-        for (AbstractClientPlayerEntity player : Alien.THREAD.getPlayers()) {
+        for (AbstractClientPlayerEntity player : RiyueClient.THREAD.getPlayers()) {
             if (player.getBoundingBox().intersects(new Box(pos))) {
                 return true;
             }
@@ -250,7 +250,7 @@ public class Surround extends Module {
 
     private void tryPlaceBlock(BlockPos pos) {
         if (pos == null) return;
-        if (detectMining.getValue() && Alien.BREAK.isMining(pos)) return;
+        if (detectMining.getValue() && RiyueClient.BREAK.isMining(pos)) return;
         if (!(progress < blocksPer.getValue())) return;
         BlockPos self = EntityUtil.getPlayerPos(true);
         if (mineDownward.getValue()) {
@@ -285,18 +285,18 @@ public class Surround extends Module {
             doSwap(old);
         }
         if (rotate.getValue() && !shouldYawStep()) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
         progress++;
     }
 
     private boolean faceVector(Vec3d directionVec) {
         if (!shouldYawStep()) {
-            Alien.ROTATION.lookAt(directionVec);
+            RiyueClient.ROTATION.lookAt(directionVec);
             return true;
         } else {
             this.directionVec = directionVec;
-            if (Alien.ROTATION.inFov(directionVec, fov.getValueFloat())) {
+            if (RiyueClient.ROTATION.inFov(directionVec, fov.getValueFloat())) {
                 return true;
             }
         }
@@ -327,7 +327,7 @@ public class Surround extends Module {
 
     public BlockPos getHelperPos(BlockPos pos) {
         for (Direction i : Direction.values()) {
-            if (detectMining.getValue() && Alien.BREAK.isMining(pos.offset(i))) continue;
+            if (detectMining.getValue() && RiyueClient.BREAK.isMining(pos.offset(i))) continue;
             if (!BlockUtil.isStrictDirection(pos.offset(i), i.getOpposite())) continue;
             if (BlockUtil.canPlace(pos.offset(i))) return pos.offset(i);
         }

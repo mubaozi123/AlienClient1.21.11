@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.Event;
 import dev.luminous.api.events.impl.JumpEvent;
 import dev.luminous.api.events.impl.LerpToEvent;
@@ -103,7 +103,7 @@ public abstract class MixinLivingEntity
         LivingEntity self = (LivingEntity) (Object) this;
         if (!(self instanceof PlayerEntity player)) return;
         JumpEvent pre = JumpEvent.get(Event.Stage.Pre);
-        Alien.EVENT_BUS.post(pre);
+        RiyueClient.EVENT_BUS.post(pre);
         if (pre.isCancelled()) {
             ci.cancel();
         }
@@ -114,7 +114,7 @@ public abstract class MixinLivingEntity
         LivingEntity self = (LivingEntity) (Object) this;
         if (!(self instanceof PlayerEntity)) return;
         JumpEvent post = JumpEvent.get(Event.Stage.Post);
-        Alien.EVENT_BUS.post(post);
+        RiyueClient.EVENT_BUS.post(post);
     }
 
     @Redirect(method={"applyMovementInput"}, at=@At(value="INVOKE", target="Lnet/minecraft/entity/LivingEntity;isClimbing()Z"), require=0)
@@ -137,7 +137,7 @@ public abstract class MixinLivingEntity
     public void setSprintingHook(boolean sprinting, CallbackInfo ci) {
         if (LivingEntity.class.cast((Object)this) == MinecraftClient.getInstance().player) {
             SprintEvent event = SprintEvent.get();
-            Alien.EVENT_BUS.post(event);
+            RiyueClient.EVENT_BUS.post(event);
             if (event.isCancelled()) {
                 ci.cancel();
                 sprinting = event.isSprint();

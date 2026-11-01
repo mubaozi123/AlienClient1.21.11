@@ -6,7 +6,7 @@
  */
 package dev.luminous.mod.commands.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.mod.commands.Command;
 import dev.luminous.mod.modules.Module;
 import java.io.BufferedReader;
@@ -24,7 +24,7 @@ extends Command {
     @Override
     public void runCommand(String[] parameters) {
         if (parameters.length == 1) {
-            Alien.THREAD.execute(() -> {
+            RiyueClient.THREAD.execute(() -> {
                 try {
                     String inputLine;
                     URL url = new URL("https://api.xywlapi.cc/qqapi?qq=" + parameters[0]);

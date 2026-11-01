@@ -2,7 +2,7 @@ package dev.luminous.mod.modules.impl.render;
 
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.Render3DEvent;
@@ -122,7 +122,7 @@ public class NameTags
             MatrixStack matrixStack = new MatrixStack();
             matrixStack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
             matrixStack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(camera.getYaw() + 180.0f));
-            for (PlayerEntity playerEntity : Alien.THREAD.getPlayers()) {
+            for (PlayerEntity playerEntity : RiyueClient.THREAD.getPlayers()) {
                 if (!this.died.booleanValue && !playerEntity.isAlive() || playerEntity == NameTags.mc.player && NameTags.mc.options.getPerspective().isFirstPerson() || !this.invisibleConfig.booleanValue && playerEntity.isInvisible()) continue;
                 String info = this.getNametagInfo(playerEntity);
                 Vec3d renderPosition = MathUtil.getRenderPosition((Entity)playerEntity, event.tickDelta);
@@ -373,7 +373,7 @@ public class NameTags
             info.append(phealth);
             info.append(" ");
         }
-        if (this.totemsConfig.getValue() && (totems = Alien.POP.getPop(player)) > 0) {
+        if (this.totemsConfig.getValue() && (totems = RiyueClient.POP.getPop(player)) > 0) {
             Formatting c = TextRadar.getPopColor(totems);
             info.append(c);
             info.append(-totems);
@@ -396,7 +396,7 @@ public class NameTags
     }
 
     private int getNametagColor(PlayerEntity player) {
-        if (this.friendConfig.booleanValue && player.getDisplayName() != null && Alien.FRIEND.isFriend(player)) {
+        if (this.friendConfig.booleanValue && player.getDisplayName() != null && RiyueClient.FRIEND.isFriend(player)) {
             return this.friendConfig.getValue().getRGB();
         }
         if (this.invisibleConfig.booleanValue && player.isInvisible()) {

@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.misc;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.DeathEvent;
 import dev.luminous.mod.modules.Module;
@@ -77,7 +77,7 @@ public class AutoEZ extends Module {
     @EventListener
     public void onDeath(DeathEvent event) {
         PlayerEntity player = event.getPlayer();
-        if (player != mc.player && !Alien.FRIEND.isFriend(player)) {
+        if (player != mc.player && !RiyueClient.FRIEND.isFriend(player)) {
             if (range.getValue() > 0 && mc.player.distanceTo(player) > range.getValue()) {
                 return;
             }

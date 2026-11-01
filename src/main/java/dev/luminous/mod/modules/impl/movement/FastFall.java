@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.movement;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.MoveEvent;
 import dev.luminous.api.events.impl.PacketEvent;
@@ -83,7 +83,7 @@ public class FastFall extends Module {
             return;
         }
 
-        if (Alien.PLAYER.isInWeb(mc.player)) return;
+        if (RiyueClient.PLAYER.isInWeb(mc.player)) return;
 
         if (mc.player.isOnGround()) {
 

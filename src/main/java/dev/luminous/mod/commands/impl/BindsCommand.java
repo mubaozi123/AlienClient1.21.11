@@ -3,7 +3,7 @@
  */
 package dev.luminous.mod.commands.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.mod.commands.Command;
 import dev.luminous.mod.modules.Module;
 import java.lang.invoke.CallSite;
@@ -20,7 +20,7 @@ extends Command {
     @Override
     public void runCommand(String[] parameters) {
         ArrayList<CallSite> list = new ArrayList<CallSite>();
-        for (Module x : Alien.MODULE.getModules()) {
+        for (Module x : RiyueClient.MODULE.getModules()) {
             if (x.getBindSetting().getValue() == -1) continue;
             list.add((CallSite)((Object)("\u00a7f" + x.getDisplayName() + " \u00a77- \u00a7r" + x.getBindSetting().getKeyString())));
         }

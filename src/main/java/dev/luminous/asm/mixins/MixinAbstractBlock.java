@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.AmbientOcclusionEvent;
 import dev.luminous.mod.modules.impl.player.PacketMine;
 import net.minecraft.block.AbstractBlock;
@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinAbstractBlock {
     @Inject(method = "getAmbientOcclusionLightLevel", at = @At("HEAD"), cancellable = true)
     private void onGetAmbientOcclusionLightLevel(BlockState state, BlockView world, BlockPos pos, CallbackInfoReturnable<Float> info) {
-        AmbientOcclusionEvent event = Alien.EVENT_BUS.post(AmbientOcclusionEvent.get());
+        AmbientOcclusionEvent event = RiyueClient.EVENT_BUS.post(AmbientOcclusionEvent.get());
 
         if (event.lightLevel != -1) info.setReturnValue(event.lightLevel);
     }

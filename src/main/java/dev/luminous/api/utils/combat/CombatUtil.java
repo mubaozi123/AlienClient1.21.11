@@ -1,6 +1,6 @@
 package dev.luminous.api.utils.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.Wrapper;
 import dev.luminous.api.utils.math.MathUtil;
 import dev.luminous.api.utils.math.Timer;
@@ -30,7 +30,7 @@ public class CombatUtil implements Wrapper {
 
     public static List<PlayerEntity> getEnemies(double range) {
         List<PlayerEntity> list = new ArrayList<>();
-        for (AbstractClientPlayerEntity player : Alien.THREAD.getPlayers()) {
+        for (AbstractClientPlayerEntity player : RiyueClient.THREAD.getPlayers()) {
             if (!isValid(player, range)) continue;
             list.add(player);
         }
@@ -60,12 +60,12 @@ public class CombatUtil implements Wrapper {
             if (mc.player.getEyePos().distanceTo(attackVec) > AntiCheat.INSTANCE.ieRange.getValue()) return;
             CombatUtil.breakTimer.reset();
             if (rotate && AntiCheat.INSTANCE.attackRotate.getValue())
-                Alien.ROTATION.lookAt(attackVec);
+                RiyueClient.ROTATION.lookAt(attackVec);
             mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(entity, mc.player.isSneaking()));
             mc.player.resetTicksSinceLastAttack();
             EntityUtil.swingHand(Hand.MAIN_HAND, AntiCheat.INSTANCE.attackSwing.getValue());
             if (rotate && AntiCheat.INSTANCE.attackRotate.getValue()) {
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
             }
         }
     }
@@ -75,13 +75,13 @@ public class CombatUtil implements Wrapper {
     }
 
     public static boolean isValid(Entity entity, double range) {
-        boolean invalid = entity == null || !entity.isAlive() || entity.equals(mc.player) || entity instanceof PlayerEntity player && Alien.FRIEND.isFriend(player) || mc.player.getEntityPos().distanceTo(entity.getEntityPos()) > range;
+        boolean invalid = entity == null || !entity.isAlive() || entity.equals(mc.player) || entity instanceof PlayerEntity player && RiyueClient.FRIEND.isFriend(player) || mc.player.getEntityPos().distanceTo(entity.getEntityPos()) > range;
 
         return !invalid;
     }
 
     public static boolean isValid(Entity entity) {
-        boolean invalid = entity == null || !entity.isAlive() || entity.equals(mc.player) || entity instanceof PlayerEntity player && Alien.FRIEND.isFriend(player);
+        boolean invalid = entity == null || !entity.isAlive() || entity.equals(mc.player) || entity instanceof PlayerEntity player && RiyueClient.FRIEND.isFriend(player);
 
         return !invalid;
     }

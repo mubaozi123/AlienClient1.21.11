@@ -20,16 +20,16 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 @Mixin(InventoryScreen.class)
 public class MixinInventoryScreen {
     @Unique
-    private static LivingEntity alien$previewEntity;
+    private static LivingEntity riyue$previewEntity;
 
     @Inject(
             method = "drawEntity(Lnet/minecraft/client/gui/DrawContext;IIIIIFFFLnet/minecraft/entity/LivingEntity;)V",
             at = @At("HEAD")
     )
-    private static void alien$capturePreviewEntity(DrawContext context, int x1, int y1, int x2, int y2,
+    private static void riyue$capturePreviewEntity(DrawContext context, int x1, int y1, int x2, int y2,
                                                    int size, float scale, float mouseX, float mouseY,
                                                    LivingEntity entity, CallbackInfo ci) {
-        alien$previewEntity = entity;
+        riyue$previewEntity = entity;
     }
 
     @ModifyArgs(
@@ -39,9 +39,9 @@ public class MixinInventoryScreen {
                     target = "Lnet/minecraft/client/gui/DrawContext;addEntity(Lnet/minecraft/client/render/entity/state/EntityRenderState;FLorg/joml/Vector3f;Lorg/joml/Quaternionf;Lorg/joml/Quaternionf;IIII)V"
             )
     )
-    private static void alien$applyRenderRotation(Args args) {
+    private static void riyue$applyRenderRotation(Args args) {
         MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.player == null || alien$previewEntity != mc.player || !ClientSetting.INSTANCE.rotations.getValue()) {
+        if (mc.player == null || riyue$previewEntity != mc.player || !ClientSetting.INSTANCE.rotations.getValue()) {
             return;
         }
         EntityRenderState state = args.get(0);

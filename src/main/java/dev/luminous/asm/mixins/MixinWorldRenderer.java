@@ -3,7 +3,7 @@ package dev.luminous.asm.mixins;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.systems.ProjectionType;
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.render.EntityOverlayRenderer;
 import dev.luminous.api.utils.render.TextUtil;
 import dev.luminous.mod.modules.Module;
@@ -26,14 +26,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(WorldRenderer.class)
 public abstract class MixinWorldRenderer {
     @Unique
-    private static RawProjectionMatrix alienWorldProjection;
+    private static RawProjectionMatrix riyueWorldProjection;
 
     @Unique
-    private static RawProjectionMatrix alienWorldProjection() {
-        if (alienWorldProjection == null) {
-            alienWorldProjection = new RawProjectionMatrix("alien_world_3d");
+    private static RawProjectionMatrix riyueWorldProjection() {
+        if (riyueWorldProjection == null) {
+            riyueWorldProjection = new RawProjectionMatrix("riyue_world_3d");
         }
-        return alienWorldProjection;
+        return riyueWorldProjection;
     }
 
     @Inject(method = "render", at = @At("TAIL"))
@@ -49,7 +49,7 @@ public abstract class MixinWorldRenderer {
             Vector4f fogColor,
             boolean renderSky,
             CallbackInfo ci) {
-        if (Alien.MODULE == null || Alien.FPS == null || Module.nullCheck()) {
+        if (RiyueClient.MODULE == null || RiyueClient.FPS == null || Module.nullCheck()) {
             return;
         }
         MatrixStack matrices = new MatrixStack();
@@ -59,15 +59,15 @@ public abstract class MixinWorldRenderer {
         TextUtil.lastModMat.set(RenderSystem.getModelViewMatrix());
         TextUtil.lastWorldSpaceMatrix.set(matrices.peek().getPositionMatrix());
 
-        Alien.FPS.record();
+        RiyueClient.FPS.record();
 
         RenderSystem.backupProjectionMatrix();
         try {
-            RenderSystem.setProjectionMatrix(alienWorldProjection().set(basicProjectionMatrix), ProjectionType.PERSPECTIVE);
-            if (Alien.MODULE.render3DQueue(matrices)) {
+            RenderSystem.setProjectionMatrix(riyueWorldProjection().set(basicProjectionMatrix), ProjectionType.PERSPECTIVE);
+            if (RiyueClient.MODULE.render3DQueue(matrices)) {
                 EntityOverlayRenderer.flushThroughWall();
             }
-            Alien.MODULE.render3D(matrices);
+            RiyueClient.MODULE.render3D(matrices);
         } finally {
             RenderSystem.restoreProjectionMatrix();
         }

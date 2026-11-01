@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.utils.combat.CombatUtil;
@@ -101,7 +101,7 @@ public class Blocker extends Module {
                         for (int d = 0; d < 3; ++d) {
                             BlockPos aroundPos = new BlockPosX(mc.player.getX() + x, mc.player.getY() + 0.5, mc.player.getZ() + z).offset(i, 1).up();
                             BlockPos blockerPos = new BlockPosX(mc.player.getX() + x, mc.player.getY() + 0.5, mc.player.getZ() + z).offset(i, d).up();
-                            if (crystalHere(blockerPos) && !placePos.contains(blockerPos) && !Alien.HOLE.isHard(aroundPos)) {
+                            if (crystalHere(blockerPos) && !placePos.contains(blockerPos) && !RiyueClient.HOLE.isHard(aroundPos)) {
                                 placePos.add(blockerPos);
                             }
                         }
@@ -130,11 +130,11 @@ public class Blocker extends Module {
                 for (double z : offset) {
                     BlockPos surroundPos = new BlockPosX(mc.player.getX() + x, mc.player.getY(), mc.player.getZ() + z);
                     if (isBedrock(surroundPos)) continue;
-                    if (Alien.BREAK.isMining(surroundPos)) {
+                    if (RiyueClient.BREAK.isMining(surroundPos)) {
                         for (Direction direction : Direction.values()) {
                             if (direction == Direction.DOWN || direction == Direction.UP) continue;
                             BlockPos defensePos = surroundPos.offset(direction);
-                            if (detectMining.getValue() && Alien.BREAK.isMining(defensePos)) {
+                            if (detectMining.getValue() && RiyueClient.BREAK.isMining(defensePos)) {
                                 continue;
                             }
                             if (breakCrystal.getValue()) {
@@ -154,11 +154,11 @@ public class Blocker extends Module {
                     for (Direction i : Direction.values()) {
                         BlockPos surroundPos = new BlockPosX(mc.player.getX() + x, mc.player.getY() + 0.5, mc.player.getZ() + z).offset(i);
                         if (isBedrock(surroundPos)) continue;
-                        if (Alien.BREAK.isMining(surroundPos)) {
+                        if (RiyueClient.BREAK.isMining(surroundPos)) {
                             for (Direction direction : Direction.values()) {
                                 //if (direction == Direction.DOWN || direction == Direction.UP) continue;
                                 BlockPos defensePos = surroundPos.offset(direction);
-                                if (detectMining.getValue() && Alien.BREAK.isMining(defensePos)) {
+                                if (detectMining.getValue() && RiyueClient.BREAK.isMining(defensePos)) {
                                     continue;
                                 }
                                 if (breakCrystal.getValue()) {
@@ -187,7 +187,7 @@ public class Blocker extends Module {
                             if (direction == Direction.UP || direction == Direction.DOWN) continue;
                             BlockPos blockPos = surroundPos.offset(direction);
                             if (AutoCrystal.INSTANCE.canPlaceCrystal(blockPos, true, true)) {
-                                if (detectMining.getValue() && Alien.BREAK.isMining(blockPos)) {
+                                if (detectMining.getValue() && RiyueClient.BREAK.isMining(blockPos)) {
                                     continue;
                                 }
                                 if (breakCrystal.getValue()) {
@@ -229,7 +229,7 @@ public class Blocker extends Module {
     public BlockPos getHelper(BlockPos pos) {
         for (Direction i : Direction.values()) {
             if (i == Direction.UP) continue;
-            if (detectMining.getValue() && Alien.BREAK.isMining(pos.offset(i))) continue;
+            if (detectMining.getValue() && RiyueClient.BREAK.isMining(pos.offset(i))) continue;
             if (!BlockUtil.isStrictDirection(pos.offset(i), i.getOpposite()))
                 continue;
             if (BlockUtil.canPlace(pos.offset(i), 6.0)) return pos.offset(i);
@@ -258,7 +258,7 @@ public class Blocker extends Module {
         if (list.contains(pos)) return;
         list.add(pos);
         if (!(placeProgress < blocksPer.getValue())) return;
-        if (detectMining.getValue() && Alien.BREAK.isMining(pos)) {
+        if (detectMining.getValue() && RiyueClient.BREAK.isMining(pos)) {
             return;
         }
         int oldSlot = mc.player.getInventory().selectedSlot;

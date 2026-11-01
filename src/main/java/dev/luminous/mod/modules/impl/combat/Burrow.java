@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.ClientTickEvent;
 import dev.luminous.api.utils.combat.CombatUtil;
@@ -98,7 +98,7 @@ extends Module {
                 this.disable();
                 return;
             }
-            if (Alien.PLAYER.isInWeb((PlayerEntity)Burrow.mc.player)) {
+            if (RiyueClient.PLAYER.isInWeb((PlayerEntity)Burrow.mc.player)) {
                 this.webTimer.reset();
                 return;
             }
@@ -195,9 +195,9 @@ extends Module {
             if (this.rotate.getValue() == RotateMode.Bypass) {
                 if (above) {
                     float[] angle = RotationManager.getRotation(this.currentPos.add(0.0, (double)Burrow.mc.player.getEyeHeight(Burrow.mc.player.getPose()), 0.0), Burrow.mc.player.getCameraPosVec(1.0f));
-                    Alien.ROTATION.snapAt(angle[0], angle[1]);
+                    RiyueClient.ROTATION.snapAt(angle[0], angle[1]);
                 } else {
-                    Alien.ROTATION.snapAt(Alien.ROTATION.rotationYaw, 90.0f);
+                    RiyueClient.ROTATION.snapAt(RiyueClient.ROTATION.rotationYaw, 90.0f);
                 }
             }
             this.placeBlock(playerPos, rotate);
@@ -391,7 +391,7 @@ extends Module {
         Vec3d directionVec = new Vec3d((double)pos.getX() + 0.5 + (double)side.getVector().getX() * 0.5, (double)pos.getY() + 0.5 + (double)side.getVector().getY() * 0.5, (double)pos.getZ() + 0.5 + (double)side.getVector().getZ() * 0.5);
         if (rotate) {
             float[] angle = RotationManager.getRotation(this.currentPos.add(0.0, (double)Burrow.mc.player.getEyeHeight(Burrow.mc.player.getPose()), 0.0), directionVec);
-            Alien.ROTATION.snapAt(angle[0], angle[1]);
+            RiyueClient.ROTATION.snapAt(angle[0], angle[1]);
         }
         EntityUtil.swingHand(hand, AntiCheat.INSTANCE.interactSwing.getValue());
         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
@@ -401,7 +401,7 @@ extends Module {
             Burrow.mc.interactionManager.interactBlock(Burrow.mc.player, hand, result);
         }
         if (rotate) {
-            Alien.ROTATION.snapBack();
+            RiyueClient.ROTATION.snapBack();
         }
     }
 
@@ -486,7 +486,7 @@ extends Module {
         if (!BlockUtil.canReplace(pos)) {
             return false;
         }
-        if (this.detectMine.getValue() && Alien.BREAK.isMining(pos)) {
+        if (this.detectMine.getValue() && RiyueClient.BREAK.isMining(pos)) {
             return false;
         }
         return !this.hasEntity(pos);

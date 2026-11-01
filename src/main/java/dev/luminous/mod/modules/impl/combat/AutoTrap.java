@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.utils.combat.CombatUtil;
@@ -139,7 +139,7 @@ public class AutoTrap
     }
 
     private void trapTarget(PlayerEntity target) {
-        if (this.onlyHole.getValue() && !Alien.HOLE.isHole(EntityUtil.getEntityPos((Entity)target))) {
+        if (this.onlyHole.getValue() && !RiyueClient.HOLE.isHole(EntityUtil.getEntityPos((Entity)target))) {
             return;
         }
         if (this.onlyCrawling.getValue() && !target.isCrawling() && (!this.checkElytra.getValue() || !target.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.ELYTRA) || AutoTrap.mc.player.getY() < target.getY() + 1.0 && !target.isGliding())) {
@@ -230,7 +230,7 @@ public class AutoTrap
                 tryPlaceBlock(pos.up(headOffset), headMode.getValue() == Mode.Anchor, headMode.getValue() == Mode.Concrete, headMode.getValue() == Mode.Web);
             }
         }
-        if (antiStep.getValue() && (Alien.BREAK.isMining(pos.up(headOffset)) || !onlyBreak.getValue())) {
+        if (antiStep.getValue() && (RiyueClient.BREAK.isMining(pos.up(headOffset)) || !onlyBreak.getValue())) {
             if (BlockUtil.getPlaceSide(pos.up(3)) == null && BlockUtil.clientCanPlace(pos.up(3), breakCrystal.getValue())) {
                 if (getHelper(pos.up(3), Direction.DOWN) != null) {
                     tryPlaceObsidian(getHelper(pos.up(3)));
@@ -248,7 +248,7 @@ public class AutoTrap
             for (Direction i : Direction.values()) {
                 if (i == Direction.DOWN || i == Direction.UP) continue;
                 BlockPos offsetPos = pos.offset(i).up(headOffset);
-                if (!onlyBreaking.getValue() || Alien.BREAK.isMining(pos.up(headOffset))) {
+                if (!onlyBreaking.getValue() || RiyueClient.BREAK.isMining(pos.up(headOffset))) {
                     tryPlaceObsidian(offsetPos);
                     if (BlockUtil.getPlaceSide(offsetPos) == null && BlockUtil.clientCanPlace(offsetPos, breakCrystal.getValue())) {
                         if (getHelper(offsetPos) != null) {
@@ -297,7 +297,7 @@ public class AutoTrap
     public BlockPos getHelper(BlockPos pos) {
         if (!helper.getValue()) return null;
         for (Direction i : Direction.values()) {
-            if (checkMine.getValue() && Alien.BREAK.isMining(pos.offset(i))) continue;
+            if (checkMine.getValue() && RiyueClient.BREAK.isMining(pos.offset(i))) continue;
             if (!BlockUtil.isStrictDirection(pos.offset(i), i.getOpposite()))
                 continue;
             if (BlockUtil.canPlace(pos.offset(i), placeRange.getValue(), breakCrystal.getValue())) return pos.offset(i);
@@ -309,7 +309,7 @@ public class AutoTrap
         if (!helper.getValue()) return null;
         for (Direction i : Direction.values()) {
             if (i == ignore) continue;
-            if (checkMine.getValue() && Alien.BREAK.isMining(pos.offset(i))) continue;
+            if (checkMine.getValue() && RiyueClient.BREAK.isMining(pos.offset(i))) continue;
             if (!BlockUtil.isStrictDirection(pos.offset(i), i.getOpposite())) continue;
             if (BlockUtil.canPlace(pos.offset(i), placeRange.getValue(), breakCrystal.getValue())) return pos.offset(i);
         }
@@ -318,7 +318,7 @@ public class AutoTrap
 
     private boolean checkEntity(BlockPos pos) {
         if (mc.player.getBoundingBox().intersects(new Box(pos))) return false;
-        for (Entity entity : Alien.THREAD.getPlayers()) {
+        for (Entity entity : RiyueClient.THREAD.getPlayers()) {
             if (entity.getBoundingBox().intersects(new Box(pos)) && entity.isAlive())
                 return true;
         }
@@ -327,7 +327,7 @@ public class AutoTrap
 
     private void tryPlaceBlock(BlockPos pos, boolean anchor, boolean sand, boolean web) {
         if (placeList.contains(pos)) return;
-        if (Alien.BREAK.isMining(pos)) return;
+        if (RiyueClient.BREAK.isMining(pos)) return;
         if (!BlockUtil.canPlace(pos, 6, breakCrystal.getValue())) return;
         if (!(progress < blocksPer.getValue())) return;
         if (MathHelper.sqrt((float) mc.player.getEyePos().squaredDistanceTo(pos.toCenterPos())) > placeRange.getValue())
@@ -352,7 +352,7 @@ public class AutoTrap
     private void tryPlaceObsidian(BlockPos pos) {
         if (pos == null) return;
         if (placeList.contains(pos)) return;
-        if (Alien.BREAK.isMining(pos)) return;
+        if (RiyueClient.BREAK.isMining(pos)) return;
         if (!BlockUtil.canPlace(pos, 6, breakCrystal.getValue())) return;
         if (!(progress < blocksPer.getValue())) return;
         if (MathHelper.sqrt((float) mc.player.getEyePos().squaredDistanceTo(pos.toCenterPos())) > placeRange.getValue())

@@ -1,6 +1,6 @@
 package dev.luminous.core.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.eventbus.EventPriority;
 import dev.luminous.api.events.impl.GameLeftEvent;
@@ -44,7 +44,7 @@ public class ServerManager implements Wrapper {
     private float tps;
 
     public ServerManager() {
-        Alien.EVENT_BUS.subscribe(this);
+        RiyueClient.EVENT_BUS.subscribe(this);
     }
 
     public static float round2(double value) {
@@ -129,11 +129,11 @@ public class ServerManager implements Wrapper {
         if (worldNull && mc.world != null) {
             Fonts.INSTANCE.refresh();
             AutoLog.loggedOut = false;
-            Alien.MODULE.onLogin();
+            RiyueClient.MODULE.onLogin();
             worldNull = false;
         } else if (!worldNull && mc.world == null) {
-            Alien.save();
-            Alien.MODULE.onLogout();
+            RiyueClient.save();
+            RiyueClient.MODULE.onLogout();
             worldNull = true;
         }
     }

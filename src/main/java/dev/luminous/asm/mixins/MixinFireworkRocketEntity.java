@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.FireworkShooterRotationEvent;
 import dev.luminous.api.events.impl.RemoveFireworkEvent;
 import dev.luminous.api.utils.Wrapper;
@@ -28,7 +28,7 @@ public class MixinFireworkRocketEntity implements Wrapper {
     private void hookTickPre(CallbackInfo ci) {
         FireworkRocketEntity rocketEntity = (FireworkRocketEntity.class.cast(this));
         RemoveFireworkEvent removeFireworkEvent = RemoveFireworkEvent.get(rocketEntity);
-        Alien.EVENT_BUS.post(removeFireworkEvent);
+        RiyueClient.EVENT_BUS.post(removeFireworkEvent);
         if (removeFireworkEvent.isCancelled()) {
             ci.cancel();
             if (life == 0 && !rocketEntity.isSilent()) {
@@ -45,7 +45,7 @@ public class MixinFireworkRocketEntity implements Wrapper {
             target = "Lnet/minecraft/entity/LivingEntity;getRotationVector()Lnet/minecraft/util/math/Vec3d;"), require = 0)
     public Vec3d hook(LivingEntity instance) {
         FireworkShooterRotationEvent event = FireworkShooterRotationEvent.get(instance, instance.getYaw(), instance.getPitch());
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             return event.getRotationVector();
         }

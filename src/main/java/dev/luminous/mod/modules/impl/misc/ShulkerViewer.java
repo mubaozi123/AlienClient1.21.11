@@ -4,7 +4,7 @@ import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.serialization.DataResult;
 import com.mojang.datafixers.util.Pair;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.utils.math.Timer;
@@ -118,8 +118,8 @@ public class ShulkerViewer extends Module {
             block4:
             {
                 if (itemStack.getItem() == Items.ENDER_CHEST) {
-                    for (int i = 0; i < Alien.PLAYER.ENDERCHEST_ITEM.size(); ++i) {
-                        items[i] = (ItemStack) Alien.PLAYER.ENDERCHEST_ITEM.get(i);
+                    for (int i = 0; i < RiyueClient.PLAYER.ENDERCHEST_ITEM.size(); ++i) {
+                        items[i] = (ItemStack) RiyueClient.PLAYER.ENDERCHEST_ITEM.get(i);
                     }
                     return;
                 }
@@ -180,7 +180,7 @@ public class ShulkerViewer extends Module {
                 return !mainHand && !offHand;
             });
 
-            for (AbstractClientPlayerEntity player : Alien.THREAD.getPlayers()) {
+            for (AbstractClientPlayerEntity player : RiyueClient.THREAD.getPlayers()) {
                 BlockItem blockItem;
                 ItemStack stack = player.getMainHandStack();
                 Item item = stack.getItem();

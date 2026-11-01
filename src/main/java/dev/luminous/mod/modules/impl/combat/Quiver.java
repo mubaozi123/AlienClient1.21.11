@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.events.impl.UpdateRotateEvent;
@@ -57,12 +57,12 @@ public class Quiver extends Module {
         bow = mc.player.isUsingItem() && (mc.player.getActiveHand() == Hand.MAIN_HAND ? mc.player.getMainHandStack() : mc.player.getOffHandStack()).getItem() instanceof BowItem;
         if (bow && (!onlyPress.getValue() || switching) && BowItem.getPullProgress(mc.player.getItemUseTime()) >= time.getValue()) {
             if (instant.getValue()) {
-                Alien.ROTATION.snapAt(Alien.ROTATION.rotationYaw, -90);
+                RiyueClient.ROTATION.snapAt(RiyueClient.ROTATION.rotationYaw, -90);
             }
             mc.options.useKey.setPressed(false);
             mc.interactionManager.stopUsingItem(mc.player);
             if (instant.getValue()) {
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
             }
         }
     }

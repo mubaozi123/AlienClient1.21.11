@@ -1,7 +1,7 @@
 package dev.luminous.mod.gui;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.Wrapper;
 import dev.luminous.api.utils.render.ImmediateDrawUtil;
 import dev.luminous.api.utils.render.Render2DUtil;
@@ -35,7 +35,7 @@ public class ClickGuiScreen extends Screen {
     private static float renderingAlpha = 1.0F;
 
     public ClickGuiScreen() {
-        super((Text) Text.literal((String) "Alien"));
+        super((Text) Text.literal((String) "RiyueClient"));
         this.setInstance();
         this.load();
     }
@@ -57,7 +57,7 @@ public class ClickGuiScreen extends Screen {
             this.components.add(new Component(category.toString(), category, x += 94, 4, true) {
                 @Override
                 public void setupItems() {
-                    for (Module module : Alien.MODULE.getModules()) {
+                    for (Module module : RiyueClient.MODULE.getModules()) {
                         if (!module.getCategory().equals((Object) category)) continue;
                         this.addButton(new ModuleButton(module));
                     }

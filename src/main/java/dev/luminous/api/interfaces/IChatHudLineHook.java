@@ -6,16 +6,16 @@ package dev.luminous.api.interfaces;
 import dev.luminous.api.utils.math.FadeUtils;
 
 public interface IChatHudLineHook {
-    public int alienClient$getMessageId();
+    public int riyueClient$getMessageId();
 
-    public void alienClient$setMessageId(int var1);
+    public void riyueClient$setMessageId(int var1);
 
-    public boolean alienClient$getSync();
+    public boolean riyueClient$getSync();
 
-    public void alienClient$setSync(boolean var1);
+    public void riyueClient$setSync(boolean var1);
 
-    public FadeUtils alienClient$getFade();
+    public FadeUtils riyueClient$getFade();
 
-    public void alienClient$setFade(FadeUtils var1);
+    public void riyueClient$setFade(FadeUtils var1);
 }
 

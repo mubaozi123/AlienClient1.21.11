@@ -62,7 +62,7 @@ public abstract class MixinEndCrystalEntityRenderer extends EntityRenderer<EndCr
     @Unique
     private static final RenderPipeline ENTITY_TRANSLUCENT_NO_DEPTH = RenderPipelines.register(
             RenderPipeline.builder(RenderPipelines.ENTITY_SNIPPET)
-                    .withLocation(Identifier.of("alienclient", "pipeline/entity_translucent_no_depth"))
+                    .withLocation(Identifier.of("riyueclient", "pipeline/entity_translucent_no_depth"))
                     .withShaderDefine("ALPHA_CUTOUT", 0.1F)
                     .withShaderDefine("PER_FACE_LIGHTING")
                     .withSampler("Sampler1")
@@ -76,7 +76,7 @@ public abstract class MixinEndCrystalEntityRenderer extends EntityRenderer<EndCr
     @Unique
     private static final RenderPipeline POSITION_COLOR_NO_DEPTH = RenderPipelines.register(
             RenderPipeline.builder(RenderPipelines.POSITION_COLOR_SNIPPET)
-                    .withLocation(Identifier.of("alienclient", "pipeline/chams_crystal_color_no_depth"))
+                    .withLocation(Identifier.of("riyueclient", "pipeline/chams_crystal_color_no_depth"))
                     .withCull(false)
                     .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
                     .withDepthWrite(false)
@@ -86,7 +86,7 @@ public abstract class MixinEndCrystalEntityRenderer extends EntityRenderer<EndCr
     @Unique
     private static final RenderPipeline POSITION_COLOR_DEPTH = RenderPipelines.register(
             RenderPipeline.builder(RenderPipelines.POSITION_COLOR_SNIPPET)
-                    .withLocation(Identifier.of("alienclient", "pipeline/chams_crystal_color_depth"))
+                    .withLocation(Identifier.of("riyueclient", "pipeline/chams_crystal_color_depth"))
                     .withCull(false)
                     .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
                     .withDepthWrite(false)
@@ -96,7 +96,7 @@ public abstract class MixinEndCrystalEntityRenderer extends EntityRenderer<EndCr
     @Unique
     private static final RenderPipeline LINES_NO_DEPTH = RenderPipelines.register(
             RenderPipeline.builder(RenderPipelines.RENDERTYPE_LINES_SNIPPET)
-                    .withLocation(Identifier.of("alienclient", "pipeline/chams_crystal_lines_no_depth"))
+                    .withLocation(Identifier.of("riyueclient", "pipeline/chams_crystal_lines_no_depth"))
                     .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
                     .withDepthWrite(false)
                     .build()
@@ -114,7 +114,7 @@ public abstract class MixinEndCrystalEntityRenderer extends EntityRenderer<EndCr
     private static RenderLayer crystalNoDepthLayer() {
         if (CRYSTAL_CUSTOM_NO_DEPTH == null) {
             CRYSTAL_CUSTOM_NO_DEPTH = RenderLayer.of(
-                    "alienclient_crystal_custom_no_depth",
+                    "riyueclient_crystal_custom_no_depth",
                     RenderSetup.builder(ENTITY_TRANSLUCENT_NO_DEPTH)
                             .texture("Sampler0", TEXTURE)
                             .useLightmap()
@@ -129,19 +129,19 @@ public abstract class MixinEndCrystalEntityRenderer extends EntityRenderer<EndCr
 
     @Unique
     private static final RenderLayer CRYSTAL_COLOR_NO_DEPTH_LAYER = RenderLayer.of(
-            "alienclient_crystal_color_no_depth",
+            "riyueclient_crystal_color_no_depth",
             RenderSetup.builder(POSITION_COLOR_NO_DEPTH).translucent().build()
     );
 
     @Unique
     private static final RenderLayer CRYSTAL_COLOR_DEPTH_LAYER = RenderLayer.of(
-            "alienclient_crystal_color_depth",
+            "riyueclient_crystal_color_depth",
             RenderSetup.builder(POSITION_COLOR_DEPTH).translucent().build()
     );
 
     @Unique
     private static final RenderLayer CRYSTAL_LINES_NO_DEPTH_LAYER = RenderLayer.of(
-            "alienclient_crystal_lines_no_depth",
+            "riyueclient_crystal_lines_no_depth",
             RenderSetup.builder(LINES_NO_DEPTH).build()
     );
 

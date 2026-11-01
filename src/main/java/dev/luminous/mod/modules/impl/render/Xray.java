@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.render;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.AmbientOcclusionEvent;
 import dev.luminous.api.events.impl.ChunkOcclusionEvent;
@@ -28,7 +28,7 @@ public class Xray extends Module {
     private void openGui() {
         edit.setValueWithoutTask(false);
         if (!nullCheck()) {
-            mc.setScreen(new WindowsScreen(new ItemSelectWindow(Alien.XRAY)));
+            mc.setScreen(new WindowsScreen(new ItemSelectWindow(RiyueClient.XRAY)));
         }
     }
 
@@ -46,7 +46,7 @@ public class Xray extends Module {
     }
 
     public boolean isBlocked(Block block) {
-        return !Alien.XRAY.inWhitelist(block.getTranslationKey());
+        return !RiyueClient.XRAY.inWhitelist(block.getTranslationKey());
     }
 
     @EventListener

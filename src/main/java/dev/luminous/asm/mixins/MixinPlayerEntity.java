@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.Event;
 import dev.luminous.api.events.impl.JumpEvent;
 import dev.luminous.api.events.impl.TravelEvent;
@@ -49,11 +49,11 @@ public class MixinPlayerEntity implements Wrapper {
             return;
 
         TravelEvent event = TravelEvent.get(Event.Stage.Pre, player);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             ci.cancel();
             event = TravelEvent.get(Event.Stage.Post, player);
-            Alien.EVENT_BUS.post(event);
+            RiyueClient.EVENT_BUS.post(event);
         }
     }
 
@@ -64,6 +64,6 @@ public class MixinPlayerEntity implements Wrapper {
             return;
 
         TravelEvent event = TravelEvent.get(Event.Stage.Post, player);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
     }
 }

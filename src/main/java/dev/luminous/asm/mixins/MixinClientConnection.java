@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.PacketEvent;
 import dev.luminous.core.impl.CommandManager;
 import dev.luminous.mod.modules.impl.client.ClientSetting;
@@ -21,7 +21,7 @@ public class MixinClientConnection {
     @Inject(at = @At(value = "HEAD"), method = "handlePacket", cancellable = true)
     private static <T extends PacketListener> void onHandlePacket(Packet<T> packet, PacketListener listener, CallbackInfo ci) {
         PacketEvent.Receive event = new PacketEvent.Receive(packet);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             ci.cancel();
         }
@@ -30,7 +30,7 @@ public class MixinClientConnection {
     @Inject(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void onSendPacketPre(Packet<?> packet, CallbackInfo info) {
         PacketEvent.Send event = new PacketEvent.Send(packet);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             info.cancel();
         }
@@ -39,7 +39,7 @@ public class MixinClientConnection {
     @Inject(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("RETURN"))
     private void onSendPacketPost(Packet<?> packet, CallbackInfo info) {
         PacketEvent.Sent event = new PacketEvent.Sent(packet);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
     }
 
     @Inject(method = "exceptionCaught", at = @At("HEAD"), cancellable = true)

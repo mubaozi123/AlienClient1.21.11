@@ -1,6 +1,6 @@
 package dev.luminous.core.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.core.Manager;
 import net.minecraft.entity.player.PlayerEntity;
 import org.apache.commons.io.IOUtils;
@@ -72,7 +72,7 @@ public class FriendManager extends Manager {
             printwriter.close();
         } catch (Exception exception) {
             exception.printStackTrace();
-            System.out.println("[" + Alien.NAME + "] Failed to save friends");
+            System.out.println("[" + RiyueClient.NAME + "] Failed to save friends");
         }
     }
 }

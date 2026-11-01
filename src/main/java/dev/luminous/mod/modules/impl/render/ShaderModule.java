@@ -12,7 +12,7 @@
  */
 package dev.luminous.mod.modules.impl.render;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.asm.accessors.IGameRenderer;
 import dev.luminous.core.impl.ShaderManager;
 import dev.luminous.mod.modules.Module;
@@ -91,7 +91,7 @@ extends Module {
             if (entity == ShaderModule.mc.player) {
                 return this.self.getValue();
             }
-            if (Alien.FRIEND.isFriend(playerEntity)) {
+            if (RiyueClient.FRIEND.isFriend(playerEntity)) {
                 return this.friends.getValue();
             }
             return this.players.getValue();
@@ -113,18 +113,18 @@ extends Module {
     @Override
     public void onRender3D(MatrixStack matrixStack) {
         if (this.hands.getValue()) {
-            Alien.SHADER.renderShader(() -> ((IGameRenderer)ShaderModule.mc.gameRenderer).IRenderHand(mc.getRenderTickCounter().getTickProgress(true), false, matrixStack.peek().getPositionMatrix()), this.mode.getValue());
+            RiyueClient.SHADER.renderShader(() -> ((IGameRenderer)ShaderModule.mc.gameRenderer).IRenderHand(mc.getRenderTickCounter().getTickProgress(true), false, matrixStack.peek().getPositionMatrix()), this.mode.getValue());
         }
     }
 
     @Override
     public void onToggle() {
-        Alien.SHADER.reloadShaders();
+        RiyueClient.SHADER.reloadShaders();
     }
 
     @Override
     public void onLogin() {
-        Alien.SHADER.reloadShaders();
+        RiyueClient.SHADER.reloadShaders();
     }
 
     private static enum Page {

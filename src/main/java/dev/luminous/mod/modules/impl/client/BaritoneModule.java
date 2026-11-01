@@ -6,7 +6,7 @@ import baritone.api.pathing.calc.IPathingControlManager;
 import baritone.api.pathing.goals.GoalBlock;
 import baritone.api.pathing.goals.GoalXZ;
 import baritone.api.process.ICustomGoalProcess;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.mod.modules.Module;
@@ -44,7 +44,7 @@ public class BaritoneModule extends Module {
 
     public BaritoneModule() {
         super("Baritone", Category.Client);
-        Alien.EVENT_BUS.subscribe(this);
+        RiyueClient.EVENT_BUS.subscribe(this);
         INSTANCE = this;
         setChinese("寻路设置");
     }

@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.client;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.math.Animation;
 import dev.luminous.api.utils.math.Easing;
 import dev.luminous.mod.modules.Module;
@@ -25,7 +25,7 @@ public class ClientSetting extends Module {
     public final StringSetting prefix = add(new StringSetting("Prefix", ";", () -> page.is(Page.Misc)));
     public final BooleanSetting chinese = add(new BooleanSetting("Chinese", false, () -> page.is(Page.Misc)));
     public final BooleanSetting titleOverride = add(new BooleanSetting("TitleOverride", true, () -> page.is(Page.Misc)).setParent());
-    public final StringSetting windowTitle = add(new StringSetting("WindowTitle", Alien.NAME, () -> page.is(Page.Misc) && titleOverride.isOpen()));
+    public final StringSetting windowTitle = add(new StringSetting("WindowTitle", RiyueClient.NAME, () -> page.is(Page.Misc) && titleOverride.isOpen()));
     public final BooleanSetting debug = add(new BooleanSetting("DebugException", true, () -> page.is(Page.Misc)));
     public final BooleanSetting caughtException = add(new BooleanSetting("CaughtException", false, () -> page.is(Page.Misc)).setParent());
     public final BooleanSetting log = add(new BooleanSetting("Log", true, () -> page.is(Page.Misc) && caughtException.isOpen()));
@@ -35,7 +35,7 @@ public class ClientSetting extends Module {
     public final EnumSetting<Easing> animEase = add(new EnumSetting<>("AnimEase", Easing.CubicInOut, () -> page.is(Page.Gui)));
     public final BooleanSetting darkening = add(new BooleanSetting("Darkening", true, () -> page.is(Page.Gui)));
 
-    public final StringSetting hackName = add(new StringSetting("Notification", "[Alien]", () -> page.getValue() == Page.Notification));
+    public final StringSetting hackName = add(new StringSetting("Notification", "[RiyueClient]", () -> page.getValue() == Page.Notification));
     public final ColorSetting color = add(new ColorSetting("Color", new Color(255, 38, 38), () -> page.getValue() == Page.Notification));
     public final EnumSetting<Style> messageStyle = add(new EnumSetting<>("Style", Style.Mio, () -> page.getValue() == Page.Notification));
     public final BooleanSetting toggle = add(new BooleanSetting("ModuleToggle", true, () -> page.getValue() == Page.Notification).setParent());

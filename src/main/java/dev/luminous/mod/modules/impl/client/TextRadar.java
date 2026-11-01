@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.client;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.core.impl.FontManager;
 import dev.luminous.mod.modules.Module;
 import dev.luminous.mod.modules.settings.impl.BooleanSetting;
@@ -105,7 +105,7 @@ public class TextRadar extends Module {
                 }
             }
             if (pops.getValue()) {
-                int totemPopped = Alien.POP.getPop(player);
+                int totemPopped = RiyueClient.POP.getPop(player);
                 if (totemPopped > 0) {
                     stringBuilder.append(blank);
                     stringBuilder.append(getPopColor(totemPopped));
@@ -114,7 +114,7 @@ public class TextRadar extends Module {
                 }
             }
 
-            boolean isFriend = Alien.FRIEND.isFriend(player);
+            boolean isFriend = RiyueClient.FRIEND.isFriend(player);
             if (isFriend && !friend.booleanValue) continue;
             int color = isFriend ? friend.getValue().getRGB() : this.color.getValue().getRGB();
             if (font.getValue()) {

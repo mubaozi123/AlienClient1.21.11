@@ -1,6 +1,6 @@
 package dev.luminous.api.utils.math;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.Wrapper;
 import dev.luminous.api.utils.combat.CombatUtil;
 import dev.luminous.core.impl.PlayerManager;
@@ -285,7 +285,7 @@ public class DamageUtils {
 
     public static double getARMOR_TOUGHNESS(LivingEntity entity) {
         if (entity instanceof PlayerEntity player) {
-            PlayerManager.EntityAttribute entityAttribute = Alien.PLAYER.map.get(player);
+            PlayerManager.EntityAttribute entityAttribute = RiyueClient.PLAYER.map.get(player);
             if (entityAttribute != null)
                 return entityAttribute.toughness();
         }
@@ -294,7 +294,7 @@ public class DamageUtils {
 
     private static float getArmor(LivingEntity entity) {
         if (entity instanceof PlayerEntity player) {
-            PlayerManager.EntityAttribute entityAttribute = Alien.PLAYER.map.get(player);
+            PlayerManager.EntityAttribute entityAttribute = RiyueClient.PLAYER.map.get(player);
             if (entityAttribute != null)
                 return entityAttribute.armor();
         }

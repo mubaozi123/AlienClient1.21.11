@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.LookDirectionEvent;
 import dev.luminous.api.events.impl.SprintEvent;
 import dev.luminous.mod.modules.impl.movement.NoSlow;
@@ -37,7 +37,7 @@ public abstract class MixinEntity {
         if (Entity.class.cast(this) == mc.player) {
             LookDirectionEvent lookDirectionEvent = LookDirectionEvent.get(
                     Entity.class.cast(this), cursorDeltaX, cursorDeltaY);
-            Alien.EVENT_BUS.post(lookDirectionEvent);
+            RiyueClient.EVENT_BUS.post(lookDirectionEvent);
             if (lookDirectionEvent.isCancelled()) {
                 ci.cancel();
             }
@@ -80,7 +80,7 @@ public abstract class MixinEntity {
     public void setSprintingHook(boolean sprinting, CallbackInfo ci) {
         if (Entity.class.cast(this) == MinecraftClient.getInstance().player) {
             SprintEvent event = SprintEvent.get();
-            Alien.EVENT_BUS.post(event);
+            RiyueClient.EVENT_BUS.post(event);
             if (event.isCancelled()) {
                 ci.cancel();
                 sprinting = event.isSprint();

@@ -1,6 +1,6 @@
 package dev.luminous.mod.gui.items;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.math.Easing;
 import dev.luminous.api.utils.render.ColorUtil;
 import dev.luminous.api.utils.render.Render2DUtil;
@@ -77,7 +77,7 @@ public class Component
 
         if (this.open) {
             if (ClickGui.getInstance().blur.getValue()) {
-                Alien.BLUR.applyBlur(1 + (ClickGui.getInstance().radius.getValueFloat() - 1) * (float) ClickGui.getInstance().alphaValue, this.x, (float) this.y + height - 5f, this.width, totalItemHeight + 5f);
+                RiyueClient.BLUR.applyBlur(1 + (ClickGui.getInstance().radius.getValueFloat() - 1) * (float) ClickGui.getInstance().alphaValue, this.x, (float) this.y + height - 5f, this.width, totalItemHeight + 5f);
             }
             if (ClickGui.getInstance().backGround.booleanValue) {
                 Render2DUtil.rect(context.getMatrices(), this.x, (float) this.y + height - 5f, this.x + this.width, (float) (this.y + this.height) + totalItemHeight, ClickGui.getInstance().backGround.getValue().getRGB());

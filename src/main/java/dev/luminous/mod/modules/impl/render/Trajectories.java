@@ -2,7 +2,7 @@ package dev.luminous.mod.modules.impl.render;
 
 import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.math.MathUtil;
 import dev.luminous.api.utils.render.ColorUtil;
 import dev.luminous.api.utils.render.Render3DUtil;
@@ -49,7 +49,7 @@ public class Trajectories extends Module {
         Trajectories.matrixStack = matrixStack;
         if (this.pearl.booleanValue || this.arrow.booleanValue || this.xp.booleanValue) {
             GlStateManager._disableDepthTest();
-            for (Entity en : Alien.THREAD.getEntities()) {
+            for (Entity en : RiyueClient.THREAD.getEntities()) {
                 if (en instanceof EnderPearlEntity && this.pearl.booleanValue) {
                     this.calcTrajectory(en, this.pearl.getValue());
                 }
@@ -165,7 +165,7 @@ public class Trajectories extends Module {
             }
             motionY = item instanceof BowItem ? (motionY -= (double)0.05f) : (Trajectories.mc.player.getMainHandStack().getItem() instanceof CrossbowItem ? (motionY -= (double)0.05f) : (motionY -= (double)0.03f));
             Vec3d pos = new Vec3d(x, y, z);
-            for (Entity ent : Alien.THREAD.getEntities()) {
+            for (Entity ent : RiyueClient.THREAD.getEntities()) {
                 if (ent instanceof ArrowEntity || ent.equals((Object)Trajectories.mc.player) || !ent.getBoundingBox().intersects(new Box(x - 0.3, y - 0.3, z - 0.3, x + 0.3, y + 0.3, z + 0.3))) continue;
                 Render3DUtil.drawBox(matrixStack, ent.getBoundingBox(), this.hand.getValue());
                 break;

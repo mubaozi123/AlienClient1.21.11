@@ -3,7 +3,7 @@
  */
 package dev.luminous.mod.commands.impl;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.core.impl.ConfigManager;
 import dev.luminous.mod.commands.Command;
 import java.util.List;
@@ -17,12 +17,12 @@ extends Command {
     @Override
     public void runCommand(String[] parameters) {
         this.sendChatMessage("\u00a7fReloading..");
-        Alien.CONFIG = new ConfigManager();
-        Alien.CONFIG.load();
-        Alien.CLEANER.read();
-        Alien.XRAY.read();
-        Alien.TRADE.read();
-        Alien.FRIEND.read();
+        RiyueClient.CONFIG = new ConfigManager();
+        RiyueClient.CONFIG.load();
+        RiyueClient.CLEANER.read();
+        RiyueClient.XRAY.read();
+        RiyueClient.TRADE.read();
+        RiyueClient.FRIEND.read();
     }
 
     @Override

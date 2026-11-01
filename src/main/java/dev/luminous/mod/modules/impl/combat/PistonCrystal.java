@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.utils.combat.CombatUtil;
@@ -295,7 +295,7 @@ public class PistonCrystal extends Module {
                     BlockPos neighbour = pos.offset(side);
                     Direction opposite = side.getOpposite();
                     if (rotate.getValue()) {
-                        Alien.ROTATION.lookAt(neighbour, opposite);
+                        RiyueClient.ROTATION.lookAt(neighbour, opposite);
                     }
                 }
             } else {

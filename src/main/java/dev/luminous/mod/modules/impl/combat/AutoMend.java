@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.combat;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.eventbus.EventPriority;
 import dev.luminous.api.events.impl.UpdateEvent;
@@ -65,11 +65,11 @@ public class AutoMend extends Module {
         if (lookDown && isThrow() && delayTimer.passed(delay.getValueInt() * 20L) && (!onlyGround.getValue() || mc.player.isOnGround())) {
             exp = InventoryUtil.getItemCount(Items.EXPERIENCE_BOTTLE) - 1;
             if (rotation.getValue() && instant.getValue()) {
-                Alien.ROTATION.snapAt(Alien.ROTATION.rotationYaw, 88);
+                RiyueClient.ROTATION.snapAt(RiyueClient.ROTATION.rotationYaw, 88);
             }
             throwExp();
             if (rotation.getValue() && instant.getValue()) {
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
             }
         }
         if (autoDisable.getValue()) {
@@ -99,14 +99,14 @@ public class AutoMend extends Module {
         int newSlot;
         if (inventory.getValue() && (newSlot = InventoryUtil.findItemInventorySlotFromZero(Items.EXPERIENCE_BOTTLE)) != -1) {
             InventoryUtil.inventorySwap(newSlot, mc.player.getInventory().selectedSlot);
-            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             EntityUtil.swingHand(Hand.MAIN_HAND, interactSwing.getValue());
             InventoryUtil.inventorySwap(newSlot, mc.player.getInventory().selectedSlot);
             EntityUtil.syncInventory();
             delayTimer.reset();
         } else if ((newSlot = InventoryUtil.findItem(Items.EXPERIENCE_BOTTLE)) != -1) {
             InventoryUtil.switchToSlot(newSlot);
-            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             EntityUtil.swingHand(Hand.MAIN_HAND, interactSwing.getValue());
             InventoryUtil.switchToSlot(oldSlot);
             delayTimer.reset();

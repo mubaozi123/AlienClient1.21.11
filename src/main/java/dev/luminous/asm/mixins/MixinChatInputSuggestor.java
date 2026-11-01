@@ -2,7 +2,7 @@ package dev.luminous.asm.mixins;
 
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.render.Render2DUtil;
 import dev.luminous.mod.commands.Command;
 import dev.luminous.mod.modules.impl.client.ClientSetting;
@@ -65,7 +65,7 @@ public abstract class MixinChatInputSuggestor {
     @Inject(at = {
             @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/widget/TextFieldWidget;getCursor()I", ordinal = 0)}, method = "refresh()V")
     private void onRefresh(CallbackInfo ci) {
-        String prefix = Alien.getPrefix();
+        String prefix = RiyueClient.getPrefix();
         String string = this.textField.getText();
 
         showOutline = string.startsWith(prefix);
@@ -92,13 +92,13 @@ public abstract class MixinChatInputSuggestor {
                     int count = StringUtils.countMatches(string2, " ");
                     List<String> seperated = Arrays.asList(string2.split(" "));
                     if (count == 0) {
-                        for (Object strObj : Alien.COMMAND.getCommands().keySet().toArray()) {
+                        for (Object strObj : RiyueClient.COMMAND.getCommands().keySet().toArray()) {
                             String str = (String) strObj;
-                            builder.suggest(Alien.getPrefix() + str + " ");
+                            builder.suggest(RiyueClient.getPrefix() + str + " ");
                         }
                     } else {
                         if (seperated.isEmpty()) return;
-                        Command c = Alien.COMMAND.getCommandBySyntax(seperated.getFirst().substring(prefix.length()));
+                        Command c = RiyueClient.COMMAND.getCommandBySyntax(seperated.getFirst().substring(prefix.length()));
                         if (c == null) {
                             messages.add(Text.of(" §4no commands found: §f" + seperated.getFirst().substring(prefix.length())).asOrderedText());
                             return;

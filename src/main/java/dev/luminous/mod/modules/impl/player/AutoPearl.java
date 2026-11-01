@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.player;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.RotationEvent;
 import dev.luminous.api.events.impl.TickEvent;
@@ -76,7 +76,7 @@ public class AutoPearl extends Module {
         if (!shouldYawStep()) {
             throwPearl(mc.player.getYaw(), mc.player.getPitch());
             disable();
-        } else if (Alien.ROTATION.inFov(mc.player.getYaw(), mc.player.getPitch(), fov.getValueFloat())) {
+        } else if (RiyueClient.ROTATION.inFov(mc.player.getYaw(), mc.player.getPitch(), fov.getValueFloat())) {
             if (sync.getValue()) {
                 throwPearl(mc.player.getYaw(), mc.player.getPitch());
             } else {
@@ -84,18 +84,18 @@ public class AutoPearl extends Module {
                 int pearl;
 
                 if (mc.player.getMainHandStack().getItem() == Items.ENDER_PEARL) {
-                    sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+                    sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
                     EntityUtil.swingHand(Hand.MAIN_HAND, interactSwing.getValue());
                 } else if (inventory.getValue() && (pearl = InventoryUtil.findItemInventorySlotFromZero(Items.ENDER_PEARL)) != -1) {
                     InventoryUtil.inventorySwap(pearl, mc.player.getInventory().selectedSlot);
-                    sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+                    sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
                     EntityUtil.swingHand(Hand.MAIN_HAND, interactSwing.getValue());
                     InventoryUtil.inventorySwap(pearl, mc.player.getInventory().selectedSlot);
                     EntityUtil.syncInventory();
                 } else if ((pearl = InventoryUtil.findItem(Items.ENDER_PEARL)) != -1) {
                     int old = mc.player.getInventory().selectedSlot;
                     InventoryUtil.switchToSlot(pearl);
-                    sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, Alien.ROTATION.getLastYaw(), Alien.ROTATION.getLastPitch()));
+                    sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
                     EntityUtil.swingHand(Hand.MAIN_HAND, interactSwing.getValue());
                     InventoryUtil.switchToSlot(old);
                 }
@@ -123,31 +123,31 @@ public class AutoPearl extends Module {
         int pearl;
         if (mc.player.getMainHandStack().getItem() == Items.ENDER_PEARL) {
             if (rotation.getValue())
-                Alien.ROTATION.snapAt(yaw, pitch);
+                RiyueClient.ROTATION.snapAt(yaw, pitch);
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, yaw, pitch));
             EntityUtil.swingHand(Hand.MAIN_HAND, interactSwing.getValue());
             if (rotation.getValue())
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
         } else if (inventory.getValue() && (pearl = InventoryUtil.findItemInventorySlotFromZero(Items.ENDER_PEARL)) != -1) {
             InventoryUtil.inventorySwap(pearl, mc.player.getInventory().selectedSlot);
             if (rotation.getValue())
-                Alien.ROTATION.snapAt(yaw, pitch);
+                RiyueClient.ROTATION.snapAt(yaw, pitch);
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, yaw, pitch));
             EntityUtil.swingHand(Hand.MAIN_HAND, interactSwing.getValue());
             InventoryUtil.inventorySwap(pearl, mc.player.getInventory().selectedSlot);
             EntityUtil.syncInventory();
             if (rotation.getValue())
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
         } else if ((pearl = InventoryUtil.findItem(Items.ENDER_PEARL)) != -1) {
             int old = mc.player.getInventory().selectedSlot;
             InventoryUtil.switchToSlot(pearl);
             if (rotation.getValue())
-                Alien.ROTATION.snapAt(yaw, pitch);
+                RiyueClient.ROTATION.snapAt(yaw, pitch);
             sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, yaw, pitch));
             EntityUtil.swingHand(Hand.MAIN_HAND, interactSwing.getValue());
             InventoryUtil.switchToSlot(old);
             if (rotation.getValue())
-                Alien.ROTATION.snapBack();
+                RiyueClient.ROTATION.snapBack();
         }
         throwing = false;
     }

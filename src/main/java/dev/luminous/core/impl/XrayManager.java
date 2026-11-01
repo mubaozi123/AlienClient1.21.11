@@ -101,7 +101,7 @@ extends Manager {
             printwriter.close();
         }
         catch (Exception exception) {
-            System.out.println("[Alien] Failed to save xrays");
+            System.out.println("[RiyueClient] Failed to save xrays");
         }
     }
 }

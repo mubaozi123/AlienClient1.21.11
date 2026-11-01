@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.utils.Wrapper;
 import dev.luminous.mod.modules.impl.misc.ShulkerViewer;
 import net.minecraft.client.gui.Click;
@@ -43,14 +43,14 @@ public abstract class MixinHandledScreen<T extends ScreenHandler>
     @Inject(method={"mouseClicked"}, at={@At(value="HEAD")}, cancellable=true)
     private void mouseClicked(Click click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
         ItemStack itemStack;
-        if (click.button() == 2 && this.focusedSlot != null && !this.focusedSlot.getStack().isEmpty() && Wrapper.mc.player.currentScreenHandler.getCursorStack().isEmpty() && ShulkerViewer.INSTANCE.isOn() && (ShulkerViewer.hasItems(itemStack = this.focusedSlot.getStack()) || itemStack.getItem() == Items.ENDER_CHEST && Alien.PLAYER.known)) {
+        if (click.button() == 2 && this.focusedSlot != null && !this.focusedSlot.getStack().isEmpty() && Wrapper.mc.player.currentScreenHandler.getCursorStack().isEmpty() && ShulkerViewer.INSTANCE.isOn() && (ShulkerViewer.hasItems(itemStack = this.focusedSlot.getStack()) || itemStack.getItem() == Items.ENDER_CHEST && RiyueClient.PLAYER.known)) {
             cir.setReturnValue(ShulkerViewer.openContainer(this.focusedSlot.getStack(), ITEMS, false));
         }
     }
 
     @Inject(method={"render"}, at={@At(value="RETURN")})
     private void onRender(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        if (ShulkerViewer.INSTANCE.isOn() && ShulkerViewer.INSTANCE.toolTips.getValue() && this.focusedSlot != null && !this.focusedSlot.getStack().isEmpty() && this.client.player.playerScreenHandler.getCursorStack().isEmpty() && (ShulkerViewer.hasItems(this.focusedSlot.getStack()) || this.focusedSlot.getStack().getItem() == Items.ENDER_CHEST && Alien.PLAYER.known)) {
+        if (ShulkerViewer.INSTANCE.isOn() && ShulkerViewer.INSTANCE.toolTips.getValue() && this.focusedSlot != null && !this.focusedSlot.getStack().isEmpty() && this.client.player.playerScreenHandler.getCursorStack().isEmpty() && (ShulkerViewer.hasItems(this.focusedSlot.getStack()) || this.focusedSlot.getStack().getItem() == Items.ENDER_CHEST && RiyueClient.PLAYER.known)) {
             ShulkerViewer.renderShulkerToolTip(context, mouseX, mouseY, this.focusedSlot.getStack());
         }
     }

@@ -1,6 +1,6 @@
 package dev.luminous.mod.modules.impl.player;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.eventbus.EventListener;
 import dev.luminous.api.events.impl.UpdateEvent;
 import dev.luminous.api.utils.math.Timer;
@@ -80,7 +80,7 @@ public class Sorter extends Module {
     @Override
     public void onEnable() {
         if (nullCheck()) return;
-        Alien.THREAD.execute(() -> {
+        RiyueClient.THREAD.execute(() -> {
             kitMap.clear();
             try {
                 File file = Manager.getFile(kitName.getValue() + ".kit");
@@ -124,7 +124,7 @@ public class Sorter extends Module {
     private void openGui() {
         edit.setValueWithoutTask(false);
         if (!nullCheck()) {
-            mc.setScreen(new WindowsScreen(new ItemSelectWindow(Alien.CLEANER)));
+            mc.setScreen(new WindowsScreen(new ItemSelectWindow(RiyueClient.CLEANER)));
         }
     }
 
@@ -254,7 +254,7 @@ public class Sorter extends Module {
         Item item = stack.getItem();
         if (trash.getValue()) {
             if (!(item instanceof BlockItem blockItem) || !(blockItem.getBlock() instanceof ShulkerBoxBlock)) {
-                boolean inList = Alien.CLEANER.inList(item.getTranslationKey());
+                boolean inList = RiyueClient.CLEANER.inList(item.getTranslationKey());
                 if (!inList && trashMode.is(Mode.Whitelist) || inList && trashMode.is(Mode.Blacklist)) {
                     return true;
                 }

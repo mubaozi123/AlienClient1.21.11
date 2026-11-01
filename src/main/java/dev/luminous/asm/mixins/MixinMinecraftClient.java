@@ -1,7 +1,7 @@
 package dev.luminous.asm.mixins;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.Event;
 import dev.luminous.api.events.impl.*;
 import dev.luminous.core.impl.CommandManager;
@@ -70,7 +70,7 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
 
     @Inject(method = "onResolutionChanged", at = @At("TAIL"))
     private void captureResize(CallbackInfo ci) {
-        Alien.EVENT_BUS.post(new ResizeEvent(this.window));
+        RiyueClient.EVENT_BUS.post(new ResizeEvent(this.window));
     }
 
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;limitDisplayFPS(I)V"), require = 0)
@@ -88,25 +88,25 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
     @Inject(method = "setScreen", at = @At("HEAD"), cancellable = true)
     private void onSetScreen(Screen screen, CallbackInfo info) {
         OpenScreenEvent event = OpenScreenEvent.get(screen);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
 
         if (event.isCancelled()) info.cancel();
     }
 
     @Inject(method = {"doAttack"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/util/hit/HitResult;getType()Lnet/minecraft/util/hit/HitResult$Type;", shift = At.Shift.BEFORE))
     public void onAttack(CallbackInfoReturnable<Boolean> cir) {
-        Alien.EVENT_BUS.post(DoAttackEvent.getPre());
+        RiyueClient.EVENT_BUS.post(DoAttackEvent.getPre());
     }
 
     @Inject(method = {"doAttack"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V", shift = At.Shift.AFTER))
     public void onAttackPost(CallbackInfoReturnable<Boolean> cir) {
-        Alien.EVENT_BUS.post(DoAttackEvent.getPost());
+        RiyueClient.EVENT_BUS.post(DoAttackEvent.getPost());
     }
 
     @Inject(method = "disconnect(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))
     private void onGameLeave(Text reasonText, CallbackInfo ci) {
         if (world != null) {
-            Alien.EVENT_BUS.post(GameLeftEvent.INSTANCE);
+            RiyueClient.EVENT_BUS.post(GameLeftEvent.INSTANCE);
         }
         if (ClientSetting.INSTANCE.titleFix.getValue()) {
             inGameHud.clearTitle();
@@ -137,7 +137,7 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
     @Inject(at = @At("HEAD"), method = "tick()V")
     public void tickHead(CallbackInfo info) {
         try {
-            Alien.EVENT_BUS.post(ClientTickEvent.get(Event.Stage.Pre));
+            RiyueClient.EVENT_BUS.post(ClientTickEvent.get(Event.Stage.Pre));
         } catch (Exception e) {
             e.printStackTrace();
             if (ClientSetting.INSTANCE.debug.getValue())
@@ -148,7 +148,7 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
     @Inject(at = @At("TAIL"), method = "tick()V")
     public void tickTail(CallbackInfo info) {
         try {
-            Alien.EVENT_BUS.post(ClientTickEvent.get(Event.Stage.Post));
+            RiyueClient.EVENT_BUS.post(ClientTickEvent.get(Event.Stage.Post));
         } catch (Exception e) {
             e.printStackTrace();
             if (ClientSetting.INSTANCE.debug.getValue())
@@ -163,7 +163,7 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
     @Overwrite
     private String getWindowTitle() {
         if (ClientSetting.INSTANCE == null) {
-            return Alien.NAME + ": Loading..";
+            return RiyueClient.NAME + ": Loading..";
         }
         if (ClientSetting.INSTANCE.titleOverride.getValue()) {
             return ClientSetting.INSTANCE.windowTitle.getValue();

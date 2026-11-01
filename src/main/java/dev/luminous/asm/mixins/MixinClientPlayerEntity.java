@@ -1,7 +1,7 @@
 package dev.luminous.asm.mixins;
 
 import com.mojang.authlib.GameProfile;
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.Event;
 import dev.luminous.api.events.impl.*;
 import dev.luminous.api.utils.world.InteractUtil;
@@ -56,11 +56,11 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
     private float lastPitchClient;
 
     @Unique
-    private float alien$preYaw;
+    private float riyue$preYaw;
     @Unique
-    private float alien$prePitch;
+    private float riyue$prePitch;
     @Unique
-    private boolean alien$rotating;
+    private boolean riyue$rotating;
 
     public MixinClientPlayerEntity(ClientWorld world, GameProfile profile) {
         super(world, profile);
@@ -116,19 +116,19 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
     @Inject(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V"), cancellable = true)
     public void onMoveHook(MovementType movementType, Vec3d movement, CallbackInfo ci) {
         MoveEvent event = MoveEvent.get(movement.x, movement.y, movement.z);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
         if (event.isCancelled()) {
             ci.cancel();
         } else if (event.modify) {
             ci.cancel();
             super.move(movementType, new Vec3d(event.getX(), event.getY(), event.getZ()));
-            Alien.EVENT_BUS.post(MovedEvent.INSTANCE);
+            RiyueClient.EVENT_BUS.post(MovedEvent.INSTANCE);
         }
     }
 
     @Inject(method = "move", at = @At(value = "TAIL"))
     public void onMoveReturnHook(MovementType movementType, Vec3d movement, CallbackInfo ci) {
-        Alien.EVENT_BUS.post(MovedEvent.INSTANCE);
+        RiyueClient.EVENT_BUS.post(MovedEvent.INSTANCE);
     }
 
     @Shadow
@@ -141,7 +141,7 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
             at = @At(value = "HEAD"))
     private void tickHead(CallbackInfo ci) {
         try {
-            Alien.EVENT_BUS.post(TickEvent.get(Event.Stage.Pre));
+            RiyueClient.EVENT_BUS.post(TickEvent.get(Event.Stage.Pre));
         } catch (Exception e) {
             e.printStackTrace();
             if (ClientSetting.INSTANCE.debug.getValue())
@@ -153,7 +153,7 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
             at = @At(value = "RETURN"))
     private void tickReturn(CallbackInfo ci) {
         try {
-            Alien.EVENT_BUS.post(TickEvent.get(Event.Stage.Post));
+            RiyueClient.EVENT_BUS.post(TickEvent.get(Event.Stage.Post));
         } catch (Exception e) {
             e.printStackTrace();
             if (ClientSetting.INSTANCE.debug.getValue())
@@ -163,7 +163,7 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
 
     @Inject(method = "sendMovementPackets", at = @At("HEAD"))
     private void onSendMovementPacketsHead(CallbackInfo info) {
-        this.alien$applyRotation();
+        this.riyue$applyRotation();
 
         if (PacketControl.INSTANCE.isOn() && PacketControl.INSTANCE.positionSync.getValue()) {
             if (this.ticksSinceLastPositionPacketSent >= PacketControl.INSTANCE.positionDelay.getValueInt() - 1) {
@@ -192,57 +192,57 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
 
     @Inject(method = "sendMovementPackets", at = @At("TAIL"))
     private void onSendMovementPacketsTail(CallbackInfo info) {
-        this.alien$restoreRotation();
+        this.riyue$restoreRotation();
     }
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
-    private float alien$redirectVehicleYaw(ClientPlayerEntity instance) {
+    private float riyue$redirectVehicleYaw(ClientPlayerEntity instance) {
         if (instance.hasVehicle()) {
-            this.alien$applyRotation();
+            this.riyue$applyRotation();
         }
         return instance.getYaw();
     }
 
     @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V", ordinal = 1, shift = At.Shift.AFTER))
     private void onTickVehicleAfterSendPackets(CallbackInfo info) {
-        this.alien$restoreRotation();
+        this.riyue$restoreRotation();
     }
 
     @Unique
-    private void alien$applyRotation() {
-        if (this.alien$rotating) {
+    private void riyue$applyRotation() {
+        if (this.riyue$rotating) {
             return;
         }
 
         float currentYaw = this.getYaw();
         float currentPitch = this.getPitch();
         SendMovementPacketsEvent event = SendMovementPacketsEvent.get(currentYaw, currentPitch);
-        Alien.EVENT_BUS.post(event);
+        RiyueClient.EVENT_BUS.post(event);
 
-        Alien.ROTATION.rotationYaw = event.getYaw();
-        Alien.ROTATION.rotationPitch = event.getPitch();
+        RiyueClient.ROTATION.rotationYaw = event.getYaw();
+        RiyueClient.ROTATION.rotationPitch = event.getPitch();
         if (Float.compare(currentYaw, event.getYaw()) == 0 && Float.compare(currentPitch, event.getPitch()) == 0) {
             return;
         }
 
-        this.alien$preYaw = currentYaw;
-        this.alien$prePitch = currentPitch;
-        this.alien$rotating = true;
+        this.riyue$preYaw = currentYaw;
+        this.riyue$prePitch = currentPitch;
+        this.riyue$rotating = true;
         this.setYaw(event.getYaw());
         this.setPitch(event.getPitch());
     }
 
     @Unique
-    private void alien$restoreRotation() {
-        if (this.alien$rotating) {
-            this.setYaw(this.alien$preYaw);
-            this.setPitch(this.alien$prePitch);
-            this.alien$rotating = false;
+    private void riyue$restoreRotation() {
+        if (this.riyue$rotating) {
+            this.setYaw(this.riyue$preYaw);
+            this.setPitch(this.riyue$prePitch);
+            this.riyue$rotating = false;
         }
     }
 
     @Inject(method = "tickMovement", at = @At("HEAD"))
     private void tickMovement(CallbackInfo ci) {
-        Alien.EVENT_BUS.post(TickMovementEvent.INSTANCE);
+        RiyueClient.EVENT_BUS.post(TickMovementEvent.INSTANCE);
     }
 }

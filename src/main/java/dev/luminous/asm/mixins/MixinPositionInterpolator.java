@@ -1,6 +1,6 @@
 package dev.luminous.asm.mixins;
 
-import dev.luminous.Alien;
+import dev.luminous.RiyueClient;
 import dev.luminous.api.events.impl.LerpToEvent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -22,7 +22,7 @@ public abstract class MixinPositionInterpolator {
     @Inject(method = "refreshPositionAndAngles", at = @At("HEAD"))
     private void lerpToHook(Vec3d pow, float yaw, float pitch, CallbackInfo ci) {
         if (entity instanceof LivingEntity livingEntity) {
-            Alien.EVENT_BUS.post(LerpToEvent.get(livingEntity, pow.x, pow.y, pow.z, yaw, pitch, lastLerp));
+            RiyueClient.EVENT_BUS.post(LerpToEvent.get(livingEntity, pow.x, pow.y, pow.z, yaw, pitch, lastLerp));
             lastLerp = System.currentTimeMillis();
         }
     }
