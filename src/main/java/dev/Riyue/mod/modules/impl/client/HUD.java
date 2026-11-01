@@ -336,7 +336,7 @@ public class HUD extends Module {
                 if (fade > 0.04) {
                     counter += fromUp ? fade : -fade;
                     int c = ColorUtil.injectAlpha(getColor(counter), (int) (color.getValue().getAlpha() * fade));
-                    if (blur.getValue()) {
+                    if (blur.getValue() && RiyueClient.BLUR != null) {
                         RiyueClient.BLUR.applyBlur((float) (radius.getValue() * fade),
                                 (float) (windowWidth - width - HUD.this.width.getValueFloat() / 2),
                                 (float) currentY - 1 - interval.getValueFloat() / 2,

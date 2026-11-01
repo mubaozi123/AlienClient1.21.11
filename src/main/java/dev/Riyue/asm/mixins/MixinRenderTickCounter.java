@@ -27,7 +27,7 @@ public class MixinRenderTickCounter {
         TimerEvent event = TimerEvent.getEvent();
         RiyueClient.EVENT_BUS.post(event);
         if (!event.isCancelled()) {
-            float timer = event.isModified() ? event.get() : RiyueClient.TIMER.get();
+            float timer = event.isModified() ? event.get() : (RiyueClient.TIMER != null ? RiyueClient.TIMER.get() : 1.0f);
             if (timer == 1.0f) {
                 return;
             }

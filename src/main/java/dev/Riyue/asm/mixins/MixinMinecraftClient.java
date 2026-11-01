@@ -83,6 +83,7 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
     @Inject(method = "<init>", at = @At("TAIL"))
     void postWindowInit(RunArgs args, CallbackInfo ci) {
         FontManager.init();
+        RiyueClient.deferredInit();
     }
 
     @Inject(method = "setScreen", at = @At("HEAD"), cancellable = true)

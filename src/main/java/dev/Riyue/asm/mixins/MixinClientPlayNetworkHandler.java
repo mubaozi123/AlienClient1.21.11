@@ -144,7 +144,7 @@ public abstract class MixinClientPlayNetworkHandler
     @Inject(method={"onPlayerPositionLook"}, at={@At(value="INVOKE", target="Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V", shift=At.Shift.AFTER)}, cancellable=true)
     public void onPlayerPositionLook(PlayerPositionLookS2CPacket packet, CallbackInfo ci) {
         boolean noRotate;
-        boolean bl = noRotate = AntiPacket.INSTANCE.isOn() && AntiPacket.INSTANCE.s2CRotate.getValue() && RiyueClient.SERVER.playerNull.passedS(0.25);
+        boolean bl = noRotate = RiyueClient.SERVER != null && AntiPacket.INSTANCE.isOn() && AntiPacket.INSTANCE.s2CRotate.getValue() && RiyueClient.SERVER.playerNull.passedS(0.25);
         if (noRotate) {
             double i;
             double h;
@@ -195,17 +195,19 @@ public abstract class MixinClientPlayNetworkHandler
             if (AntiPacket.INSTANCE.applyYaw.getValue()) {
                 float yaw = packet.change().yaw();
                 float pitch = packet.change().pitch();
-                if (packet.relatives().contains(PositionFlag.X_ROT)) {
-                    pitch += RiyueClient.ROTATION.getLastPitch();
-                }
-                if (packet.relatives().contains(PositionFlag.Y_ROT)) {
-                    yaw += RiyueClient.ROTATION.getLastYaw();
+                if (RiyueClient.ROTATION != null) {
+                    if (packet.relatives().contains(PositionFlag.X_ROT)) {
+                        pitch += RiyueClient.ROTATION.getLastPitch();
+                    }
+                    if (packet.relatives().contains(PositionFlag.Y_ROT)) {
+                        yaw += RiyueClient.ROTATION.getLastYaw();
+                    }
                 }
                 this.connection.send((Packet)new TeleportConfirmC2SPacket(packet.teleportId()));
                 this.connection.send((Packet)new PlayerMoveC2SPacket.Full(playerEntity.getX(), playerEntity.getY(), playerEntity.getZ(), yaw, pitch, false, false));
             } else {
                 this.connection.send((Packet)new TeleportConfirmC2SPacket(packet.teleportId()));
-                this.connection.send((Packet)new PlayerMoveC2SPacket.Full(playerEntity.getX(), playerEntity.getY(), playerEntity.getZ(), RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch(), false, false));
+                this.connection.send((Packet)new PlayerMoveC2SPacket.Full(playerEntity.getX(), playerEntity.getY(), playerEntity.getZ(), RiyueClient.ROTATION != null ? RiyueClient.ROTATION.getLastYaw() : playerEntity.getYaw(), RiyueClient.ROTATION != null ? RiyueClient.ROTATION.getLastPitch() : playerEntity.getPitch(), false, false));
             }
             RiyueClient.EVENT_BUS.post(ServerChangePositionEvent.INSTANCE);
         }

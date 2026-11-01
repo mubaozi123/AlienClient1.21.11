@@ -112,18 +112,20 @@ extends Module {
 
     @Override
     public void onRender3D(MatrixStack matrixStack) {
-        if (this.hands.getValue()) {
+        if (this.hands.getValue() && RiyueClient.SHADER != null) {
             RiyueClient.SHADER.renderShader(() -> ((IGameRenderer)ShaderModule.mc.gameRenderer).IRenderHand(mc.getRenderTickCounter().getTickProgress(true), false, matrixStack.peek().getPositionMatrix()), this.mode.getValue());
         }
     }
 
     @Override
     public void onToggle() {
+        if (RiyueClient.SHADER == null) return;
         RiyueClient.SHADER.reloadShaders();
     }
 
     @Override
     public void onLogin() {
+        if (RiyueClient.SHADER == null) return;
         RiyueClient.SHADER.reloadShaders();
     }
 

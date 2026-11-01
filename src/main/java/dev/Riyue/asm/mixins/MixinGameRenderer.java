@@ -111,7 +111,11 @@ public class MixinGameRenderer {
 
     @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;renderHand(FZLorg/joml/Matrix4f;)V", shift = At.Shift.AFTER))
     public void postRender3dHook(RenderTickCounter tickCounter, CallbackInfo ci) {
-        RiyueClient.SHADER.renderShaders();
+        if (RiyueClient.SHADER != null) {
+            RiyueClient.SHADER.renderShaders();
+        }
+        // 兜底：若窗口初始化钩子未触发（版本映射变化等），在首帧渲染前完成延迟初始化
+        RiyueClient.deferredInit();
     }
 
     @Inject(method = "getBasicProjectionMatrix(F)Lorg/joml/Matrix4f;", at = @At("TAIL"), cancellable = true)

@@ -76,7 +76,7 @@ public class Component
         }
 
         if (this.open) {
-            if (ClickGui.getInstance().blur.getValue()) {
+            if (ClickGui.getInstance().blur.getValue() && RiyueClient.BLUR != null) {
                 RiyueClient.BLUR.applyBlur(1 + (ClickGui.getInstance().radius.getValueFloat() - 1) * (float) ClickGui.getInstance().alphaValue, this.x, (float) this.y + height - 5f, this.width, totalItemHeight + 5f);
             }
             if (ClickGui.getInstance().backGround.booleanValue) {
