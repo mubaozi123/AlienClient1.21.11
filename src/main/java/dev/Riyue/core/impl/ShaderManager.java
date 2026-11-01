@@ -13,6 +13,7 @@ import net.minecraft.client.render.VertexFormats;
 import dev.Riyue.api.utils.Wrapper;
 import dev.Riyue.api.utils.math.Timer;
 import dev.Riyue.mod.modules.impl.render.ShaderModule;
+import dev.Riyue.mod.modules.impl.render.SkyBox;
 import java.awt.Color;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -30,12 +31,13 @@ import net.minecraft.util.Identifier;
 public class ShaderManager
 implements Wrapper {
     private static final int UBO_SIZE = 112;
-    private static final String[] SHADER_NAMES = new String[]{"solid", "pulse", "smoke", "gradient", "snow", "flow", "rainbow"};
+    private static final String[] SHADER_NAMES = new String[]{"solid", "pulse", "smoke", "gradient", "snow", "flow", "rainbow", "skybox"};
     private static final RenderPipeline[] PIPELINES = new RenderPipeline[Shader.values().length];
     static final Timer timer = new Timer();
     private static final List<RenderTask> tasks = new ArrayList<RenderTask>();
     public float time = 0.0f;
     private Framebuffer shaderBuffer;
+    private SimpleFramebuffer skyCopyBuffer;
 
     static {
         for (Shader shader : Shader.values()) {
@@ -95,7 +97,12 @@ implements Wrapper {
     private GpuBuffer buildUniforms(Shader shader) {
         ShaderModule module = ShaderModule.INSTANCE;
         Color color = module.fill.getValue();
-        this.time = (float)timer.getMs() / 5.0f * module.speed.getValueFloat() * 0.004f;
+        float rawTime = (float)timer.getMs() / 5.0f;
+        this.time = rawTime * module.speed.getValueFloat() * 0.004f;
+        if (shader == Shader.Skybox) {
+            // skybox 使用独立速度，此处仅推进原始时间基准
+            this.time = rawTime * 0.004f;
+        }
         int width = mc.getWindow().getScaledWidth();
         int height = mc.getWindow().getScaledHeight();
         float mixFactor = (float)color.getAlpha() / 255.0f;
@@ -165,6 +172,23 @@ implements Wrapper {
                 builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
                 break;
             }
+            case Skybox: {
+                SkyBox sky = SkyBox.INSTANCE;
+                Color skyColor = sky != null ? sky.color.getValue() : Color.WHITE;
+                Color skyBg = sky != null ? sky.backgroundColor.getValue() : Color.BLACK;
+                float skyScale = sky != null ? sky.scale.getValueFloat() : 1.0f;
+                float skySpeed = sky != null ? sky.speed.getValueFloat() : 4.0f;
+                float skyOpacity = sky != null ? sky.opacity.getValueFloat() : 1.0f;
+                boolean applyAll = sky != null && sky.applyAll.getValue();
+                this.putColor(builder, skyColor, (float)skyColor.getAlpha() / 255.0f);
+                this.putColor(builder, skyBg, (float)skyBg.getAlpha() / 255.0f);
+                builder.putVec4((float)width, (float)height, this.time * skySpeed, skyOpacity);
+                builder.putVec4(skyScale, skySpeed, applyAll ? 1.0f : 0.0f, 0.0f);
+                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+                break;
+            }
             default: {
                 builder.putVec4(0.0f, 0.0f, 0.0f, mixFactor);
                 builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -185,6 +209,7 @@ implements Wrapper {
 
     public void reloadShaders() {
         this.shaderBuffer = null;
+        this.skyCopyBuffer = null;
     }
 
     public boolean fullNullCheck() {
@@ -209,7 +234,8 @@ implements Wrapper {
         Gradient,
         Snow,
         Flow,
-        Rainbow;
+        Rainbow,
+        Skybox;
 
     }
 }

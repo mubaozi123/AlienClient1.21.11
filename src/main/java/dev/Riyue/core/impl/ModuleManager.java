@@ -11,7 +11,7 @@ import dev.Riyue.mod.modules.Module;
 import dev.Riyue.mod.modules.impl.client.*;
 import dev.Riyue.mod.modules.impl.combat.*;
 import dev.Riyue.mod.modules.impl.exploit.*;
-import dev.Riyue.mod.modules.impl.mace.*;
+
 import dev.Riyue.mod.modules.impl.misc.*;
 import dev.Riyue.mod.modules.impl.movement.*;
 import dev.Riyue.mod.modules.impl.player.*;

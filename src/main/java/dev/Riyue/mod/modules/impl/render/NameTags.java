@@ -20,7 +20,6 @@ import net.minecraft.client.render.DiffuseLighting;
 import it.unimi.dsi.fastutil.ints.Int2LongMap;
 import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.PotionContentsComponent;
 import net.minecraft.enchantment.Enchantment;
@@ -218,8 +217,8 @@ public class NameTags extends Module {
                             switch (armorMode.getValue()) {
                                 case OnlyArmor -> {
                                     if (count > 1 && count < 6) {
-                                        
-                                        PLACEHOLDER
+                                        context.drawItem(armorComponent, 0, 0);
+                                        context.drawStackOverlay(mc.textRenderer, armorComponent, 0, 0);
                                     }
                                 }
                                 case Item -> {
@@ -247,8 +246,8 @@ public class NameTags extends Module {
                                             int j = armorComponent.getItemBarColor();
                                             int k = 2;
                                             int l = 13;
-                                            context.fill(RenderLayer.getGuiOverlay(), k, l, k + 13, l + 2, -16777216);
-                                            context.fill(RenderLayer.getGuiOverlay(), k, l, k + i, l + 1, j | -16777216);
+                                            context.fill(k, l, k + 13, l + 2, -16777216);
+                                            context.fill(k, l, k + i, l + 1, j | -16777216);
                                         }
                                         if (font.getValue() == Font.Fancy) {
                                             FontManager.ui.drawString(context.getMatrices(), String.valueOf(percent), 9 - FontManager.ui.getWidth(String.valueOf(percent)) / 2, 7, armorColor.getRGB());

@@ -12,6 +12,7 @@ import dev.Riyue.mod.modules.settings.impl.ColorSetting;
 import dev.Riyue.mod.modules.settings.impl.EnumSetting;
 import dev.Riyue.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.component.DataComponentTypes;
@@ -372,7 +373,7 @@ public class TextRadar extends Module {
                 // 1.21.11: StatusEffectSpriteManager 已移除，改用 InGameHud.getEffectTexture 绘制状态图标
                 var resistanceTexture = InGameHud.getEffectTexture(StatusEffects.RESISTANCE);
                 if (resistanceTexture != null) {
-                    drawContext.drawGuiTexture(resistanceTexture, drawX, drawY, 8, 8);
+                    drawContext.drawGuiTexture(RenderPipelines.GUI_TEXTURED, resistanceTexture, drawX, drawY, 8, 8);
                 }
 
                 String turtleText = "Lv.4 " + turtleSeconds + "s";
