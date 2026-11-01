@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(DimensionType.class)
 public class MixinDimensionTypeSkybox {
-    @Inject(method = "skybox", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "skybox", at = @At("HEAD"), cancellable = true, require = 0)
     private void hookSkybox(CallbackInfoReturnable<DimensionType.Skybox> cir) {
         if (Ambience.INSTANCE.isOn() && Ambience.INSTANCE.forceOverworld.getValue()) {
             cir.setReturnValue(DimensionType.Skybox.OVERWORLD);

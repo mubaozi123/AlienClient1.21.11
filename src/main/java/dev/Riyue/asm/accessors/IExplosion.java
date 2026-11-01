@@ -1,44 +1,15 @@
 package dev.Riyue.asm.accessors;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.world.World;
 import net.minecraft.world.explosion.Explosion;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
+/**
+ * 1.21.11 中 Explosion 已改为接口，旧的可写字段(x/y/z/power/entity/world/damageSource)
+ * 已不存在，且本模组代码无任何调用点。仅保留对现存抽象 getter 的访问器以兼容旧引用。
+ */
 @Mixin(Explosion.class)
 public interface IExplosion {
-    @Mutable
-    @Accessor("x")
-    void setX(double x);
-
-    @Mutable
-    @Accessor("y")
-    void setY(double y);
-
-    @Mutable
-    @Accessor("z")
-    void setZ(double z);
-
-    @Mutable
     @Accessor("power")
-    void setPower(float power);
-
-    @Mutable
-    @Accessor("entity")
-    void setEntity(Entity entity);
-
-    @Mutable
-    @Accessor("world")
-    World getWorld();
-
-    @Mutable
-    @Accessor("world")
-    void setWorld(World world);
-
-    @Mutable
-    @Accessor("damageSource")
-    DamageSource getDamageSource();
+    float getPowerValue();
 }
