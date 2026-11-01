@@ -17,6 +17,7 @@ public class FriendManager extends Manager {
     }
 
     public boolean isFriend(String name) {
+        if (dev.luminous.mod.modules.impl.combat.AutoTK.isIgnoringFriends()) return false;
         return name.equals("NRC4") || name.equals("Neutron") || name.equals("||NRC4") || name.equals("||Neutron") || friendList.contains(name);
     }
 
