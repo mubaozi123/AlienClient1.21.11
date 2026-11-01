@@ -1,0 +1,37 @@
+package dev.Riyue.mod.modules.impl.movement;
+
+import dev.Riyue.api.events.eventbus.EventListener;
+import dev.Riyue.api.events.impl.UpdateEvent;
+import dev.Riyue.api.utils.player.MovementUtil;
+import dev.Riyue.api.utils.world.BlockPosX;
+import dev.Riyue.mod.modules.Module;
+import dev.Riyue.mod.modules.settings.impl.SliderSetting;
+import net.minecraft.block.Blocks;
+
+public class AntiVoid extends Module {
+
+    private final SliderSetting voidHeight =
+            add(new SliderSetting("VoidHeight", -64, -64, 319, 1));
+    private final SliderSetting height =
+            add(new SliderSetting("Height", 100, -40, 256, 1));
+
+    public AntiVoid() {
+        super("AntiVoid", "Allows you to fly over void blocks", Category.Movement);
+        setChinese("反虚空");
+    }
+
+    @EventListener
+    public void onUpdate(UpdateEvent event) {
+        boolean isVoid = true;
+
+        for (int i = (int) mc.player.getY(); i > voidHeight.getValueInt() - 1; --i) {
+            if (!mc.world.getBlockState(new BlockPosX(mc.player.getX(), i, mc.player.getZ())).isAir() && mc.world.getBlockState(new BlockPosX(mc.player.getX(), i, mc.player.getZ())).getBlock() != Blocks.VOID_AIR) {
+                isVoid = false;
+                break;
+            }
+        }
+        if (mc.player.getY() < height.getValue() + voidHeight.getValue() && isVoid) {
+            MovementUtil.setMotionY(0);
+        }
+    }
+}

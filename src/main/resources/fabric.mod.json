@@ -11,7 +11,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "dev.luminous.RiyueClient"
+      "dev.Riyue.RiyueClient"
     ]
   },
   "mixins": [

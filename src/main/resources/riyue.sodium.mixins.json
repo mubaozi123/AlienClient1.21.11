@@ -1,7 +1,7 @@
 {
   "required": false,
   "minVersion": "0.8",
-  "package": "dev.luminous.asm.mixins.sodium",
+  "package": "dev.Riyue.asm.mixins.sodium",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "SodiumBlockRendererMixin",
