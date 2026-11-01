@@ -12,9 +12,8 @@ import dev.Riyue.mod.modules.settings.impl.ColorSetting;
 import dev.Riyue.mod.modules.settings.impl.EnumSetting;
 import dev.Riyue.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.texture.StatusEffectSpriteManager;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.PotionContentsComponent;
 import net.minecraft.entity.Entity;
@@ -73,8 +72,8 @@ public class TextRadar extends Module {
         if (!turtle.getValue() || mc.world == null) return;
 
         if (event.getPacket() instanceof WorldEventS2CPacket packet) {
-            int eventId = packet.getType();
-            Vec3d splashPos = Vec3d.ofCenter(packet.getPosition());
+            int eventId = packet.getEventId();
+            Vec3d splashPos = Vec3d.ofCenter(packet.getPos());
 
             if (debug.getValue()) {
                 System.out.println("[TextRadar Debug] 收到WorldEventS2CPacket，事件ID: " + eventId + ", 位置: " + splashPos);
@@ -92,7 +91,7 @@ public class TextRadar extends Module {
 
                 for (Entity e : mc.world.getEntities()) {
                     if (e instanceof PotionEntity) {
-                        double dst = e.getPos().distanceTo(splashPos);
+                        double dst = e.getSyncedPos().distanceTo(splashPos);
                         if (debug.getValue()) {
                             System.out.println("[TextRadar Debug] 找到药水实体，距离: " + dst);
                         }
@@ -111,7 +110,7 @@ public class TextRadar extends Module {
                     return;
                 }
 
-                Vec3d actualSplashPos = potionEntity.getPos();
+                Vec3d actualSplashPos = potionEntity.getSyncedPos();
                 if (debug.getValue()) {
                     final double finalMinDst = minDst;
                     System.out.println("[TextRadar Debug] 找到最近的药水实体，距离: " + finalMinDst);
@@ -176,7 +175,7 @@ public class TextRadar extends Module {
                 }
 
                 for (PlayerEntity player : mc.world.getPlayers()) {
-                    Vec3d feetPos = player.getPos();
+                    Vec3d feetPos = player.getSyncedPos();
                     Vec3d eyePos = player.getEyePos();
                     double distFeet = feetPos.distanceTo(actualSplashPos);
                     double distEye = eyePos.distanceTo(actualSplashPos);
@@ -370,9 +369,11 @@ public class TextRadar extends Module {
                 int drawX = currentX + textWidth + 2;
                 int drawY = currentY;
 
-                StatusEffectSpriteManager spriteManager = mc.getStatusEffectSpriteManager();
-                Sprite sprite = spriteManager.getSprite(StatusEffects.RESISTANCE);
-                drawContext.drawSprite(drawX, drawY, 0, 8, 8, sprite);
+                // 1.21.11: StatusEffectSpriteManager 已移除，改用 InGameHud.getEffectTexture 绘制状态图标
+                var resistanceTexture = InGameHud.getEffectTexture(StatusEffects.RESISTANCE);
+                if (resistanceTexture != null) {
+                    drawContext.drawGuiTexture(resistanceTexture, drawX, drawY, 8, 8);
+                }
 
                 String turtleText = "Lv.4 " + turtleSeconds + "s";
                 if (this.font.getValue()) {

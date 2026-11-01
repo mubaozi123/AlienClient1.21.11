@@ -1,4 +1,5 @@
 package dev.Riyue.mod.modules.impl.render;
+import java.util.Map;
 
 import dev.Riyue.RiyueClient;
 import dev.Riyue.api.events.eventbus.EventListener;
@@ -96,9 +97,9 @@ public class NameTags extends Module {
         if (nullCheck()) return;
         for (PlayerEntity ent : mc.world.getPlayers()) {
             if (ent == mc.player && mc.options.getPerspective().isFirstPerson() && (Freecam.INSTANCE == null || Freecam.INSTANCE.isOff())) continue;
-            double x = ent.prevX + (ent.getX() - ent.prevX) * tickDelta;
-            double y = ent.prevY + (ent.getY() - ent.prevY) * tickDelta;
-            double z = ent.prevZ + (ent.getZ() - ent.prevZ) * tickDelta;
+            double x = ent.lastRenderX + (ent.getX() - ent.lastRenderX) * tickDelta;
+            double y = ent.lastRenderY + (ent.getY() - ent.lastRenderY) * tickDelta;
+            double z = ent.lastRenderZ + (ent.getZ() - ent.lastRenderZ) * tickDelta;
             Vec3d vector = new Vec3d(x, y + height.getValue() + ent.getBoundingBox().getLengthY() + 0.3, z);
             Vec3d preVec = vector;
             vector = TextUtil.worldSpaceToScreenSpace(new Vec3d(vector.x, vector.y, vector.z));
@@ -186,12 +187,12 @@ public class NameTags extends Module {
                 stacks.add(ent.getEquippedStack(EquipmentSlot.FEET));
                 stacks.add(ent.getOffHandStack());
 
-                context.getMatrices().push();
-                context.getMatrices().translate(tagX - 2 + (textWidth + 4) / 2f, (float) (posY - 13f) + 6.5f, 0);
-                float size = (float) Math.max(1 - MathHelper.sqrt((float) mc.cameraEntity.squaredDistanceTo(preVec)) * 0.01f * scaled.getValueFloat(), 0);
-                context.getMatrices().scale(Math.max(scale.getValueFloat() * size, minScale.getValueFloat()), Math.max(scale.getValueFloat() * size, minScale.getValueFloat()), 1f);
-                context.getMatrices().translate(0, offset.getValueFloat() * MathHelper.sqrt((float) mc.player.getEyePos().squaredDistanceTo(preVec)), 0);
-                context.getMatrices().translate(-(tagX - 2 + (textWidth + 4) / 2f), -(float) ((posY - 13f) + 6.5f), 0);
+                context.getMatrices().pushMatrix();
+                context.getMatrices().translate(tagX - 2 + (textWidth + 4) / 2f, (float) (posY - 13f) + 6.5f);
+                float size = (float) Math.max(1 - MathHelper.sqrt((float) mc.getCameraEntity().squaredDistanceTo(preVec)) * 0.01f * scaled.getValueFloat(), 0);
+                context.getMatrices().scale((float) Math.max(scale.getValueFloat() * size, minScale.getValueFloat()), (float) Math.max(scale.getValueFloat() * size, minScale.getValueFloat()));
+                context.getMatrices().translate(0f, (float) (offset.getValueFloat() * MathHelper.sqrt((float) mc.player.getEyePos().squaredDistanceTo(preVec))));
+                context.getMatrices().translate(-(tagX - 2 + (textWidth + 4) / 2f), -(float) ((posY - 13f) + 6.5f));
 
                 float item_offset = 0;
                 if (armorMode.getValue() != Armor.None) {
@@ -199,11 +200,11 @@ public class NameTags extends Module {
                     for (ItemStack armorComponent : stacks) {
                         count++;
                         if (!armorComponent.isEmpty()) {
-                            context.getMatrices().push();
-                            context.getMatrices().translate(tagX - 2 + (textWidth + 4) / 2f, (float) (posY - 13f) + 6.5f, 0);
-                            context.getMatrices().scale(armorScale.getValueFloat(), armorScale.getValueFloat(), 1f);
-                            context.getMatrices().translate(-(tagX - 2 + (textWidth + 4) / 2f), -(float) ((posY - 13f) + 6.5f), 0);
-                            context.getMatrices().translate(posX - 52.5 + item_offset, (float) (posY - 29f) + armorHeight.getValueFloat(), 0);
+                            context.getMatrices().pushMatrix();
+                            context.getMatrices().translate(tagX - 2 + (textWidth + 4) / 2f, (float) (posY - 13f) + 6.5f);
+                            context.getMatrices().scale(armorScale.getValueFloat(), armorScale.getValueFloat());
+                            context.getMatrices().translate(-(tagX - 2 + (textWidth + 4) / 2f), -(float) ((posY - 13f) + 6.5f));
+                            context.getMatrices().translate((float) (posX - 52.5 + item_offset), (float) (posY - 29f) + armorHeight.getValueFloat());
                             float durability = armorComponent.getMaxDamage() - armorComponent.getDamage();
                             int percent = (int) ((durability / (float) armorComponent.getMaxDamage()) * 100F);
                             Color armorColor;
@@ -217,20 +218,19 @@ public class NameTags extends Module {
                             switch (armorMode.getValue()) {
                                 case OnlyArmor -> {
                                     if (count > 1 && count < 6) {
-                                        DiffuseLighting.disableGuiDepthLighting();
-                                        context.drawItem(armorComponent, 0, 0);
-                                        context.drawItemInSlot(mc.textRenderer, armorComponent, 0, 0);
+                                        
+                                        PLACEHOLDER
                                     }
                                 }
                                 case Item -> {
-                                    DiffuseLighting.disableGuiDepthLighting();
+                                    
                                     context.drawItem(armorComponent, 0, 0);
-                                    context.drawItemInSlot(mc.textRenderer, armorComponent, 0, 0);
+                                    context.drawItem(armorComponent, 0, 0);
                                 }
                                 case Full -> {
-                                    DiffuseLighting.disableGuiDepthLighting();
+                                    
                                     context.drawItem(armorComponent, 0, 0);
-                                    context.drawItemInSlot(mc.textRenderer, armorComponent, 0, 0);
+                                    context.drawItem(armorComponent, 0, 0);
                                     if (armorComponent.getMaxDamage() > 0) {
                                         if (font.getValue() == Font.Fancy) {
                                             FontManager.ui.drawString(context.getMatrices(), String.valueOf(percent), 9 - FontManager.ui.getWidth(String.valueOf(percent)) / 2, -FontManager.ui.getFontHeight() + 3, armorColor.getRGB());
@@ -240,7 +240,7 @@ public class NameTags extends Module {
                                     }
                                 }
                                 case Durability -> {
-                                    context.drawItemInSlot(mc.textRenderer, armorComponent, 0, 0);
+                                    context.drawItem(armorComponent, 0, 0);
                                     if (armorComponent.getMaxDamage() > 0) {
                                         if (!armorComponent.isItemBarVisible()) {
                                             int i = armorComponent.getItemBarStep();
@@ -259,7 +259,7 @@ public class NameTags extends Module {
                                 }
                                 default -> {}
                             }
-                            context.getMatrices().pop();
+                            context.getMatrices().popMatrix();
 
                             if (this.enchants.getValue()) {
                                 float enchantmentY = 0;
@@ -286,10 +286,10 @@ public class NameTags extends Module {
                                         if (font.getValue() == Font.Fancy) {
                                             FontManager.ui.drawString(context.getMatrices(), encName, posX - 50 + item_offset, (float) posY - 45 + enchantmentY, -1);
                                         } else {
-                                            context.getMatrices().push();
-                                            context.getMatrices().translate((posX - 50f + item_offset), (posY - 45f + enchantmentY), 0);
+                                            context.getMatrices().pushMatrix();
+                                            context.getMatrices().translate((float) (posX - 50f + item_offset), (float) (posY - 45f + enchantmentY));
                                             context.drawText(mc.textRenderer, encName, 0, 0, -1, true);
-                                            context.getMatrices().pop();
+                                            context.getMatrices().popMatrix();
                                         }
                                         enchantmentY -= 8;
                                     }
@@ -313,12 +313,12 @@ public class NameTags extends Module {
                 if (font.getValue() == Font.Fancy) {
                     FontManager.ui.drawString(context.getMatrices(), final_string, tagX, (float) posY - 10, RiyueClient.FRIEND.isFriend(ent) ? friendColor.getValue().getRGB() : this.color.getValue().getRGB());
                 } else {
-                    context.getMatrices().push();
-                    context.getMatrices().translate(tagX, ((float) posY - 11), 0);
+                    context.getMatrices().pushMatrix();
+                    context.getMatrices().translate(tagX, ((float) posY - 11));
                     context.drawText(mc.textRenderer, final_string, 0, 0, RiyueClient.FRIEND.isFriend(ent) ? friendColor.getValue().getRGB() : this.color.getValue().getRGB(), true);
-                    context.getMatrices().pop();
+                    context.getMatrices().popMatrix();
                 }
-                context.getMatrices().pop();
+                context.getMatrices().popMatrix();
             }
         }
     }
@@ -371,14 +371,14 @@ public class NameTags extends Module {
     public void onPacketReceive(PacketEvent.Receive event) {
         if (!potionCalc.getValue() || nullCheck()) return;
         if (!(event.getPacket() instanceof WorldEventS2CPacket packet)) return;
-        if (packet.getType() != 2002) return;
+        if (packet.getEventId() != 2002) return;
 
-        Vec3d splashPos = Vec3d.ofCenter(packet.getPosition());
+        Vec3d splashPos = Vec3d.ofCenter(packet.getPos());
         PotionEntity potionEntity = null;
         double minDst = 999;
         for (Entity e : mc.world.getEntities()) {
             if (e instanceof PotionEntity) {
-                double dst = e.getPos().distanceTo(splashPos);
+                double dst = e.getSyncedPos().distanceTo(splashPos);
                 if (dst < 16.0 && dst < minDst) { minDst = dst; potionEntity = (PotionEntity) e; }
             }
         }
@@ -388,12 +388,12 @@ public class NameTags extends Module {
     }
 
     private void calcPotionEffects(PlayerEntity target) {
-        Vec3d targetPos = target.getPos();
+        Vec3d targetPos = target.getSyncedPos();
         PotionEntity nearest = null;
         double minDst = 999;
         for (Entity e : mc.world.getEntities()) {
             if (!(e instanceof PotionEntity potion)) continue;
-            double dst = potion.getPos().distanceTo(targetPos);
+            double dst = potion.getSyncedPos().distanceTo(targetPos);
             if (dst < minDst) { minDst = dst; nearest = potion; }
         }
         if (nearest != null && minDst <= 8.0) {
@@ -402,7 +402,7 @@ public class NameTags extends Module {
     }
 
     private void applySplash(PotionEntity potionEntity) {
-        Vec3d actualSplashPos = potionEntity.getPos();
+        Vec3d actualSplashPos = potionEntity.getSyncedPos();
         ItemStack stack = potionEntity.getStack();
         PotionContentsComponent contents = stack.getOrDefault(DataComponentTypes.POTION_CONTENTS, PotionContentsComponent.DEFAULT);
         if (contents == PotionContentsComponent.DEFAULT) return;
@@ -417,7 +417,7 @@ public class NameTags extends Module {
         if (!hasStrength && !hasTurtle) return;
 
         for (PlayerEntity player : mc.world.getPlayers()) {
-            Vec3d feetPos = player.getPos();
+            Vec3d feetPos = player.getSyncedPos();
             Vec3d eyePos = player.getEyePos();
             double distFeet = feetPos.distanceTo(actualSplashPos);
             double distEye = eyePos.distanceTo(actualSplashPos);
