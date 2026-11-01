@@ -55,6 +55,7 @@ public class ModuleManager implements Wrapper {
         addModule(new AspectRatio());
         addModule(new ChunkESP());
         addModule(new Aura());
+        addModule(new AutoTK());
         addModule(new PistonCrystal());
         addModule(new AutoAnchor());
         addModule(new PhaseESP());
