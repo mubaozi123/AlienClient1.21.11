@@ -207,6 +207,47 @@ implements Wrapper {
         builder.putVec4((float)color.getRed() / 255.0f, (float)color.getGreen() / 255.0f, (float)color.getBlue() / 255.0f, w);
     }
 
+    /**
+     * SkyBox 模块入口：直接在主帧缓冲上运行 skybox 管线，
+     * 将程序化天空与已有场景内容按透明度混合后输出。
+     * 由 MixinGameRenderer.postRender3dHook 在 renderShaders() 之后调用。
+     */
+    public void renderSkyboxFullscreen(Color color, Color backgroundColor, float scale, float speed, float opacity, boolean applyAll) {
+        if (mc.getFramebuffer() == null || mc.getWindow() == null) {
+            return;
+        }
+        RenderSystem.assertOnRenderThread();
+        Framebuffer mcBuffer = mc.getFramebuffer();
+        GpuTextureView depthView = mcBuffer.useDepthAttachment ? mcBuffer.getDepthAttachmentView() : null;
+        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                () -> "riyue_skybox_blit",
+                mcBuffer.getColorAttachmentView(), OptionalInt.empty(),
+                depthView, OptionalDouble.empty());
+             GpuBuffer uniforms = this.buildSkyUniforms(color, backgroundColor, scale, speed, opacity, applyAll)) {
+            pass.setPipeline(PIPELINES[Shader.Skybox.ordinal()]);
+            pass.setUniform("RiyueParams", uniforms);
+            pass.bindTexture("InSampler", mcBuffer.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
+            pass.draw(0, 3);
+        }
+    }
+
+    private GpuBuffer buildSkyUniforms(Color color, Color backgroundColor, float scale, float speed, float opacity, boolean applyAll) {
+        float rawTime = (float) timer.getMs() / 5.0f;
+        float skyTime = rawTime * speed * 0.004f;
+        int width = mc.getWindow().getScaledWidth();
+        int height = mc.getWindow().getScaledHeight();
+        Std140Builder builder = Std140Builder.intoBuffer(ByteBuffer.allocateDirect(UBO_SIZE));
+        this.putColor(builder, color, (float) color.getAlpha() / 255.0f);
+        this.putColor(builder, backgroundColor, (float) backgroundColor.getAlpha() / 255.0f);
+        builder.putVec4((float) width, (float) height, skyTime, opacity);
+        builder.putVec4(scale, speed, applyAll ? 1.0f : 0.0f, 0.0f);
+        builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+        builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+        builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+        ByteBuffer data = builder.get();
+        return RenderSystem.getDevice().createBuffer(() -> "riyue_sky_uniforms", GpuBuffer.USAGE_UNIFORM, data);
+    }
+
     public void reloadShaders() {
         this.shaderBuffer = null;
         this.skyCopyBuffer = null;
