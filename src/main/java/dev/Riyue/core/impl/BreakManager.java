@@ -22,7 +22,7 @@ import dev.Riyue.api.utils.math.FadeUtils;
 import dev.Riyue.api.utils.math.Timer;
 import dev.Riyue.mod.modules.Module;
 import dev.Riyue.mod.modules.impl.client.AntiCheat;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.impl.render.BreakESP;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,7 +64,7 @@ implements Wrapper {
         }
         for (BreakData breakData : this.breakMap.values()) {
             breakData.breakTime = Math.max(BreakESP.getBreakTime(breakData.pos, false), 50.0);
-            if (PacketMine.unbreakable(breakData.pos)) {
+            if (SpeedMine.unbreakable(breakData.pos)) {
                 breakData.fade.setLength(0L);
                 breakData.complete = false;
                 breakData.failed = true;
@@ -110,7 +110,7 @@ implements Wrapper {
                     if (doublePos != null) {
                         doublePos.pos = packet2.getPos();
                         doublePos.timer.reset();
-                    } else if (!PacketMine.unbreakable(packet2.getPos())) {
+                    } else if (!SpeedMine.unbreakable(packet2.getPos())) {
                         this.doubleMap.put(packet2.getEntityId(), new BreakData(packet2.getPos(), packet2.getEntityId(), true));
                     }
                     return;
@@ -125,7 +125,7 @@ implements Wrapper {
             }
             this.breakMap.put(packet2.getEntityId(), breakData);
             RiyueClient.EVENT_BUS.post(BlockBreakingProgressEvent.get(packet2.getPos(), packet2.getEntityId(), packet2.getProgress()));
-            if (AntiCheat.INSTANCE.detectDouble.getValue() && !this.doubleMap.containsKey(packet2.getEntityId()) && !PacketMine.unbreakable(packet2.getPos())) {
+            if (AntiCheat.INSTANCE.detectDouble.getValue() && !this.doubleMap.containsKey(packet2.getEntityId()) && !SpeedMine.unbreakable(packet2.getPos())) {
                 this.doubleMap.put(packet2.getEntityId(), new BreakData(packet2.getPos(), packet2.getEntityId(), true));
             }
         }
@@ -136,7 +136,7 @@ implements Wrapper {
     }
 
     public boolean isMining(BlockPos pos, boolean self) {
-        if (self && PacketMine.getBreakPos() != null && PacketMine.getBreakPos().equals((Object)pos)) {
+        if (self && SpeedMine.getBreakPos() != null && SpeedMine.getBreakPos().equals((Object)pos)) {
             return true;
         }
         for (BreakData breakData : this.breakMap.values()) {

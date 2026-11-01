@@ -6,7 +6,7 @@ import dev.Riyue.api.utils.math.Timer;
 import dev.Riyue.api.utils.player.InventoryUtil;
 import dev.Riyue.api.utils.world.BlockUtil;
 import dev.Riyue.mod.modules.Module;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.settings.impl.BindSetting;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
 import dev.Riyue.mod.modules.settings.impl.SliderSetting;
@@ -172,7 +172,7 @@ public class AutoRegear extends Module {
         opend = false;
         if (mine.getValue()) {
             if (placePos != null) {
-                PacketMine.INSTANCE.mine(placePos);
+                SpeedMine.INSTANCE.mine(placePos);
             }
         }
     }
@@ -200,7 +200,7 @@ public class AutoRegear extends Module {
                 if (mine.getValue()) {
                     if (openPos != null) {
                         if (mc.world.getBlockState(openPos).getBlock() instanceof ShulkerBoxBlock) {
-                            PacketMine.INSTANCE.mine(openPos);
+                            SpeedMine.INSTANCE.mine(openPos);
                         } else {
                             openPos = null;
                         }

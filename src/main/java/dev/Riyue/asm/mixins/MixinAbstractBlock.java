@@ -2,7 +2,7 @@ package dev.Riyue.asm.mixins;
 
 import dev.Riyue.RiyueClient;
 import dev.Riyue.api.events.impl.AmbientOcclusionEvent;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ShapeContext;
@@ -30,7 +30,7 @@ public abstract class MixinAbstractBlock {
             ),
             cancellable = true)
     private void onComputeNextCollisionBox(BlockState state, BlockView world, BlockPos pos, ShapeContext context, CallbackInfoReturnable<VoxelShape> cir) {
-        if (PacketMine.INSTANCE != null && pos.equals(PacketMine.getBreakPos()) && PacketMine.INSTANCE.noCollide.getValue() && PacketMine.ghost) {
+        if (SpeedMine.INSTANCE != null && pos.equals(SpeedMine.getBreakPos()) && SpeedMine.INSTANCE.noCollide.getValue() && SpeedMine.ghost) {
             cir.setReturnValue(VoxelShapes.empty());
         }
     }

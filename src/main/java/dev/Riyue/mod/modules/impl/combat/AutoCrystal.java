@@ -19,7 +19,7 @@ import dev.Riyue.mod.modules.impl.client.ClientSetting;
 import dev.Riyue.mod.modules.impl.exploit.Blink;
 import dev.Riyue.mod.modules.impl.movement.ElytraFly;
 import dev.Riyue.mod.modules.impl.movement.Velocity;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.settings.enums.SwingSide;
 import dev.Riyue.mod.modules.settings.enums.Timing;
 import dev.Riyue.mod.modules.settings.impl.*;
@@ -152,7 +152,7 @@ public class AutoCrystal
     private final SliderSetting forceMin = this.add(new SliderSetting("ForceMin", 1.5, 0.0, 36.0, () -> this.page.getValue() == Page.Misc && this.lethalOverride.isOpen()).setSuffix("dmg"));
     private final BooleanSetting armorBreaker = this.add(new BooleanSetting("ArmorBreaker", true, () -> this.page.getValue() == Page.Misc).setParent());
     private final SliderSetting maxDurable = this.add(new SliderSetting("MaxDurable", 8, 0, 100, () -> this.page.getValue() == Page.Misc && this.armorBreaker.isOpen()).setSuffix("%"));
-    private final SliderSetting armorBreakerDamage = this.add(new SliderSetting("BreakerMin", 3.0, 0.0, 36.0, () -> this.page.getValue() == Page.Misc && this.armorBreaker.isOpen()).setSuffix("dmg"));
+    private final SliderSetting armorBreakerDamage = this.add(new SliderSetting("AutoMineMin", 3.0, 0.0, 36.0, () -> this.page.getValue() == Page.Misc && this.armorBreaker.isOpen()).setSuffix("dmg"));
     private final BooleanSetting forceWeb = this.add(new BooleanSetting("WebReset", true, () -> this.page.getValue() == Page.Misc).setParent());
     public final BooleanSetting airPlace = this.add(new BooleanSetting("AirPlace", false, () -> this.page.getValue() == Page.Misc && this.forceWeb.isOpen()));
     public final BooleanSetting replace = this.add(new BooleanSetting("Replace", false, () -> this.page.getValue() == Page.Misc && this.forceWeb.isOpen()));
@@ -413,13 +413,13 @@ public class AutoCrystal
             }
             CombatUtil.modifyPos = null;
             CombatUtil.modifyBlockState = null;
-            if (this.antiSurround.getValue() && PacketMine.getBreakPos() != null && PacketMine.progress >= (double)this.miningProgress.getValueFloat() && !BlockUtil.hasEntity(PacketMine.getBreakPos(), false) && this.tempDamage <= this.antiSurroundMax.getValueFloat()) {
+            if (this.antiSurround.getValue() && SpeedMine.getBreakPos() != null && SpeedMine.progress >= (double)this.miningProgress.getValueFloat() && !BlockUtil.hasEntity(SpeedMine.getBreakPos(), false) && this.tempDamage <= this.antiSurroundMax.getValueFloat()) {
                 for (PlayerEntityPredict pap : list) {
                     BlockPosX pos = new BlockPosX(pap.player.getEntityPos().add(0.0, 0.5, 0.0));
                     if (BlockUtil.canCollide((Entity)pap.player, new Box((BlockPos)pos))) continue;
                     for (Direction i : Direction.values()) {
                         BlockPos offsetPos;
-                        if (i == Direction.DOWN || i == Direction.UP || !(offsetPos = pos.offset(i)).equals((Object)PacketMine.getBreakPos())) continue;
+                        if (i == Direction.DOWN || i == Direction.UP || !(offsetPos = pos.offset(i)).equals((Object)SpeedMine.getBreakPos())) continue;
                         for (Direction direction : Direction.values()) {
                             float selfDamage2;
                             if (direction == Direction.DOWN || direction == Direction.UP || !this.canPlaceCrystal(offsetPos.offset(direction), false, false) || !((double)(selfDamage2 = this.calculateDamage(offsetPos.offset(direction), self.player, self.predict)) < this.maxSelf.getValue()) || this.reserve.getValue() > 0.0 && (double)selfDamage2 > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue()) continue;
@@ -518,8 +518,8 @@ public class AutoCrystal
     }
 
     public float calculateDamage(Vec3d pos, PlayerEntity player, PlayerEntity predict) {
-        if (this.ignoreMine.getValue() && PacketMine.getBreakPos() != null && AutoCrystal.mc.player.getEyePos().distanceTo(PacketMine.getBreakPos().toCenterPos()) <= PacketMine.INSTANCE.range.getValue() && PacketMine.progress >= this.constantProgress.getValue() / 100.0) {
-            CombatUtil.modifyPos = PacketMine.getBreakPos();
+        if (this.ignoreMine.getValue() && SpeedMine.getBreakPos() != null && AutoCrystal.mc.player.getEyePos().distanceTo(SpeedMine.getBreakPos().toCenterPos()) <= SpeedMine.INSTANCE.range.getValue() && SpeedMine.progress >= this.constantProgress.getValue() / 100.0) {
+            CombatUtil.modifyPos = SpeedMine.getBreakPos();
             CombatUtil.modifyBlockState = Blocks.AIR.getDefaultState();
         }
         if (this.terrainIgnore.getValue()) {
@@ -541,10 +541,10 @@ public class AutoCrystal
     }
 
     private double getDamage(PlayerEntity target) {
-        if (!PacketMine.INSTANCE.obsidian.isPressed() && this.slowPlace.getValue() && this.lastBreakTimer.passed((long)this.slowDelay.getValue())) {
+        if (!SpeedMine.INSTANCE.obsidian.isPressed() && this.slowPlace.getValue() && this.lastBreakTimer.passed((long)this.slowDelay.getValue())) {
             return this.slowMinDamage.getValue();
         }
-        if (this.lethalOverride.getValue() && (double)EntityUtil.getHealth(target) <= this.forceMaxHealth.getValue() && !PacketMine.INSTANCE.obsidian.isPressed()) {
+        if (this.lethalOverride.getValue() && (double)EntityUtil.getHealth(target) <= this.forceMaxHealth.getValue() && !SpeedMine.INSTANCE.obsidian.isPressed()) {
             return this.forceMin.getValue();
         }
         if (this.armorBreaker.getValue()) {

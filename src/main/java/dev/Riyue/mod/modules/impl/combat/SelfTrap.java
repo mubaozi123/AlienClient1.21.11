@@ -16,7 +16,7 @@ import dev.Riyue.mod.modules.Module;
 import dev.Riyue.mod.modules.impl.exploit.Blink;
 import dev.Riyue.mod.modules.impl.movement.ElytraFly;
 import dev.Riyue.mod.modules.impl.movement.Velocity;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.settings.enums.Timing;
 import dev.Riyue.mod.modules.settings.impl.BindSetting;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
@@ -370,7 +370,7 @@ public class SelfTrap extends Module {
         if (detectMining.getValue() && RiyueClient.BREAK.isMining(pos)) return;
         BlockPos self = EntityUtil.getPlayerPos(true);
         if (mineDownward.getValue()) {
-            if (Objects.equals(PacketMine.getBreakPos(), self.down()) && Objects.equals(PacketMine.getBreakPos(), pos))
+            if (Objects.equals(SpeedMine.getBreakPos(), self.down()) && Objects.equals(SpeedMine.getBreakPos(), pos))
                 return;
         }
         if (!(progress < blocksPer.getValue())) return;

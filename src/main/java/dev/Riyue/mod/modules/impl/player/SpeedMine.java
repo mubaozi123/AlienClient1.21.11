@@ -58,8 +58,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static dev.Riyue.api.utils.world.BlockUtil.getBlock;
 
-public class PacketMine extends Module {
-    public static PacketMine INSTANCE;
+public class SpeedMine extends Module {
+    public static SpeedMine INSTANCE;
     public static BlockPos secondPos;
     public static double progress = 0;
     private final FadeUtils animationTime = new FadeUtils(1000);
@@ -161,8 +161,8 @@ public class PacketMine extends Module {
     boolean swapped = false;
     int mainSlot = 0;
 
-    public PacketMine() {
-        super("PacketMine", Category.Player);
+    public SpeedMine() {
+        super("SpeedMine", Category.Player);
         setChinese("发包挖掘");
         INSTANCE = this;
     }
@@ -214,8 +214,8 @@ public class PacketMine extends Module {
                 for (int i = 0; i < 9; ++i) {
                     float destroySpeed;
                     float digSpeed;
-                    ItemStack stack = PacketMine.mc.player.getInventory().getStack(i);
-                    if (stack == ItemStack.EMPTY || !((digSpeed = (float)EnchantmentHelper.getLevel((RegistryEntry)((RegistryEntry)PacketMine.mc.world.getRegistryManager().getOrThrow(Enchantments.EFFICIENCY.getRegistryRef()).getOrThrow(Enchantments.EFFICIENCY)), (ItemStack)stack)) + (destroySpeed = stack.getMiningSpeedMultiplier(PacketMine.mc.world.getBlockState(secondPos))) > CurrentFastest)) continue;
+                    ItemStack stack = SpeedMine.mc.player.getInventory().getStack(i);
+                    if (stack == ItemStack.EMPTY || !((digSpeed = (float)EnchantmentHelper.getLevel((RegistryEntry)((RegistryEntry)SpeedMine.mc.world.getRegistryManager().getOrThrow(Enchantments.EFFICIENCY.getRegistryRef()).getOrThrow(Enchantments.EFFICIENCY)), (ItemStack)stack)) + (destroySpeed = stack.getMiningSpeedMultiplier(SpeedMine.mc.world.getBlockState(secondPos))) > CurrentFastest)) continue;
                     CurrentFastest = digSpeed + destroySpeed;
                     index = i;
                 }
@@ -895,25 +895,25 @@ public class PacketMine extends Module {
         boolean inWeb;
         int efficiencyModifier;
         float digSpeed = this.getDestroySpeed(state, itemStack);
-        if (digSpeed > 1.0f && (efficiencyModifier = EnchantmentHelper.getLevel((RegistryEntry)((RegistryEntry)PacketMine.mc.world.getRegistryManager().getOrThrow(Enchantments.EFFICIENCY.getRegistryRef()).getOrThrow(Enchantments.EFFICIENCY)), (ItemStack)itemStack)) > 0 && !itemStack.isEmpty()) {
+        if (digSpeed > 1.0f && (efficiencyModifier = EnchantmentHelper.getLevel((RegistryEntry)((RegistryEntry)SpeedMine.mc.world.getRegistryManager().getOrThrow(Enchantments.EFFICIENCY.getRegistryRef()).getOrThrow(Enchantments.EFFICIENCY)), (ItemStack)itemStack)) > 0 && !itemStack.isEmpty()) {
             digSpeed += (float)(StrictMath.pow(efficiencyModifier, 2.0) + 1.0);
         }
-        if (PacketMine.mc.player.hasStatusEffect(StatusEffects.HASTE)) {
-            digSpeed *= 1.0f + (float)(PacketMine.mc.player.getStatusEffect(StatusEffects.HASTE).getAmplifier() + 1) * 0.2f;
+        if (SpeedMine.mc.player.hasStatusEffect(StatusEffects.HASTE)) {
+            digSpeed *= 1.0f + (float)(SpeedMine.mc.player.getStatusEffect(StatusEffects.HASTE).getAmplifier() + 1) * 0.2f;
         }
-        if (PacketMine.mc.player.hasStatusEffect(StatusEffects.MINING_FATIGUE)) {
-            digSpeed *= (switch (PacketMine.mc.player.getStatusEffect(StatusEffects.MINING_FATIGUE).getAmplifier()) {
+        if (SpeedMine.mc.player.hasStatusEffect(StatusEffects.MINING_FATIGUE)) {
+            digSpeed *= (switch (SpeedMine.mc.player.getStatusEffect(StatusEffects.MINING_FATIGUE).getAmplifier()) {
                 case 0 -> 0.3f;
                 case 1 -> 0.09f;
                 case 2 -> 0.0027f;
                 default -> 8.1E-4f;
             });
         }
-        if (PacketMine.mc.player.isSubmergedInWater()) {
+        if (SpeedMine.mc.player.isSubmergedInWater()) {
             digSpeed *= (float)1.0;
         }
-        boolean bl = inWeb = this.checkWeb.getValue() && RiyueClient.PLAYER.isInWeb((PlayerEntity)PacketMine.mc.player) && PacketMine.mc.world.getBlockState(this.breakPos).getBlock() == Blocks.COBWEB;
-        if ((!PacketMine.mc.player.isOnGround() || inWeb) && PacketMine.INSTANCE.checkGround.getValue() && (!this.smart.getValue() || Criticals.INSTANCE.mode.is(Criticals.Mode.Ground) && Criticals.INSTANCE.isOn() || PacketMine.mc.player.isGliding() || inWeb)) {
+        boolean bl = inWeb = this.checkWeb.getValue() && RiyueClient.PLAYER.isInWeb((PlayerEntity)SpeedMine.mc.player) && SpeedMine.mc.world.getBlockState(this.breakPos).getBlock() == Blocks.COBWEB;
+        if ((!SpeedMine.mc.player.isOnGround() || inWeb) && SpeedMine.INSTANCE.checkGround.getValue() && (!this.smart.getValue() || Criticals.INSTANCE.mode.is(Criticals.Mode.Ground) && Criticals.INSTANCE.isOn() || SpeedMine.mc.player.isGliding() || inWeb)) {
             digSpeed /= 5.0f;
         }
         return digSpeed < 0.0f ? 0.0f : digSpeed;
@@ -966,8 +966,8 @@ public class PacketMine extends Module {
             for (int i = 0; i < 9; ++i) {
                 float destroySpeed;
                 float digSpeed;
-                ItemStack stack = PacketMine.mc.player.getInventory().getStack(i);
-                if (stack == ItemStack.EMPTY || !((digSpeed = (float)EnchantmentHelper.getLevel((RegistryEntry)((RegistryEntry)PacketMine.mc.world.getRegistryManager().getOrThrow(Enchantments.EFFICIENCY.getRegistryRef()).getOrThrow(Enchantments.EFFICIENCY)), (ItemStack)stack)) + (destroySpeed = stack.getMiningSpeedMultiplier(PacketMine.mc.world.getBlockState(pos))) > CurrentFastest)) continue;
+                ItemStack stack = SpeedMine.mc.player.getInventory().getStack(i);
+                if (stack == ItemStack.EMPTY || !((digSpeed = (float)EnchantmentHelper.getLevel((RegistryEntry)((RegistryEntry)SpeedMine.mc.world.getRegistryManager().getOrThrow(Enchantments.EFFICIENCY.getRegistryRef()).getOrThrow(Enchantments.EFFICIENCY)), (ItemStack)stack)) + (destroySpeed = stack.getMiningSpeedMultiplier(SpeedMine.mc.world.getBlockState(pos))) > CurrentFastest)) continue;
                 CurrentFastest = digSpeed + destroySpeed;
                 index = i;
             }
@@ -979,7 +979,7 @@ public class PacketMine extends Module {
         for (Map.Entry<Integer, ItemStack> entry : InventoryUtil.getInventoryAndHotbarSlots().entrySet()) {
             float destroySpeed;
             float digSpeed;
-            if (entry.getValue().getItem() instanceof AirBlockItem || !((digSpeed = (float)EnchantmentHelper.getLevel((RegistryEntry)((RegistryEntry)PacketMine.mc.world.getRegistryManager().getOrThrow(Enchantments.EFFICIENCY.getRegistryRef()).getOrThrow(Enchantments.EFFICIENCY)), (ItemStack)entry.getValue())) + (destroySpeed = entry.getValue().getMiningSpeedMultiplier(PacketMine.mc.world.getBlockState(pos))) > CurrentFastest)) continue;
+            if (entry.getValue().getItem() instanceof AirBlockItem || !((digSpeed = (float)EnchantmentHelper.getLevel((RegistryEntry)((RegistryEntry)SpeedMine.mc.world.getRegistryManager().getOrThrow(Enchantments.EFFICIENCY.getRegistryRef()).getOrThrow(Enchantments.EFFICIENCY)), (ItemStack)entry.getValue())) + (destroySpeed = entry.getValue().getMiningSpeedMultiplier(SpeedMine.mc.world.getBlockState(pos))) > CurrentFastest)) continue;
             CurrentFastest = digSpeed + destroySpeed;
             slot.set(entry.getKey());
         }

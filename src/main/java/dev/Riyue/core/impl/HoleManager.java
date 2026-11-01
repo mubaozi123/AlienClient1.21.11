@@ -14,7 +14,7 @@ package dev.Riyue.core.impl;
 import dev.Riyue.RiyueClient;
 import dev.Riyue.api.utils.Wrapper;
 import dev.Riyue.api.utils.world.BlockUtil;
-import dev.Riyue.mod.modules.impl.combat.Breaker;
+import dev.Riyue.mod.modules.impl.combat.AutoMine;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.util.math.BlockPos;
@@ -96,7 +96,7 @@ implements Wrapper {
     }
 
     public boolean isHard(Block block) {
-        return block == Blocks.BEDROCK || Breaker.hard.contains(block);
+        return block == Blocks.BEDROCK || AutoMine.hard.contains(block);
     }
 }
 

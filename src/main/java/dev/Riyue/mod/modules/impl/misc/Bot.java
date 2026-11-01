@@ -19,7 +19,7 @@ import dev.Riyue.mod.gui.windows.impl.ItemSelectWindow;
 import dev.Riyue.mod.modules.Module;
 import dev.Riyue.mod.modules.impl.client.AntiCheat;
 import dev.Riyue.mod.modules.impl.combat.Aura;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.impl.render.PlaceRender;
 import dev.Riyue.mod.modules.settings.enums.SwingSide;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
@@ -921,7 +921,7 @@ public class Bot extends Module {
                 inLove.add(target);
             }
             case NPlusOneDupe -> {
-                BlockPos placePos = PacketMine.getBreakPos();
+                BlockPos placePos = SpeedMine.getBreakPos();
                 if (placePos != null && BlockUtil.canPlace(placePos)) {
                     placeBlock(placePos);
                 }

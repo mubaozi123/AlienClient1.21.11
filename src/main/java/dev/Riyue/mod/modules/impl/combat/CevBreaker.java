@@ -9,7 +9,7 @@ import dev.Riyue.api.utils.player.InventoryUtil;
 import dev.Riyue.api.utils.world.BlockUtil;
 import dev.Riyue.mod.modules.Module;
 import dev.Riyue.mod.modules.impl.client.ClientSetting;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
 import dev.Riyue.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.block.Block;
@@ -56,10 +56,10 @@ public class CevBreaker extends Module {
     public void onUpdate(UpdateEvent event) {
         if (inventory.getValue() && !EntityUtil.inInventory()) return;
         if (ground.getValue() && !mc.player.isOnGround()) return;
-        PacketMine.INSTANCE.crystal.setValue(true);
+        SpeedMine.INSTANCE.crystal.setValue(true);
         if ((target = CombatUtil.getClosestEnemy(targetRange.getValue())) != null) {
             BlockPos targetPos = EntityUtil.getEntityPos(target);
-            if (PacketMine.getBreakPos() != null) {
+            if (SpeedMine.getBreakPos() != null) {
                 for (Direction facing : Direction.values()) {
                     if (facing == Direction.DOWN) continue;
                     if (facing == Direction.UP) {
@@ -67,7 +67,7 @@ public class CevBreaker extends Module {
                     } else if (!bevel.getValue()) continue;
                     BlockPos pos = targetPos.up(1).offset(facing);
                     if (pos.up().toCenterPos().distanceTo(mc.player.getEntityPos()) > breakRange.getValue()) continue;
-                    if (PacketMine.getBreakPos().equals(targetPos.up(1).offset(facing))) {
+                    if (SpeedMine.getBreakPos().equals(targetPos.up(1).offset(facing))) {
                         if (canPlaceCrystal(targetPos.up(2).offset(facing))) {
                             if (mc.world.isAir(pos)) {
                                 if (!BlockUtil.canPlace(pos)) continue;
@@ -78,7 +78,7 @@ public class CevBreaker extends Module {
                                 timer.reset();
                                 return;
                             } else if (getBlock(pos) == Blocks.OBSIDIAN) {
-                                PacketMine.INSTANCE.mine(pos);
+                                SpeedMine.INSTANCE.mine(pos);
                                 timer.reset();
                                 return;
                             }
@@ -86,7 +86,7 @@ public class CevBreaker extends Module {
                             if (mc.world.isAir(pos)) {
                                 return;
                             } else if (getBlock(pos) == Blocks.OBSIDIAN) {
-                                PacketMine.INSTANCE.mine(pos);
+                                SpeedMine.INSTANCE.mine(pos);
                                 timer.reset();
                                 return;
                             }
@@ -111,7 +111,7 @@ public class CevBreaker extends Module {
                         timer.reset();
                         break;
                     } else if (getBlock(pos) == Blocks.OBSIDIAN) {
-                        PacketMine.INSTANCE.mine(pos);
+                        SpeedMine.INSTANCE.mine(pos);
                         timer.reset();
                         break;
                     }
@@ -119,7 +119,7 @@ public class CevBreaker extends Module {
                     if (mc.world.isAir(pos)) {
                         break;
                     } else if (getBlock(pos) == Blocks.OBSIDIAN) {
-                        PacketMine.INSTANCE.mine(pos);
+                        SpeedMine.INSTANCE.mine(pos);
                         timer.reset();
                         break;
                     }

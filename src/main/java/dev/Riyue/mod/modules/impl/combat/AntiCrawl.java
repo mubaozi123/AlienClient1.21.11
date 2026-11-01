@@ -6,7 +6,7 @@ import dev.Riyue.api.events.impl.UpdateEvent;
 import dev.Riyue.api.utils.world.BlockPosX;
 import dev.Riyue.api.utils.world.BlockUtil;
 import dev.Riyue.mod.modules.Module;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
 import dev.Riyue.mod.modules.settings.impl.EnumSetting;
 import net.minecraft.block.Blocks;
@@ -36,14 +36,14 @@ public class AntiCrawl extends Module {
                 for (double offset2 : xzOffset) {
                     BlockPos pos = new BlockPosX(mc.player.getX() + offset, mc.player.getY() + 1.2, mc.player.getZ() + offset2);
                     if (canBreak(pos)) {
-                        PacketMine.INSTANCE.mine(pos);
+                        SpeedMine.INSTANCE.mine(pos);
                         work = true;
                         return;
                     }
                     if (web.getValue()) {
                         BlockPos web = new BlockPosX(mc.player.getX() + offset, mc.player.getY(), mc.player.getZ() + offset2);
                         if (mc.world.getBlockState(web).getBlock() == Blocks.COBWEB && canBreak(web)) {
-                            PacketMine.INSTANCE.mine(web);
+                            SpeedMine.INSTANCE.mine(web);
                             work = true;
                             return;
                         }
@@ -54,7 +54,7 @@ public class AntiCrawl extends Module {
     }
 
     private boolean canBreak(BlockPos pos) {
-        return (BlockUtil.getClickSideStrict(pos) != null || pos.equals(PacketMine.getBreakPos())) && !PacketMine.unbreakable(pos) && !mc.world.isAir(pos);
+        return (BlockUtil.getClickSideStrict(pos) != null || pos.equals(SpeedMine.getBreakPos())) && !SpeedMine.unbreakable(pos) && !mc.world.isAir(pos);
     }
 
     private enum While {

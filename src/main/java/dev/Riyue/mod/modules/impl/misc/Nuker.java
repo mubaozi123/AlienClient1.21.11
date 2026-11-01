@@ -5,7 +5,7 @@ import dev.Riyue.api.events.eventbus.EventListener;
 import dev.Riyue.api.events.impl.UpdateEvent;
 import dev.Riyue.api.utils.world.BlockUtil;
 import dev.Riyue.mod.modules.Module;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.impl.render.PlaceRender;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
 import dev.Riyue.mod.modules.settings.impl.SliderSetting;
@@ -31,7 +31,7 @@ public class Nuker extends Module {
 
     @EventListener
     public void onUpdate(UpdateEvent event) {
-        if (PacketMine.getBreakPos() != null && !mc.world.isAir(PacketMine.getBreakPos())) {
+        if (SpeedMine.getBreakPos() != null && !mc.world.isAir(SpeedMine.getBreakPos())) {
             return;
         }
 
@@ -57,7 +57,7 @@ public class Nuker extends Module {
         } else {
             BlockPos pos = getBlock();
             if (pos != null) {
-                PacketMine.INSTANCE.mine(pos);
+                SpeedMine.INSTANCE.mine(pos);
             }
         }
     }
@@ -66,7 +66,7 @@ public class Nuker extends Module {
         BlockPos down = null;
         for (BlockPos pos : BlockUtil.getSphere(range.getValueFloat(), mc.player.getEyePos())) {
             if (mc.world.isAir(pos)) continue;
-            if (PacketMine.unbreakable(pos)) continue;
+            if (SpeedMine.unbreakable(pos)) continue;
             if (BlockUtil.getClickSideStrict(pos) == null) continue;
             if (pos.getY() < mc.player.getY()) {
                 if (down == null && this.down.getValue()) {

@@ -8,7 +8,7 @@ import dev.Riyue.api.utils.world.BlockPosX;
 import dev.Riyue.api.utils.world.BlockUtil;
 import dev.Riyue.mod.modules.Module;
 import dev.Riyue.mod.modules.impl.exploit.Blink;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
 import dev.Riyue.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.block.Block;
@@ -25,8 +25,8 @@ import java.util.List;
 
 import static dev.Riyue.api.utils.world.BlockUtil.getBlock;
 
-public class Breaker extends Module {
-    public static Breaker INSTANCE;
+public class AutoMine extends Module {
+    public static AutoMine INSTANCE;
     public final SliderSetting targetRange =
             add(new SliderSetting("TargetRange", 6.0, 0.0, 8.0, 0.1).setSuffix("m"));
     public final SliderSetting range =
@@ -40,8 +40,8 @@ public class Breaker extends Module {
     private final BooleanSetting cevPause = add(new BooleanSetting("CevPause", true));
     private final BooleanSetting forceDouble = add(new BooleanSetting("ForceDouble", false));
 
-    public Breaker() {
-        super("Breaker", Category.Combat);
+    public AutoMine() {
+        super("AutoMine", Category.Combat);
         setChinese("自动挖掘");
         INSTANCE = this;
     }
@@ -59,7 +59,7 @@ public class Breaker extends Module {
     private void doBreak(PlayerEntity player) {
         BlockPos pos = EntityUtil.getEntityPos(player, true);
         {
-            if (PacketMine.getBreakPos() != null && !PacketMine.getBreakPos().equals(PacketMine.secondPos) && PacketMine.secondPos != null && !mc.world.isAir(PacketMine.secondPos) && forceDouble.getValue())
+            if (SpeedMine.getBreakPos() != null && !SpeedMine.getBreakPos().equals(SpeedMine.secondPos) && SpeedMine.secondPos != null && !mc.world.isAir(SpeedMine.secondPos) && forceDouble.getValue())
                 return;
             double[] yOffset = new double[]{-0.8, 0.3, 1.1};
             double[] xzOffset = new double[]{0.3, -0.3};
@@ -68,7 +68,7 @@ public class Breaker extends Module {
                     for (double x : xzOffset) {
                         for (double z : xzOffset) {
                             BlockPos offsetPos = new BlockPosX(entity.getX() + x, entity.getY() + y, entity.getZ() + z);
-                            if (canBreak(offsetPos) && offsetPos.equals(PacketMine.getBreakPos())) {
+                            if (canBreak(offsetPos) && offsetPos.equals(SpeedMine.getBreakPos())) {
                                 return;
                             }
                         }
@@ -92,7 +92,7 @@ public class Breaker extends Module {
                 for (double offset : xzOffset) {
                     BlockPos offsetPos = new BlockPosX(player.getX() + offset, player.getY() + y, player.getZ() + offset);
                     if (canBreak(offsetPos)) {
-                        PacketMine.INSTANCE.mine(offsetPos);
+                        SpeedMine.INSTANCE.mine(offsetPos);
                         return;
                     }
                 }
@@ -102,7 +102,7 @@ public class Breaker extends Module {
                     for (double offset2 : xzOffset) {
                         BlockPos offsetPos = new BlockPosX(player.getX() + offset2, player.getY() + y, player.getZ() + offset);
                         if (canBreak(offsetPos)) {
-                            PacketMine.INSTANCE.mine(offsetPos);
+                            SpeedMine.INSTANCE.mine(offsetPos);
                             return;
                         }
                     }
@@ -115,7 +115,7 @@ public class Breaker extends Module {
                 if (Math.sqrt(mc.player.getEyePos().squaredDistanceTo(pos.offset(i).toCenterPos())) > range.getValue()) {
                     continue;
                 }
-                if ((mc.world.isAir(pos.offset(i)) || pos.offset(i).equals(PacketMine.getBreakPos())) && canPlaceCrystal(pos.offset(i), false) && !pos.offset(i).equals(PacketMine.secondPos)) {
+                if ((mc.world.isAir(pos.offset(i)) || pos.offset(i).equals(SpeedMine.getBreakPos())) && canPlaceCrystal(pos.offset(i), false) && !pos.offset(i).equals(SpeedMine.secondPos)) {
                     return;
                 }
             }
@@ -130,7 +130,7 @@ public class Breaker extends Module {
                 }
             }
             if (!list.isEmpty()) {
-                PacketMine.INSTANCE.mine(list.stream().min(Comparator.comparingDouble((E) -> E.getSquaredDistance(mc.player.getEyePos()))).get());
+                SpeedMine.INSTANCE.mine(list.stream().min(Comparator.comparingDouble((E) -> E.getSquaredDistance(mc.player.getEyePos()))).get());
             } else {
                 for (Direction i : Direction.values()) {
                     if (i == Direction.UP || i == Direction.DOWN) continue;
@@ -142,13 +142,13 @@ public class Breaker extends Module {
                     }
                 }
                 if (!list.isEmpty()) {
-                    PacketMine.INSTANCE.mine(list.stream().min(Comparator.comparingDouble((E) -> E.getSquaredDistance(mc.player.getEyePos()))).get());
+                    SpeedMine.INSTANCE.mine(list.stream().min(Comparator.comparingDouble((E) -> E.getSquaredDistance(mc.player.getEyePos()))).get());
                 }
             }
 
         }
 //wtf
-//        if (PacketMine.getBreakPos() == null) {
+//        if (SpeedMine.getBreakPos() == null) {
 //            if (burrow.getValue()) {
 //                double[] yOffset;
 //                double[] xzOffset = new double[]{0, 0.3, -0.3};
@@ -158,7 +158,7 @@ public class Breaker extends Module {
 //                    for (double offset : xzOffset) {
 //                        BlockPos offsetPos = new BlockPosX(player.getX() + offset, player.getY() + y, player.getZ() + offset);
 //                        if (isObsidian(offsetPos)) {
-//                            PacketMine.INSTANCE.mine(offsetPos);
+//                            SpeedMine.INSTANCE.mine(offsetPos);
 //                            return;
 //                        }
 //                    }
@@ -168,7 +168,7 @@ public class Breaker extends Module {
 //                        for (double offset2 : xzOffset) {
 //                            BlockPos offsetPos = new BlockPosX(player.getX() + offset2, player.getY() + y, player.getZ() + offset);
 //                            if (isObsidian(offsetPos)) {
-//                                PacketMine.INSTANCE.mine(offsetPos);
+//                                SpeedMine.INSTANCE.mine(offsetPos);
 //                                return;
 //                            }
 //                        }
@@ -205,10 +205,10 @@ public class Breaker extends Module {
     );
 
     private boolean isObsidian(BlockPos pos) {
-        return mc.player.getEyePos().distanceTo(pos.toCenterPos()) <= PacketMine.INSTANCE.range.getValue() && hard.contains(getBlock(pos)) && BlockUtil.getClickSideStrict(pos) != null;
+        return mc.player.getEyePos().distanceTo(pos.toCenterPos()) <= SpeedMine.INSTANCE.range.getValue() && hard.contains(getBlock(pos)) && BlockUtil.getClickSideStrict(pos) != null;
     }
 
     private boolean canBreak(BlockPos pos) {
-        return this.isObsidian(pos) && (BlockUtil.getClickSideStrict(pos) != null || pos.equals((Object)PacketMine.getBreakPos())) && (!pos.equals((Object)PacketMine.secondPos) || !(Breaker.mc.player.getMainHandStack().isIn(ItemTags.PICKAXES)) && !PacketMine.INSTANCE.autoSwitch.getValue() && !PacketMine.INSTANCE.noGhostHand.getValue());
+        return this.isObsidian(pos) && (BlockUtil.getClickSideStrict(pos) != null || pos.equals((Object)SpeedMine.getBreakPos())) && (!pos.equals((Object)SpeedMine.secondPos) || !(AutoMine.mc.player.getMainHandStack().isIn(ItemTags.PICKAXES)) && !SpeedMine.INSTANCE.autoSwitch.getValue() && !SpeedMine.INSTANCE.noGhostHand.getValue());
     }
 }

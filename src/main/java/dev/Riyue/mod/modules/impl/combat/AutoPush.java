@@ -14,7 +14,7 @@ import dev.Riyue.core.impl.RotationManager;
 import dev.Riyue.mod.modules.Module;
 import dev.Riyue.mod.modules.impl.client.ClientSetting;
 import dev.Riyue.mod.modules.impl.exploit.Blink;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
 import dev.Riyue.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.block.*;
@@ -199,7 +199,7 @@ public class AutoPush extends Module {
                             for (Direction i : Direction.values()) {
                                 if (getBlock(piston.offset(i)) == getBlockType()) {
                                     if (mine.getValue()) {
-                                        PacketMine.INSTANCE.mine(piston.offset(i));
+                                        SpeedMine.INSTANCE.mine(piston.offset(i));
                                     }
                                     if (autoDisable.getValue()) {
                                         disable();
@@ -221,7 +221,7 @@ public class AutoPush extends Module {
                                         doSwap(oldSlot);
                                     }
                                     if (mine.getValue()) {
-                                        PacketMine.INSTANCE.mine(piston.offset(i));
+                                        SpeedMine.INSTANCE.mine(piston.offset(i));
                                     }
                                     return true;
                                 }

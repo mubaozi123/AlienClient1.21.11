@@ -61,7 +61,7 @@ public class ModuleManager implements Wrapper {
         addModule(new AutoAnchor());
         addModule(new PhaseESP());
         addModule(new AutoArmor());
-        addModule(new Breaker());
+        addModule(new AutoMine());
         addModule(new AutoLog());
         addModule(new AutoEZ());
         addModule(new SelfTrap());
@@ -149,7 +149,7 @@ public class ModuleManager implements Wrapper {
         addModule(new Xray());
         addModule(new PacketEat());
         addModule(new PacketFly());
-        addModule(new PacketMine());
+        addModule(new SpeedMine());
         addModule(new PacketControl());
         addModule(new Phase());
         addModule(new PlaceRender());

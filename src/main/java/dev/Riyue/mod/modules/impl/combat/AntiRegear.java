@@ -5,7 +5,7 @@ import dev.Riyue.api.events.impl.PlaceBlockEvent;
 import dev.Riyue.api.events.impl.UpdateEvent;
 import dev.Riyue.api.utils.world.BlockUtil;
 import dev.Riyue.mod.modules.Module;
-import dev.Riyue.mod.modules.impl.player.PacketMine;
+import dev.Riyue.mod.modules.impl.player.SpeedMine;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
 import dev.Riyue.mod.modules.settings.impl.SliderSetting;
 import net.minecraft.block.ShulkerBoxBlock;
@@ -34,12 +34,12 @@ public class AntiRegear extends Module {
 
     @EventListener
     public void onUpdate(UpdateEvent event) {
-        if (PacketMine.getBreakPos() != null && mc.world.getBlockState(PacketMine.getBreakPos()).getBlock() instanceof ShulkerBoxBlock) {
+        if (SpeedMine.getBreakPos() != null && mc.world.getBlockState(SpeedMine.getBreakPos()).getBlock() instanceof ShulkerBoxBlock) {
             return;
         }
         safe.removeIf(pos -> !(mc.world.getBlockState(pos).getBlock() instanceof ShulkerBoxBlock));
         if (getBlock() != null) {
-            PacketMine.INSTANCE.mine(getBlock().getPos());
+            SpeedMine.INSTANCE.mine(getBlock().getPos());
         }
     }
 
