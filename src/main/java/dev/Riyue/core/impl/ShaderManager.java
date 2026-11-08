@@ -37,7 +37,6 @@ implements Wrapper {
     private static final List<RenderTask> tasks = new ArrayList<RenderTask>();
     public float time = 0.0f;
     private Framebuffer shaderBuffer;
-    private SimpleFramebuffer skyCopyBuffer;
 
     static {
         for (Shader shader : Shader.values()) {
@@ -213,21 +212,44 @@ implements Wrapper {
      * 由 MixinGameRenderer.postRender3dHook 在 renderShaders() 之后调用。
      */
     public void renderSkyboxFullscreen(Color color, Color backgroundColor, float scale, float speed, float opacity, boolean applyAll) {
+        if (this.fullNullCheck()) {
+            return; // shaderBuffer 尚未创建（等待下一帧）
+        }
         if (mc.getFramebuffer() == null || mc.getWindow() == null) {
             return;
         }
         RenderSystem.assertOnRenderThread();
         Framebuffer mcBuffer = mc.getFramebuffer();
-        GpuTextureView depthView = mcBuffer.useDepthAttachment ? mcBuffer.getDepthAttachmentView() : null;
-        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-                () -> "riyue_skybox_blit",
-                mcBuffer.getColorAttachmentView(), OptionalInt.empty(),
-                depthView, OptionalDouble.empty());
+
+        // 天空渲染结果写入独立缓冲区（全屏程序化效果 + 场景暗部遮罩）。
+        // fsh 从 InSampler 读取当前主帧缓冲内容用于遮罩 —— 对应仓库2的 SKYBOX.render(bufIn)。
+        GpuTextureView skyDepth = this.shaderBuffer.useDepthAttachment ? this.shaderBuffer.getDepthAttachmentView() : null;
+        try (RenderPass skyPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                () -> "riyue_skybox_render",
+                this.shaderBuffer.getColorAttachmentView(), OptionalInt.empty(),
+                skyDepth, OptionalDouble.empty());
              GpuBuffer uniforms = this.buildSkyUniforms(color, backgroundColor, scale, speed, opacity, applyAll)) {
-            pass.setPipeline(PIPELINES[Shader.Skybox.ordinal()]);
-            pass.setUniform("RiyueParams", uniforms);
-            pass.bindTexture("InSampler", mcBuffer.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
-            pass.draw(0, 3);
+            skyPass.setPipeline(PIPELINES[Shader.Skybox.ordinal()]);
+            skyPass.setUniform("RiyueParams", uniforms);
+            skyPass.bindTexture("InSampler", mcBuffer.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
+            skyPass.draw(0, 3);
+        }
+
+        // 将天空结果按仓库2的混合参数(srcalpha / 1-srcalpha)绘制回主帧缓冲。
+        // 对应仓库2：RenderSystem.blendFuncSeparate(SRC_ALPHA, ONE_MINUS_SRC_ALPHA, ZERO, ONE) + outBuffer.draw(...)。
+        // ENTITY_OUTLINE_BLIT 管线混合即为 srcAlpha/oneMinusSrcAlpha，与其一致；
+        // fsh 输出 alpha 已编码遮罩强度（亮前景→alpha≈0 不覆盖，暗天空→alpha≈亮度）。
+        Framebuffer outBuffer = mcBuffer;
+        GpuTextureView outDepth = outBuffer.useDepthAttachment ? outBuffer.getDepthAttachmentView() : null;
+        try (RenderPass blitPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                () -> "riyue_skybox_blit",
+                outBuffer.getColorAttachmentView(), OptionalInt.empty(),
+                outDepth, OptionalDouble.empty());
+             GpuBuffer uniforms = this.buildSkyUniforms(color, backgroundColor, scale, speed, opacity, applyAll)) {
+            blitPass.setPipeline(PIPELINES[Shader.Skybox.ordinal()]);
+            blitPass.setUniform("RiyueParams", uniforms);
+            blitPass.bindTexture("InSampler", this.shaderBuffer.getColorAttachmentView(), RenderSystem.getSamplerCache().get(FilterMode.LINEAR));
+            blitPass.draw(0, 3);
         }
     }
 
@@ -250,7 +272,6 @@ implements Wrapper {
 
     public void reloadShaders() {
         this.shaderBuffer = null;
-        this.skyCopyBuffer = null;
     }
 
     public boolean fullNullCheck() {

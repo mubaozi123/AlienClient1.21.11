@@ -67,12 +67,15 @@ void main() {
     vec3 sky = mix(background, overlay, alpha);
 
     if (Params.z > 0.5) {
-        // ApplyAll: 纯天空覆盖全屏
+        // ApplyAll: 纯天空覆盖全屏（不透明输出）
         fragColor = vec4(sky, 1.0);
     } else {
-        // 默认: 天空仅替换暗部(原天空区域)，保留方块/实体等前景
+        // 默认: 天空仅替换暗部(原天空区域)，保留方块/实体等前景。
+        // 输出 alpha 作为 srcalpha/1-srcalpha 混合的遮罩强度：
+        //   亮前景 -> mask≈0 -> alpha≈0 -> 场景不被覆盖
+        //   暗天空 -> mask≈1 -> alpha≈opacity -> 天空显示
         float sceneLum = dot(scene.rgb, vec3(0.299, 0.587, 0.114));
         float mask = 1.0 - smoothstep(0.02, 0.18, sceneLum);
-        fragColor = vec4(mix(scene.rgb, sky, mask), 1.0);
+        fragColor = vec4(sky, mask * opacity);
     }
 }

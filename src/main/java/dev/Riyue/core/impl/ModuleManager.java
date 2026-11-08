@@ -42,6 +42,7 @@ public class ModuleManager implements Wrapper {
         addModule(new AutoKit());
         addModule(new Bot());
         addModule(new Fonts());
+        addModule(new SkyBox());
         addModule(new NoTerrainScreen());
         addModule(new AutoCrystal());
         addModule(new Ambience());

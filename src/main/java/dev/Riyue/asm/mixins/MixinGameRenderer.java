@@ -111,11 +111,16 @@ public class MixinGameRenderer {
 
     @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;renderHand(FZLorg/joml/Matrix4f;)V", shift = At.Shift.AFTER))
     public void postRender3dHook(RenderTickCounter tickCounter, CallbackInfo ci) {
+        // 兜底：若窗口初始化钩子未触发（版本映射变化等），先完成延迟初始化
+        RiyueClient.deferredInit();
         if (RiyueClient.SHADER != null) {
             RiyueClient.SHADER.renderShaders();
         }
-        // 兜底：若窗口初始化钩子未触发（版本映射变化等），在首帧渲染前完成延迟初始化
-        RiyueClient.deferredInit();
+        // Skybox：仓库2中挂载于 renderSky 之后，此处等效时机为 3D 世界渲染完毕、手持物品之前
+        SkyBox sky = SkyBox.INSTANCE;
+        if (sky != null && sky.isOn() && RiyueClient.SHADER != null) {
+            sky.renderSkybox();
+        }
     }
 
     @Inject(method = "getBasicProjectionMatrix(F)Lorg/joml/Matrix4f;", at = @At("TAIL"), cancellable = true)
