@@ -82,7 +82,14 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
 
     @Inject(method = "<init>", at = @At("TAIL"))
     void postWindowInit(RunArgs args, CallbackInfo ci) {
-        FontManager.init();
+        // 启动关键路径：字体初始化失败不能阻断后续重量级管理器的延迟初始化，
+        // 否则 deferredInit 里的各 Manager 全为 null，进世界后会连锁 NPE。
+        try {
+            FontManager.init();
+        } catch (Throwable t) {
+            RiyueClient.rethrowFatal(t);
+            System.err.println("[RiyueClient] FontManager init failed (ignored): " + t);
+        }
         RiyueClient.deferredInit();
     }
 
@@ -139,9 +146,12 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
     public void tickHead(CallbackInfo info) {
         try {
             RiyueClient.EVENT_BUS.post(ClientTickEvent.get(Event.Stage.Pre));
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // tick() 每帧都分发事件；catch(Exception) 兜不住 AbstractMethodError 等 Error，
+            // 任何一个坏模块都会直接崩穿主循环。EventBus 内部另有逐个订阅者的隔离，这里是第二道防线。
+            RiyueClient.rethrowFatal(e);
             e.printStackTrace();
-            if (ClientSetting.INSTANCE.debug.getValue())
+            if (ClientSetting.INSTANCE != null && ClientSetting.INSTANCE.debug.getValue())
                 CommandManager.sendMessage("§4An error has occurred (MinecraftClient.tick() [HEAD]) Message: [" + e.getMessage() + "]");
         }
     }
@@ -150,9 +160,10 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
     public void tickTail(CallbackInfo info) {
         try {
             RiyueClient.EVENT_BUS.post(ClientTickEvent.get(Event.Stage.Post));
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            RiyueClient.rethrowFatal(e);
             e.printStackTrace();
-            if (ClientSetting.INSTANCE.debug.getValue())
+            if (ClientSetting.INSTANCE != null && ClientSetting.INSTANCE.debug.getValue())
                 CommandManager.sendMessage("§4An error has occurred (MinecraftClient.tick() [TAIL]) Message: [" + e.getMessage() + "]");
         }
     }

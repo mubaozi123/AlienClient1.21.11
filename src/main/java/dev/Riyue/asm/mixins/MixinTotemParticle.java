@@ -47,6 +47,8 @@ public abstract class MixinTotemParticle extends MixinParticle {
                 }
             }
         } catch (Throwable t) {
+            // JVM 级致命错误不吞，其余一律降级为原版图腾粒子（默认颜色与速度）。
+            RiyueClient.rethrowFatal(t);
             // 降级为原版图腾粒子（默认颜色与速度），游戏继续正常运行。
             if (!riyueHookWarned) {
                 riyueHookWarned = true;

@@ -142,9 +142,12 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
     private void tickHead(CallbackInfo ci) {
         try {
             RiyueClient.EVENT_BUS.post(TickEvent.get(Event.Stage.Pre));
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // catch(Exception) 兜不住 AbstractMethodError / NoClassDefFoundError 等 Error，
+            // 而这些 Error 会直接穿透到游戏主循环导致崩溃，因此这里必须是 Throwable。
+            RiyueClient.rethrowFatal(e);
             e.printStackTrace();
-            if (ClientSetting.INSTANCE.debug.getValue())
+            if (ClientSetting.INSTANCE != null && ClientSetting.INSTANCE.debug.getValue())
                 CommandManager.sendMessage("§4An error has occurred (ClientPlayerEntity.tick() [HEAD]) Message: [" + e.getMessage() + "]");
         }
     }
@@ -154,9 +157,10 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
     private void tickReturn(CallbackInfo ci) {
         try {
             RiyueClient.EVENT_BUS.post(TickEvent.get(Event.Stage.Post));
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            RiyueClient.rethrowFatal(e);
             e.printStackTrace();
-            if (ClientSetting.INSTANCE.debug.getValue())
+            if (ClientSetting.INSTANCE != null && ClientSetting.INSTANCE.debug.getValue())
                 CommandManager.sendMessage("§4An error has occurred (ClientPlayerEntity.tick() [RETURN]) Message: [" + e.getMessage() + "]");
         }
     }

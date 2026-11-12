@@ -126,9 +126,21 @@ public class RiyueClient implements ModInitializer {
             SERVER = new ServerManager();
             THREAD = new ThreadManager();
         } catch (Throwable t) {
+            // OOM / ThreadDeath 不能吞：吞掉后各 Manager 为 null，进世界会连锁 NPE 更难排查。
+            rethrowFatal(t);
             System.err.println("[" + NAME + "] Deferred init failed: " + t);
             t.printStackTrace();
         }
+    }
+
+    /**
+     * 把 JVM 级致命错误重新抛给上层。调用方无需声明 throws，因为这些类型都是 unchecked。
+     * 供各 mixin 注入点的 catch(Throwable) 使用：普通异常和链接错误可以隔离，致命错误必须放行。
+     */
+    @SuppressWarnings("removal") // ThreadDeath 虽标记为 for removal，仍属必须放行的致命 Error
+    public static void rethrowFatal(Throwable t) {
+        if (t instanceof VirtualMachineError) throw (VirtualMachineError) t;
+        if (t instanceof ThreadDeath) throw (ThreadDeath) t;
     }
 
     public static class Frame extends JFrame {

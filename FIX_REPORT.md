@@ -368,3 +368,83 @@ TotemParticle (class_734)
 **说明**：第 1 条兜底是防御性加固，不是替代第七章的根因修复；根因（`MixinParticle` 污染基类）
 已经在第七章删除。两者叠加后，即便用户环境 MC 小版本与构建映射有差异，也不至于因一个装饰性
 粒子把玩家踢出服务器。
+
+---
+
+## 十、第四轮：从事件总线根治「一个坏模块崩掉整个游戏」
+
+用户提出「看看还会不会崩，会崩接着修」后，没有停在「目前日志里没看到新的崩溃」上，
+而是继续做运行期风险排查，结果发现了一个**系统性隐患**——它不是某个具体 bug，而是
+整个事件分发机制缺少异常隔离。这刚好解释了此前 `AbstractMethodError` 为什么会一路
+穿透到游戏主循环、变成「Exception while adding particle / disconnecting」。
+
+### 10.1 根因：`EventBus.post()` 零隔离 + `catch (Exception)` 漏掉 `Error`
+
+`dev/Riyue/api/events/eventbus/EventBus.java` 的两个 `post` 重载原本是：
+
+```java
+for (IListener listener : listeners) listener.call(event);   // 没有任何 try/catch
+```
+
+全项目共约 **70 处** `EVENT_BUS.post(...)`，入口几乎全部位于游戏主循环的 mixin 注入点：
+`MinecraftClient.tick()`、`ClientPlayerEntity.tick()`、渲染、网络包处理、粒子创建等。
+只要任意一个模块 listener 抛出 `Throwable`，就会：
+
+1. 中断该事件后续的**所有** listener；
+2. 直接穿透注入点；而注入点里的 `catch (Exception e)` **捕获不了 `Error`**
+   （`AbstractMethodError`、`NoClassDefFoundError`、`LinkageError` 都是 `Error` 子类）；
+3. 最终表现为掉线或直接崩溃——与第七章的图腾粒子 `AbstractMethodError` 完全同源。
+
+此前每一轮都是「哪个点崩了就补哪个点」，这一轮改为在总线上一次性收口。
+
+### 10.2 修复清单（6 个文件，80 行新增 / 13 行修改）
+
+| # | 文件 | 修复 |
+| --- | --- | --- |
+| 1 | `api/events/eventbus/EventBus.java` | 两个 `post` 重载都改为**逐个 listener** `try { call } catch (Throwable t) { handleListenerFailure(...) }`；坏 listener 被隔离后其余订阅者照常执行；新增限流日志（全局前 20 条打印堆栈，避免坏模块每 tick 刷屏） |
+| 2 | `RiyueClient.java` | 新增 `rethrowFatal(Throwable)`：只放行 `VirtualMachineError` / `ThreadDeath` 这类 JVM 级致命错误（都是 unchecked，调用方无需声明 `throws`）；`deferredInit()` 的 `catch(Throwable)` 先调用它，避免 OOM 被吞后各 Manager 为 null、进世界连锁 NPE |
+| 3 | `asm/mixins/MixinMinecraftClient.java` | `tickHead` / `tickTail` 的 `catch (Exception)` → `catch (Throwable)` + `rethrowFatal`；`debug.getValue()` 加 `ClientSetting.INSTANCE != null` 判空（错误处理路径自己再抛 NPE）；`postWindowInit` 里 `FontManager.init()` 单独包 `catch(Throwable)`，保证后面的 `deferredInit()` 一定执行 |
+| 4 | `asm/mixins/MixinClientPlayerEntity.java` | `tickHead` / `tickReturn` 两处 `catch (Exception)` → `catch (Throwable)` + `rethrowFatal` + debug 判空 |
+| 5 | `asm/mixins/MixinKeyboard.java` | `onKey` 的 `catch (Exception)` → `catch (Throwable)` + `rethrowFatal` + debug 判空（这里除了事件总线还直接调 `ModuleManager.onKeyPressed/onKeyReleased`） |
+| 6 | `asm/mixins/MixinTotemParticle.java` | 第九章的 `catch(Throwable)` 兜底补上 `rethrowFatal(t)`，与全局策略一致 |
+
+### 10.3 设计取舍
+
+- **为什么改总线而不是逐个调用点**：70 处调用点分散在 30+ 个 mixin 里，逐个加 `try/catch`
+  既容易漏、又会把每个注入点都写肿；改一处 `EventBus.post` 即可全覆盖，且语义统一。
+- **为什么逐个 listener 隔离，而不是整个 `post` 包一层**：整体包一层会让「第一个坏模块」
+  瘫痪该事件的全部订阅者；逐个隔离后其余模块仍正常工作，降级粒度更细。
+- **为什么仍要放行 `VirtualMachineError` / `ThreadDeath`**：`OutOfMemoryError`、
+  `StackOverflowError` 属于 JVM 已无法继续正常工作的状态，吞掉只会让后续出现更难排查的
+  连锁 NPE。用 `@SuppressWarnings("removal")` 消除 `ThreadDeath` 的编译提示，保持构建零警告。
+- **为什么 `catch (Exception)` 的 5 处仍要一起改**：它们是注入点里除 `EVENT_BUS.post`
+  之外的胶水逻辑（如 `MODULE.onKeyPressed`）的第二道防线，两层叠加才完整。
+- **未改动的部分**：模块 / 命令 / GUI 内部的 `catch (Exception)` 属于局部 IO、JSON 解析等逻辑，
+  要么本身就在事件 listener 内部（已被总线外层隔离），要么只影响局部功能。不做大范围改写，
+  避免为「看起来更整齐」引入回归。
+
+### 10.4 验证结果
+
+| 检查项 | 结果 |
+| --- | --- |
+| `clean build`（JDK25 跑 Gradle，`release=21` 产出） | `BUILD SUCCESSFUL`，编译错误 **0**、警告 **0**、`Cannot remap` **0 条** |
+| 最终 jar | `build/libs/riyueclient-1.3.3.jar`，1,335,731 B，SHA-256 `c404a641b65e32c9a9b28a911445a906547f054078f44af749ef7dc3e395a6dc` |
+| jar 字节码 | 两个 `post` 重载的 `Exception table` 均为 `Class java/lang/Throwable`；`handleListenerFailure` 内含 `VirtualMachineError` / `ThreadDeath` 判断；`RiyueClient.rethrowFatal(Throwable)` 已编入 |
+| **事件总线隔离实测**（专门写了测试程序，直接注册故意抛 `Error` 的 listener） | `AbstractMethodError` 隔离 ✅、`NoClassDefFoundError` 隔离 ✅、两种情况下其余 listener 仍执行 ✅、`OutOfMemoryError` 按设计放行 ✅ → `TEST PASSED` |
+| jar 资源完整性 | 599 个 class；`environment: client`、`sodium`/`baritone` 在 `suggests`、`JAVA_21` 兼容级别、两张 641 B 无 `iCCP` 贴图、`SodiumMixinPlugin.class` 全部在位 |
+| Xvfb 无头启动（100s 超时主动结束） | `JAVA_21` 兼容级别、`Sodium compat mixins: enabled`、`Initialized in 337 ms`；`debug.log`（1.0 MB）中 `InvalidMixinException` / `Mixin apply failed` / `AbstractMethodError` / `NoClassDefFoundError` / `NoSuchFieldException` / `ClassCastException` / `Failed to handle packet` / `Exception while adding particle` / `Event listener isolated` / `Deferred init failed` / `FontManager init failed` 全部 **0**；`RUN_EXIT=124` 仅为超时杀进程，不是崩溃 |
+
+### 10.5 覆盖边界与仍需实机确认的路径
+
+这轮修复解决的是「**任何一个模块抛出 Error 都不再崩穿游戏主循环**」这一系统性风险，
+对所有 ~70 处事件分发点同时生效，不依赖具体复现路径。但无头环境仍然跑不到真实玩法，
+替换新 jar 后请再确认三点：
+
+1. 服务器上触发不死图腾：不再出现 `AbstractMethodError` / 掉线，图腾粒子自定义颜色正常；
+2. 开启 `AutoCrystal`（含 `resetCD`）：不再刷 `NoSuchFieldException`，攻击节奏正常；
+3. 若仍出现 `EXCEPTION_ACCESS_VIOLATION` in `atio6axx.dll`：按 8.6 走显卡驱动 / 启动器
+   OpenGL 路径，这是 native 崩溃，与 Java 层模组逻辑无关。
+
+**降级行为说明**：若某个模块确实抛错，现在日志会出现
+`[RiyueClient] Event listener isolated: event=... throwable=...`（最多 20 条并带堆栈）。
+它表示「该模块这次调用被跳过、游戏继续运行」，不是崩溃；可据此精确定位坏模块再单独修。

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /**
@@ -16,6 +17,10 @@ public class EventBus implements IEventBus {
     private final Map<Object, List<IListener>> listenerCache = new ConcurrentHashMap<>();
     private final Map<Class<?>, List<IListener>> staticListenerCache = new ConcurrentHashMap<>();
     private final List<LambdaFactoryInfo> lambdaFactoryInfos = new ArrayList<>();
+
+    /** 订阅者抛错要就地隔离，但不能让一个坏模块每 tick 刷一屏日志。 */
+    private static final AtomicInteger FAILURE_LOG_COUNT = new AtomicInteger();
+    private static final int MAX_FAILURE_LOGS = 20;
 
     @Override
     public void registerLambdaFactory(LambdaListener.Factory factory) {
@@ -29,7 +34,13 @@ public class EventBus implements IEventBus {
         List<IListener> listeners = listenerMap.get(event.getClass());
 
         if (listeners != null) {
-            for (IListener listener : listeners) listener.call(event);
+            for (IListener listener : listeners) {
+                try {
+                    listener.call(event);
+                } catch (Throwable t) {
+                    handleListenerFailure(event, listener, t);
+                }
+            }
         }
 
         return event;
@@ -43,12 +54,36 @@ public class EventBus implements IEventBus {
             event.setCancelled(false);
 
             for (IListener listener : listeners) {
-                listener.call(event);
+                try {
+                    listener.call(event);
+                } catch (Throwable t) {
+                    handleListenerFailure(event, listener, t);
+                }
                 if (event.isCancelled()) break;
             }
         }
 
         return event;
+    }
+
+    /**
+     * 事件总线通常从 Minecraft 主循环（tick / 渲染 / 网络包处理）的 mixin 注入点调用，
+     * 任何一个订阅者抛出 AbstractMethodError、NoClassDefFoundError 等 Error 都会穿透调用方的
+     * catch(Exception) 直接崩掉主循环（历史崩溃：不死图腾粒子 AbstractMethodError）。
+     * 这里只隔离非致命 Throwable；VirtualMachineError / ThreadDeath 属于 JVM 级致命错误，继续抛出。
+     * 隔离后其余订阅者仍照常执行，避免一个坏模块瘫痪整个事件。
+     */
+    @SuppressWarnings("removal") // ThreadDeath 在 JDK 21 起标记 for removal，但仍是必须放行的致命 Error
+    private static void handleListenerFailure(Object event, IListener listener, Throwable t) {
+        if (t instanceof VirtualMachineError) throw (VirtualMachineError) t;
+        if (t instanceof ThreadDeath) throw (ThreadDeath) t;
+
+        if (FAILURE_LOG_COUNT.getAndIncrement() < MAX_FAILURE_LOGS) {
+            System.err.println("[RiyueClient] Event listener isolated: event="
+                    + event.getClass().getName() + " listener=" + listener.getClass().getName()
+                    + " throwable=" + t);
+            t.printStackTrace();
+        }
     }
 
     @Override

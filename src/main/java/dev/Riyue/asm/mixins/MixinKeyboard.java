@@ -29,9 +29,12 @@ public class MixinKeyboard
                     RiyueClient.MODULE.onKeyReleased(key);
                 }
             }
-            catch (Exception e) {
+            catch (Throwable e) {
+                // onKey 里除了事件总线还直接调用 ModuleManager.onKeyPressed/onKeyReleased，
+                // 模块内部抛出的 LinkageError 同样不能被 catch(Exception) 漏掉。
+                RiyueClient.rethrowFatal(e);
                 e.printStackTrace();
-                if (!ClientSetting.INSTANCE.debug.getValue()) break block4;
+                if (ClientSetting.INSTANCE == null || !ClientSetting.INSTANCE.debug.getValue()) break block4;
                 CommandManager.sendMessage(String.valueOf(Formatting.DARK_RED) + "[ERROR] onKey " + e.getMessage());
             }
         }
