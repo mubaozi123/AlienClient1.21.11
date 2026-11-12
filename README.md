@@ -1,6 +1,6 @@
 # RiyueClient (Fabric 1.21.11)
 
-A Fabric client mod for Minecraft 1.21.1,now update to 1.21.11
+A Fabric client-side mod for Minecraft **1.21.11** (ported from 1.21.1).
 
 ## 注意事项
 这个客户端并非完整的RiyueClient升级版，它存在许多破损部分
@@ -32,13 +32,19 @@ Artifacts are located in `build/libs/`.
 ```
 
 ## Dependencies
-This project uses `flatDir` for local dependencies. The active local libraries must match Minecraft 1.21.11:
+This project uses `flatDir` for local dependencies. The versions below are the ones
+actually declared in `build.gradle`; all of them must target Minecraft 1.21.11:
 
 - `baritone-api-fabric-1.21.11.jar`
 - `sodium-fabric-0.8.14-beta.2+mc1.21.11.jar`
-- `apiguardian-api:1.1.2`
+- `nether-pathfinder-1.4.1.jar` (enabled, provides the native pathfinder library)
+- `org.apiguardian:apiguardian-api:1.1.2` (from Maven)
 
-`nether-pathfinder` and IAS are currently disabled because the available files target older versions. Do not place the 1.21.1 Baritone or Sodium JARs on the active build classpath.
+`satin-2.0.0.jar` and `IAS-Fabric-1.21.1-9.0.2.jar` are **not** on the build classpath.
+Do not substitute the 1.21.1 Baritone or Sodium JARs.
+
+At runtime, Sodium and Baritone are recommended (`suggests` in `fabric.mod.json`).
+This is a **client-only** mod (`environment: "client"`).
 
 ## Configuration
 Configuration files are generated in `riyueclient/cfg/` under the game run directory.

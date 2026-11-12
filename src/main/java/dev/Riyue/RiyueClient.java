@@ -5,6 +5,7 @@ import dev.Riyue.api.events.impl.InitEvent;
 import dev.Riyue.core.impl.*;
 import dev.Riyue.mod.modules.impl.client.ClientSetting;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 
 import javax.swing.*;
@@ -95,7 +96,8 @@ public class RiyueClient implements ModInitializer {
         loaded = true;
         RiyueClient.EVENT_BUS.post(new InitEvent());
 
-        File folder = new File(MinecraftClient.getInstance().runDirectory.getPath() + File.separator + RiyueClient.NAME.toLowerCase() + File.separator + "cfg");
+        File folder = new File(FabricLoader.getInstance().getGameDir().toFile(),
+                RiyueClient.NAME.toLowerCase() + File.separator + "cfg");
         if (!folder.exists()) {
             folder.mkdirs();
         }

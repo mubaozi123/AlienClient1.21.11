@@ -8,7 +8,7 @@
     "NRC4"
   ],
   "accessWidener": "riyue.accesswidener",
-  "environment": "*",
+  "environment": "client",
   "entrypoints": {
     "main": [
       "dev.Riyue.RiyueClient"
@@ -22,11 +22,12 @@
     }
   ],
   "depends": {
-    "fabricloader": ">=0.16.0",
-    "minecraft": "1.21.11",
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~1.21.11",
     "java": ">=21"
   },
   "suggests": {
-    "another-mod": "*"
+    "sodium": "*",
+    "baritone": "*"
   }
 }

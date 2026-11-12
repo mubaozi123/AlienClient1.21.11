@@ -7,6 +7,7 @@
 package dev.Riyue.core;
 
 import java.io.File;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 
 public class Manager {
@@ -18,7 +19,11 @@ public class Manager {
     }
 
     public static File getFolder() {
-        File folder = new File(Manager.mc.runDirectory.getPath() + File.separator + dev.Riyue.RiyueClient.NAME.toLowerCase());
+        // 使用 Fabric Loader 的游戏目录，而不是 mc.runDirectory。
+        // mc 是 static final，若类在窗口创建前被初始化就会永久为 null，
+        // 导致所有配置文件读写在启动阶段直接 NPE。
+        File folder = new File(FabricLoader.getInstance().getGameDir().toFile(),
+                dev.Riyue.RiyueClient.NAME.toLowerCase());
         if (!folder.exists()) {
             folder.mkdirs();
         }

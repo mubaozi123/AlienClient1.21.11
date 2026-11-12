@@ -45,7 +45,6 @@ import net.minecraft.client.gui.screen.option.OptionsScreen;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import java.lang.reflect.Field;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.tag.ItemTags;
@@ -101,12 +100,16 @@ implements Wrapper {
     }
 
     public static void resetLastAttackedTicks() {
-        try {
-            Field field = LivingEntity.class.getDeclaredField("lastAttackTime");
-            field.setAccessible(true);
-            field.setInt(EntityUtil.mc.player, 0);
-        } catch (Exception e) {
-            e.printStackTrace();
+        // 1.21.11 修复说明：
+        // 旧实现用字符串反射 LivingEntity.class.getDeclaredField("lastAttackTime")：
+        //  1) 反射用的字符串不会被 Loom 重映射，生产环境运行时是 intermediary 名（field_xxxx），
+        //     必然抛 NoSuchFieldException，AutoCrystal 每次攻击都会刷一整条堆栈；
+        //  2) LivingEntity.lastAttackTime 在 1.21.11 只是 onAttacking() 写入的 age 时间戳，
+        //     与玩家攻击冷却完全无关，即使反射成功也起不到 resetCD 的作用。
+        // 玩家攻击冷却实际由 PlayerEntity.ticksSinceLastAttack 控制，公开的官方重置入口是
+        // resetTicksSinceLastAttack()，项目内 Aura / CombatUtil / ServerManager 已统一使用该调用。
+        if (EntityUtil.mc.player != null) {
+            EntityUtil.mc.player.resetTicksSinceLastAttack();
         }
     }
 

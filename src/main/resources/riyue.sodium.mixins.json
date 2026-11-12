@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "dev.Riyue.asm.mixins.sodium",
   "compatibilityLevel": "JAVA_21",
+  "plugin": "dev.Riyue.asm.plugin.SodiumMixinPlugin",
   "client": [
     "SodiumBlockRendererMixin",
     "SodiumBlockRenderContextMixin",
