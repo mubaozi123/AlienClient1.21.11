@@ -540,3 +540,18 @@ AMD 驱动、双显卡切换、降低渲染距离（见 `AMD_CRASH_GUIDE.md`）�
 如果按 11.7 处理后仍生成 `hs_err_pid*.log` 且 `Problematic frame` 仍是 `atio6axx.dll`，
 请走驱动 / 显卡路径，并把 `hs_err_pid*.log` 一并提供；这与前四轮已经修完的 Java 层
 `AbstractMethodError` / `NoSuchFieldException` 是两类完全不同的问题，不要回退 Java 修复。
+
+### 11.9 Windows 7 + AMD 核显补充（用户后续追问）
+
+查证后修正了一处指南表述：AMD 主线驱动从 `21.6.1` 起停止 Win7 支持，
+`22.5.1` 官方仅支持 Win10/11（**此前把「降级到 22.5.1」写成通用建议是不准确的，已改**）。
+Win7 能装到的最后一版官方驱动是 **`Adrenalin 22.6.1 for Windows 7`**
+（2022-06-23，驱动版本 `21.09.12.01` / WDDM `27.20.20912.1002`），
+其产品兼容列表包含 `Radeon R2/R3/R4/R5/R7/R9` 与 `HD 7000/8000` 系列老 APU 核显，
+**但不含 Ryzen 带 Vega/RDNA 的核显**（后者在 Win7 上官方无驱动）。
+
+因此分情况处理：老 APU 走 DDU 干净重装 22.6.1 for Win7 + 关闭 Windows Update 驱动推送；
+Ryzen APU 官方无解，只能换系统或用 Mesa `opengl32.dll` 绕开 AMD ICD；
+Win7 + Java 21 + MC 1.21.11 本身也不是官方支持组合，升级到 Win10/11 才是根治。
+完整步骤（型号判定命令、官方下载直链、DDU 流程、验证命令、兜底方案）
+见 `AMD_CRASH_GUIDE.md` 的「附录：Windows 7 + AMD 核显」。
