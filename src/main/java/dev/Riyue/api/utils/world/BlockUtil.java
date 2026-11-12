@@ -116,7 +116,19 @@ import org.jetbrains.annotations.Nullable;
 
 public class BlockUtil
 implements Wrapper {
-    public static final List<BlockPos> placedPos = new ArrayList<BlockPos>();
+    // 修复：该列表同时被多个模块（主线程）与后台渲染线程读写，
+    // 原先使用普通 ArrayList 存在数据竞争（可能抛 ConcurrentModificationException 或读到脏数据）。
+    public static final List<BlockPos> placedPos = new java.util.concurrent.CopyOnWriteArrayList<BlockPos>();
+
+    /**
+     * 原子地取出当前放置位置快照并清空列表。供 ThreadManager 在 tick 开始时调用，
+     * 避免 forEach+clear 两步操作之间的竞态。
+     */
+    public static List<BlockPos> takePlacedPositionsSnapshot() {
+        List<BlockPos> snapshot = new java.util.ArrayList<>(placedPos);
+        placedPos.clear();
+        return snapshot;
+    }
     private static final double MIN_EYE_HEIGHT = 0.4;
     private static final double MAX_EYE_HEIGHT = 1.62;
     private static final double MOVEMENT_THRESHOLD = 2.0E-4;

@@ -16,6 +16,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -72,56 +73,99 @@ public class HoleESP extends Module {
             return;
         }
         if (!this.drawing && this.timer.passedMs(this.updateDelay.getValue())) {
-            this.normalList = new ArrayList<BlockPos>(this.tempNormalList);
-            this.bedrockList = new ArrayList<BlockPos>(this.tempBedrockList);
-            this.airList = new ArrayList<BlockPos>(this.tempAirList);
-            this.wallList = new ArrayList<BlockPos>(this.tempWallList);
-            this.wallSideList = new ArrayList<BlockPos>(this.tempWallSideList);
             this.timer.reset();
-            this.tempBedrockList.clear();
-            this.tempNormalList.clear();
-            this.tempAirList.clear();
-            this.tempWallList.clear();
-            this.tempWallSideList.clear();
-            for (BlockPos pos : BlockUtil.getSphere(this.distance.getValueFloat(), HoleESP.mc.player.getEntityPos())) {
-                Type type;
-                if (this.isBedrock(pos) && this.isBedrock(pos.up(2)) && this.isBedrock(pos.down())) {
-                    Direction side = this.getWallSide(pos);
-                    if (side != null || !this.sideCheck.getValue()) {
-                        this.tempWallList.add(pos);
+            // 多核并行扫描：把球形区域内的坑位判定切分成多个子任务，
+            // 提交到 WorkPool.worldScan() 线程池在各 CPU 核心上同时执行。
+            final List<BlockPos> sphere = BlockUtil.getSphere(this.distance.getValueFloat(), HoleESP.mc.player.getEntityPos());
+            final Vec3d eyePos = HoleESP.mc.player.getEyePos();
+            final boolean sideCheck = this.sideCheck.getValue();
+            final int cores = Math.min(dev.Riyue.core.impl.WorkPool.CORES, 8);
+            final int chunkSize = Math.max(1, (sphere.size() + cores - 1) / cores);
+            List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
+            final java.util.List<BlockPos>[] rNormal = new List[]{null};
+            final java.util.List<BlockPos>[] rBedrock = new List[]{null};
+            final java.util.List<BlockPos>[] rAir = new List[]{null};
+            final java.util.List<BlockPos>[] rWall = new List[]{null};
+            final java.util.List<BlockPos>[] rWallSide = new List[]{null};
+            for (int start = 0; start < sphere.size(); start += chunkSize) {
+                final int s = start;
+                final int e = Math.min(sphere.size(), start + chunkSize);
+                futures.add(dev.Riyue.core.impl.WorkPool.worldScan().submit(() -> {
+                    List<BlockPos> normal = new ArrayList<>();
+                    List<BlockPos> bedrock = new ArrayList<>();
+                    List<BlockPos> air = new ArrayList<>();
+                    List<BlockPos> wall = new ArrayList<>();
+                    List<BlockPos> wallSide = new ArrayList<>();
+                    for (int idx = s; idx < e; idx++) {
+                        BlockPos pos = sphere.get(idx);
+                        Type type;
+                        if (this.isBedrock(pos) && this.isBedrock(pos.up(2)) && this.isBedrock(pos.down())) {
+                            Direction side = this.getWallSide(pos, eyePos);
+                            if (side != null || !sideCheck) {
+                                wall.add(pos);
+                            }
+                            if (side != null) {
+                                wallSide.add(pos.offset(side));
+                            }
+                        }
+                        if ((type = this.isHole(pos)) == Type.Bedrock) {
+                            bedrock.add(pos);
+                            continue;
+                        }
+                        if (type == Type.Normal) {
+                            normal.add(pos);
+                            continue;
+                        }
+                        if (type != Type.Air) continue;
+                        air.add(pos);
                     }
-                    if (side != null) {
-                        this.tempWallSideList.add(pos.offset(side));
+                    synchronized (this) {
+                        if (rNormal[0] == null) {
+                            rNormal[0] = normal;
+                            rBedrock[0] = bedrock;
+                            rAir[0] = air;
+                            rWall[0] = wall;
+                            rWallSide[0] = wallSide;
+                        } else {
+                            rNormal[0].addAll(normal);
+                            rBedrock[0].addAll(bedrock);
+                            rAir[0].addAll(air);
+                            rWall[0].addAll(wall);
+                            rWallSide[0].addAll(wallSide);
+                        }
                     }
-                }
-                if ((type = this.isHole(pos)) == Type.Bedrock) {
-                    this.tempBedrockList.add(pos);
-                    continue;
-                }
-                if (type == Type.Normal) {
-                    this.tempNormalList.add(pos);
-                    continue;
-                }
-                if (type != Type.Air) continue;
-                this.tempAirList.add(pos);
+                }));
             }
+            for (java.util.concurrent.Future<?> f : futures) {
+                try {
+                    f.get();
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                } catch (java.util.concurrent.ExecutionException ee) {
+                    // 单块扫描失败不影响其它结果
+                }
+            }
+            // 原子交换渲染列表（渲染线程只读引用）
+            this.normalList = rNormal[0] != null ? rNormal[0] : new ArrayList<>();
+            this.bedrockList = rBedrock[0] != null ? rBedrock[0] : new ArrayList<>();
+            this.airList = rAir[0] != null ? rAir[0] : new ArrayList<>();
+            this.wallList = rWall[0] != null ? rWall[0] : new ArrayList<>();
+            this.wallSideList = rWallSide[0] != null ? rWallSide[0] : new ArrayList<>();
         }
     }
 
-    private Direction getWallSide(BlockPos pos) {
+    private Direction getWallSide(BlockPos pos, Vec3d eyePos) {
         double getDistance = Double.MAX_VALUE;
         Direction side = null;
         for (Direction direction : Direction.values()) {
             BlockPos offsetPos;
             if (direction == Direction.UP || direction == Direction.DOWN || !BlockUtil.canCollide(new Box((offsetPos = pos.offset(direction)).down())) || BlockUtil.canCollide(new Box(offsetPos)) || BlockUtil.canCollide(new Box(offsetPos.up()))) continue;
-            if (side == null) {
+            double d = eyePos.distanceTo(offsetPos.toCenterPos());
+            if (side == null || d < getDistance) {
                 side = direction;
-                getDistance = HoleESP.mc.player.getEyePos().distanceTo(offsetPos.toCenterPos());
-                continue;
+                getDistance = d;
             }
-            if (!(HoleESP.mc.player.getEyePos().distanceTo(offsetPos.toCenterPos()) < getDistance)) continue;
-            side = direction;
-            getDistance = HoleESP.mc.player.getEyePos().distanceTo(offsetPos.toCenterPos());
         }
         return side;
     }

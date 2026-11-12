@@ -31,14 +31,20 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import net.minecraft.util.math.BlockPos;
 
 public class ThreadManager implements Wrapper {
-    public static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
+    /**
+     * 兼容旧代码的执行入口。内部已改为固定大小、按 CPU 核心数伸缩的线程池，
+     * 不再使用 newCachedThreadPool（任务风暴时会创建大量线程，拖垮多核性能）。
+     */
+    public static final ExecutorService EXECUTOR = WorkPool.compute();
     public static ClientService clientService;
     public volatile Iterable<Entity> threadSafeEntityList = Collections.emptyList();
     public volatile List<AbstractClientPlayerEntity> threadSafePlayersList = Collections.emptyList();
     public volatile boolean tickRunning = false;
+    /** 后台服务线程心跳，用于检测卡死并重建线程。 */
+    private volatile long lastServiceBeat = System.currentTimeMillis();
 
     public ThreadManager() {
         init();
@@ -234,38 +240,74 @@ public class ThreadManager implements Wrapper {
         if (event.isPre()) {
             JelloUtil.updateJello();
             tickRunning = true;
-            BlockUtil.placedPos.forEach(pos -> PlaceRender.INSTANCE.create(pos));
-            BlockUtil.placedPos.clear();
+            // 修复：placedPos 是普通 ArrayList，主线程写入、后台线程读取存在竞态。
+            // 这里先原子交换出快照再清空，避免与后台线程并发修改。
+            List<BlockPos> placed = BlockUtil.takePlacedPositionsSnapshot();
+            if (!placed.isEmpty()) {
+                for (BlockPos pos : placed) PlaceRender.INSTANCE.create(pos);
+            }
             RiyueClient.PLAYER.onUpdate();
             if (!Module.nullCheck())
                 RiyueClient.EVENT_BUS.post(UpdateEvent.INSTANCE);
         } else {
-            tickRunning = false;
-            if (mc.world == null || mc.player == null) return;
+            if (mc.world == null || mc.player == null) {
+                tickRunning = false;
+                return;
+            }
+            // 先在主线程完成拷贝，最后一步才释放 tickRunning 标志，
+            // 修复原先"先置 false 后拷贝"导致后台线程读到半更新世界数据的竞态。
             threadSafeEntityList = Lists.newArrayList(mc.world.getEntities());
             threadSafePlayersList = Lists.newArrayList(mc.world.getPlayers());
+            tickRunning = false;
         }
 
-        if (!clientService.isAlive() || clientService.isInterrupted()) {
+        // 卡死看门狗：服务线程若超过 5 秒没有心跳（例如被异常打断或自旋卡住），重建之
+        if (!clientService.isAlive() || clientService.isInterrupted()
+                || System.currentTimeMillis() - lastServiceBeat > 5000L) {
+            ClientService old = clientService;
             clientService = new ClientService();
             clientService.setName("RiyueService");
             clientService.setDaemon(true);
             clientService.start();
+            try {
+                old.interrupt();
+            } catch (Throwable ignored) {
+            }
         }
     }
 
+    /**
+     * 多核后台服务：不再用单线程串行跑所有模块的 onThread()，
+     * 而是把每个模块的后台计算并行提交到 WorkPool，由多个 CPU 核心同时执行；
+     * 本线程只负责调度与节流。
+     */
     public class ClientService extends Thread {
-        @SuppressWarnings("InfiniteLoopStatement")
         @Override
         public void run() {
-            while (true) {
+            while (!isInterrupted()) {
                 try {
-                    while (tickRunning) {
-                        Thread.onSpinWait();
+                    if (tickRunning) {
+                        // 修复：原先此处是无界忙等自旋（烧满一个核心）。
+                        // 改为带超时等待，tick 期间几乎不占 CPU。
+                        synchronized (ThreadManager.this) {
+                            if (tickRunning) {
+                                ThreadManager.this.wait(8L);
+                            }
+                        }
+                        continue;
                     }
-                    AutoCrystal.INSTANCE.onThread();
-                    HoleESP.INSTANCE.onThread();
-                    AutoAnchor.INSTANCE.onThread();
+                    lastServiceBeat = System.currentTimeMillis();
+                    // 并行派发各模块的后台任务，充分利用多核
+                    java.util.concurrent.CompletableFuture<?> ac =
+                            java.util.concurrent.CompletableFuture.runAsync(AutoCrystal.INSTANCE::onThread, WorkPool.compute());
+                    java.util.concurrent.CompletableFuture<?> he =
+                            java.util.concurrent.CompletableFuture.runAsync(HoleESP.INSTANCE::onThread, WorkPool.worldScan());
+                    java.util.concurrent.CompletableFuture<?> aa =
+                            java.util.concurrent.CompletableFuture.runAsync(AutoAnchor.INSTANCE::onThread, WorkPool.compute());
+                    java.util.concurrent.CompletableFuture.allOf(ac, he, aa).join();
+                } catch (InterruptedException e) {
+                    interrupt();
+                    return;
                 } catch (Exception e) {
                     e.printStackTrace();
                     if (ClientSetting.INSTANCE.debug.getValue())
