@@ -143,6 +143,18 @@ public class RiyueClient implements ModInitializer {
         if (t instanceof ThreadDeath) throw (ThreadDeath) t;
     }
 
+    /**
+     * 判断 OpenGL vendor / renderer 是否属于 AMD（ATI）驱动。
+     * atio6axx.dll 是 AMD 的 OpenGL ICD，在解除帧率限制、单帧 UBO 暴涨时存在
+     * EXCEPTION_ACCESS_VIOLATION native 崩溃的已知问题。抽成纯函数便于独立验证。
+     */
+    public static boolean isAmdGlDriver(String vendor, String renderer) {
+        String s = ((vendor == null ? "" : vendor) + " " + (renderer == null ? "" : renderer))
+                .toLowerCase(java.util.Locale.ROOT);
+        // "ATI Technologies Inc." / "AMD Radeon RX ..." / "AMD Radeon(TM) Graphics"
+        return s.contains("amd") || s.contains("radeon") || s.contains("ati technologies");
+    }
+
     public static class Frame extends JFrame {
         public Frame(String hwid) {
             copyToClipboard(hwid);

@@ -448,3 +448,95 @@ for (IListener listener : listeners) listener.call(event);   // 没有任何 try
 **降级行为说明**：若某个模块确实抛错，现在日志会出现
 `[RiyueClient] Event listener isolated: event=... throwable=...`（最多 20 条并带堆栈）。
 它表示「该模块这次调用被跳过、游戏继续运行」，不是崩溃；可据此精确定位坏模块再单独修。
+
+---
+
+## 十一、第五轮：实机日志复核与 AMD `atio6axx.dll` 崩溃处置
+
+用户换上新 jar 后提供了一份完整实机日志（13:29–13:31，Windows + PCL2 + Fabric 1.21.11，
+进 `crystalpvp.xin` 服务器），要求「解决」。逐条核对的结论是：**前四轮的 Java 层修复全部生效，
+模组自己的 bug 已经清零**；剩下唯一的致命项是 AMD 显卡驱动的 native 崩溃。
+
+### 11.1 修复生效的证据
+
+| 日志现象 | 结论 |
+| --- | --- |
+| `Compatibility level set to JAVA_21` | 第一轮 `compatibilityLevel` 修复生效 |
+| `[RiyueClient] Sodium compat mixins: disabled (sodium not installed)`，且**没有** 4 条 `@Mixin target ... was not found` | 第二轮 `SodiumMixinPlugin` 条件化生效 |
+| 全程无 `AbstractMethodError` / `Failed to handle packet` / `Exception while adding particle` | 第七章图腾粒子根因修复 + 第九章兜底生效 |
+| 全程无 `NoSuchFieldException: lastAttackTime` | 第八章 `EntityUtil.resetLastAttackedTicks()` 修复生效 |
+| 成功进服、登录、`Kit 3/6 loaded`、`[RiyueClient] Saving/Saved` | 初始化、配置路径、模块与命令系统均正常 |
+| 无 `Event listener isolated` 日志 | 第十章的隔离兜底没被触发，说明正常路径不受影响 |
+
+### 11.2 剩余日志条目分类
+
+| 条目 | 定性 |
+| --- | --- |
+| `Status: 401` / `Failed to fetch user properties` / `Failed to retrieve profile key pair` / Realms `SignedJWT` / 「你正在使用盗版 Minecraft」 | 离线账号无法访问 Mojang 服务，环境噪音 |
+| `Error while loading the narrator` / `SP_VOICE returned code -2147221164` | Windows SAPI 语音组件不可用，环境噪音 |
+| `Unable to start LAN server detection: Cannot assign requested address: setsocketopt` | 本机网络环境，环境噪音 |
+| `Too many temp register is used in Vertex shader`（云着色器） | AMD 驱动对 MC 云 shader 的编译警告 |
+| `Resizing Dynamic Transforms UBO` / `Resizing Chunk Sections UBO` 单帧内 2 → 4 → … → **1024** | 渲染压力失控的**表现**，也是压垮驱动的诱因 |
+| `libpng warning: iCCP: known incorrect sRGB profile` | 见 11.3，不是本模组 |
+| `EXCEPTION_ACCESS_VIOLATION (0xc0000005)` / `C [atio6axx.dll+0x3e1e90]` | **唯一致命项**，见 11.4 |
+
+### 11.3 `libpng warning` 复核：本模组已无该问题
+
+全量扫描了源码 `src/main/resources/` 与最终 jar 内的**所有** PNG（共 2 张），
+逐 chunk 解析结果均为 `iCCP=False`、`sRGB=False`（641 B，第九章已修）。
+因此这条警告来自服务器下发的资源包或其他 mod 加载的图片，本模组侧没有可修的东西。
+
+### 11.4 `atio6axx.dll` 定性与关键线索
+
+`atio6axx.dll` 是 **AMD 的 OpenGL 驱动模块（OpenGL ICD）**，崩溃发生在 JVM 之外的 native 代码里，
+崩溃偏移 `+0x3e1e90` 与上一份日志完全一致，说明是同一个驱动 bug 被反复触发。
+Java 层模组无法修复驱动本身，但**可以去掉触发条件**。社区已验证的有效解法是更新 / DDU 重装
+AMD 驱动、双显卡切换、降低渲染距离（见 `AMD_CRASH_GUIDE.md`）。
+
+而这份日志里有一个模组侧直接相关的放大因素：`FuckFPSLimit` **默认 `true`**，
+`MixinMinecraftClient.fpsHook()` 会跳过 `RenderSystem.limitDisplayFPS()` 解除帧率上限，
+让 GPU 无节制渲染；日志里 UBO 在单帧内从 2 一路翻倍到 1024，正是这种渲染压力失控的写照，
+最终把 AMD 驱动推到崩溃点。`ClientSetting.isOn()` 恒为 `true`，所以该设置无条件生效，
+且用户的配置文件已经把它持久化了——**只改默认值救不了老配置**。
+
+### 11.5 模组侧修复（3 个文件）
+
+| # | 文件 | 修复 |
+| --- | --- | --- |
+| 1 | `mod/modules/impl/client/ClientSetting.java` | `FuckFPSLimit` 默认 `true` → **`false`**，默认恢复原版帧率限制；用户仍可手动开启 |
+| 2 | `RiyueClient.java` | 新增纯函数 `isAmdGlDriver(String vendor, String renderer)`，按 `amd` / `radeon` / `ati technologies` 判定，便于独立测试 |
+| 3 | `asm/mixins/MixinMinecraftClient.java` | `fpsHook` 首帧读 `GL_VENDOR` / `GL_RENDERER` 检测一次并三态缓存；**命中 AMD/ATI 时无论配置里存了什么都强制调用 `limitDisplayFPS`**，打印一行提示；检测用 `catch(Throwable)` 包住，失败时完全不干预用户设置，零回归风险；`ClientSetting.INSTANCE` 为 null 时保守地保留限速 |
+
+同时新增独立文档 `AMD_CRASH_GUIDE.md`，给出按优先级排列的用户侧处置步骤。
+
+### 11.6 验证结果
+
+| 检查项 | 结果 |
+| --- | --- |
+| `clean build` | `BUILD SUCCESSFUL`，编译错误 0、警告 0、`Cannot remap` 0 条 |
+| 事件总线隔离回归实测 | `TEST PASSED`（`AbstractMethodError` / `NoClassDefFoundError` 隔离、`OutOfMemoryError` 放行） |
+| AMD 判定实测（7 个用例） | `AMD Radeon RX 6600` / `AMD Radeon(TM) Graphics` / `Radeon RX 580` → `true`；`NVIDIA` / `Intel` / `Mesa llvmpipe` / `null` → `false`；`TEST PASSED` |
+| jar 字节码 | `fpsHook` 含 `GL11.glGetString` → `RiyueClient.isAmdGlDriver` → `RenderSystem.limitDisplayFPS`，检测段异常表为 `Class java/lang/Throwable`；`FuckFPSLimit` 构造参数为 `iconst_0`（false） |
+| 最终 jar | `build/libs/riyueclient-1.3.3.jar`，1,336,429 B，SHA-256 `3b85218b96f4e22a1f401aa66a21e1e0709804d9dc05a927b1cbe344078b3b50` |
+| Xvfb 无头启动（100s 超时主动结束） | `JAVA_21`、`Sodium compat mixins: enabled`、`Initialized in 515 ms`；关键异常统计 **0**；未打印 `AMD/ATI OpenGL driver detected`，说明 Mesa/llvmpipe 软件渲染下不会误判；`RUN_EXIT=124` 仅为超时杀进程，不是崩溃 |
+
+### 11.7 用户侧待办（按优先级）
+
+1. **更新 / DDU 彻底重装 AMD Adrenalin 驱动**（社区验证最有效；不要从第三方 DLL 站下载
+   `atio6axx.dll`，也不要用 `regsvr32` 注册它）；
+2. 双显卡机型在 Windows 图形设置里把 `javaw.exe` 指定到非 AMD 的高性能 GPU；
+3. 把渲染距离降到 8 以下，关闭云 / 平滑光照，关闭 `Xray`、`ESP`/`Chams`、`HoleESP` 等
+   每帧大量绘制的模块，减轻 `MixinWorldRenderer` 的 3D 渲染注入压力；
+4. 保持 `FuckFPSLimit` 关闭（新 jar 已默认关闭，AMD 驱动下自动强制限速）；
+5. 换 jar 后日志出现 `[RiyueClient] AMD/ATI OpenGL driver detected: keeping vanilla FPS limit ...`
+   即表示保护已生效。
+
+完整步骤、日志逐条解释与参考资料见仓库内 `AMD_CRASH_GUIDE.md`。
+
+### 11.8 边界声明
+
+必须说清楚：`EXCEPTION_ACCESS_VIOLATION` 发生在 AMD 驱动的 native 代码里，
+**模组侧能做的是消除触发条件、降低渲染压力，不可能修复驱动本身**。
+如果按 11.7 处理后仍生成 `hs_err_pid*.log` 且 `Problematic frame` 仍是 `atio6axx.dll`，
+请走驱动 / 显卡路径，并把 `hs_err_pid*.log` 一并提供；这与前四轮已经修完的 Java 层
+`AbstractMethodError` / `NoSuchFieldException` 是两类完全不同的问题，不要回退 Java 修复。

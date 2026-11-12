@@ -29,10 +29,12 @@ import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.thread.ReentrantThreadExecutor;
+import org.lwjgl.opengl.GL11;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -73,9 +75,39 @@ public abstract class MixinMinecraftClient extends ReentrantThreadExecutor<Runna
         RiyueClient.EVENT_BUS.post(new ResizeEvent(this.window));
     }
 
+    /**
+     * 三态缓存：null = 尚未检测，true = AMD/ATI OpenGL 驱动，false = 其他驱动或检测失败。
+     * 只检测一次，避免每帧调用 glGetString。
+     */
+    @Unique
+    private static Boolean riyue$amdGlDriver;
+
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;limitDisplayFPS(I)V"), require = 0)
     public void fpsHook(int fps) {
-        if (!ClientSetting.INSTANCE.fuckFPSLimit.getValue()) {
+        if (riyue$amdGlDriver == null) {
+            try {
+                boolean amd = RiyueClient.isAmdGlDriver(
+                        GL11.glGetString(GL11.GL_VENDOR),
+                        GL11.glGetString(GL11.GL_RENDERER));
+                riyue$amdGlDriver = amd;
+                if (amd) {
+                    // AMD 的 atio6axx.dll OpenGL ICD 在无限帧率、单帧 UBO 暴涨时会触发
+                    // EXCEPTION_ACCESS_VIOLATION native 崩溃；命中时强制保留原版帧率限制，
+                    // 即使老配置文件里仍存着 FuckFPSLimit=true 也一样。
+                    System.out.println("[RiyueClient] AMD/ATI OpenGL driver detected: keeping vanilla FPS limit "
+                            + "to avoid atio6axx.dll native crash.");
+                }
+            } catch (Throwable ignored) {
+                // 检测失败时完全不干预用户设置，避免引入任何新的启动 / 渲染期风险。
+                riyue$amdGlDriver = Boolean.FALSE;
+            }
+        }
+
+        // ClientSetting.INSTANCE 可能为 null（初始化早期），此时保守地保留帧率限制。
+        boolean keepLimit = riyue$amdGlDriver
+                || ClientSetting.INSTANCE == null
+                || !ClientSetting.INSTANCE.fuckFPSLimit.getValue();
+        if (keepLimit) {
             RenderSystem.limitDisplayFPS(fps);
         }
     }

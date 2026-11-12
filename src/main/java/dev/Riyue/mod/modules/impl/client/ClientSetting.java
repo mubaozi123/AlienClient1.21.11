@@ -17,7 +17,10 @@ public class ClientSetting extends Module {
     public final BooleanSetting rotations = add(new BooleanSetting("ShowRotations", true, () -> page.is(Page.Game)).setParent());
     public final BooleanSetting sync = add(new BooleanSetting("Sync", false, () -> page.is(Page.Game) && rotations.isOpen()));
     public final BooleanSetting titleFix = add(new BooleanSetting("TitleFix", true, () -> page.is(Page.Game)));
-    public final BooleanSetting fuckFPSLimit = add(new BooleanSetting("FuckFPSLimit", true, () -> page.is(Page.Game)));
+    // 默认关闭：解除帧率限制会让 GPU 无节制渲染，在 AMD/ATI 的 OpenGL 驱动（atio6axx.dll）上
+    // 单帧 UBO 暴涨会触发 EXCEPTION_ACCESS_VIOLATION native 崩溃。想要解锁帧率的用户可手动开启；
+    // MixinMinecraftClient.fpsHook 另有 AMD 驱动检测，命中时无论如何都保留原版帧率限制。
+    public final BooleanSetting fuckFPSLimit = add(new BooleanSetting("FuckFPSLimit", false, () -> page.is(Page.Game)));
     private final BooleanSetting portalGui = add(new BooleanSetting("BlockTickNausea", true, () -> page.is(Page.Game)));
     public final BooleanSetting optimizedCalc = add(new BooleanSetting("OptimizedCalc", false, () -> page.is(Page.Game)));
     public final BooleanSetting mioCompatible = add(new BooleanSetting("MioCompatible", false, () -> page.is(Page.Game)));
