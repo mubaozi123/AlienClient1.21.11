@@ -4,6 +4,7 @@ import dev.Riyue.RiyueClient;
 import dev.Riyue.api.events.eventbus.EventListener;
 import dev.Riyue.api.events.impl.ClientTickEvent;
 import dev.Riyue.api.events.impl.UpdateEvent;
+import dev.Riyue.api.utils.Wrapper;
 import dev.Riyue.api.utils.math.Timer;
 import dev.Riyue.api.utils.player.EntityUtil;
 import dev.Riyue.api.utils.player.InventoryUtil;
@@ -17,58 +18,65 @@ import net.minecraft.component.type.PotionContentsComponent;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.item.Item;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.shape.VoxelShape;
 
 public class AutoPot extends Module {
-
     public static AutoPot INSTANCE;
-    private final SliderSetting delay = add(new SliderSetting("Delay", 5, 0, 10, 0.1).setSuffix("s"));
-    private final BooleanSetting speed =
-            add(new BooleanSetting("Speed", false));
-    private final BooleanSetting resistance =
-            add(new BooleanSetting("Resistance", false));
-    private final BooleanSetting strength =
-            add(new BooleanSetting("Strength", false));
-    private final BooleanSetting slowFalling =
-            add(new BooleanSetting("SlowFalling", false));
-    private final BooleanSetting usingPause =
-            add(new BooleanSetting("UsingPause", true));
-    private final BooleanSetting onlyGround =
-            add(new BooleanSetting("OnlyGround", false));
-    private final BooleanSetting inventory =
-            add(new BooleanSetting("InventorySwap", true));
-    private final BindSetting speedKey =
-            add(new BindSetting("SpeedKey", -1));
-    private final BindSetting strengthKey =
-            add(new BindSetting("StrengthKey", -1));
-    private final BindSetting resistanceKey =
-            add(new BindSetting("ResistanceKey", -1));
+
+    // ========== 设置 ==========
+    private final SliderSetting delay = this.add(new SliderSetting("Delay", 1.0, 0.0, 10.0, 0.1).setSuffix("s"));
+    private final SliderSetting saveDuration = this.add(new SliderSetting("SaveDuration", 2.0, 0.0, 60.0, 0.1).setSuffix("s"));
+    private final BooleanSetting speed = this.add(new BooleanSetting("Speed", true));
+    private final BooleanSetting resistance = this.add(new BooleanSetting("Resistance", true));
+    private final BooleanSetting strength = this.add(new BooleanSetting("Strength", true));
+    private final BooleanSetting slowFalling = this.add(new BooleanSetting("SlowFalling", false));
+    private final BooleanSetting usingPause = this.add(new BooleanSetting("UsingPause", false));
+
+    private final BooleanSetting onlyGround = this.add(new BooleanSetting("OnlyGround", true, () -> !this.smart.getValue()));
+    private final BooleanSetting strictGround = this.add(new BooleanSetting("StrictGround", false, () -> onlyGround.getValue()));
+    private final SliderSetting excessDistance = this.add(new SliderSetting("ExcessDistance", 0.0, 0.0, 1.0, 0.01, () -> onlyGround.getValue()));
+    private final BooleanSetting potStrafe = this.add(new BooleanSetting("PotStrafe", true));
+    private final BooleanSetting inventory = this.add(new BooleanSetting("InventorySwap", true));
+    private final BooleanSetting smart = this.add(new BooleanSetting("Smart", false));
+    // ========== 删除了 yawStep, steps, priority 设置 ==========
+
+    private final BindSetting speedKey = this.add(new BindSetting("SpeedKey", -1));
+    private final BindSetting strengthKey = this.add(new BindSetting("StrengthKey", -1));
+    private final BindSetting resistanceKey = this.add(new BindSetting("ResistanceKey", -1));
+
     private final Timer delayTimer = new Timer();
     private boolean throwing = false;
+    private boolean actuallyThrowing = false;
+    private Direction throwDirection = Direction.DOWN;
     private boolean turtlePress;
     private boolean speedPress;
     private boolean strengthPress;
+    private final AutoPotTick tickListener = new AutoPotTick();
 
     public AutoPot() {
-        super("AutoPot", Category.Player);
-        setChinese("自动药水");
+        super("AutoPot", Module.Category.Player);
+        this.setChinese("自动药水");
         INSTANCE = this;
-        RiyueClient.EVENT_BUS.subscribe(new AutoPotTick());
+        RiyueClient.EVENT_BUS.subscribe(this.tickListener);
     }
 
+    // ========== 查找药水方法 ==========
     public static int findPotionInventorySlot(StatusEffect targetEffect) {
         for (int i = 35; i >= 0; --i) {
             ItemStack itemStack = mc.player.getInventory().getStack(i);
-            if (Item.getRawId(itemStack.getItem()) != Item.getRawId(Items.SPLASH_POTION)) continue;
-            PotionContentsComponent potionContentsComponent = itemStack.getOrDefault(DataComponentTypes.POTION_CONTENTS, PotionContentsComponent.DEFAULT);
-            for (StatusEffectInstance effect : potionContentsComponent.getEffects()) {
-                if (effect.getEffectType().value() == targetEffect) {
-                    return i < 9 ? i + 36 : i;
-                }
+            if (itemStack.getItem() != Items.SPLASH_POTION) continue;
+            PotionContentsComponent contents = itemStack.getOrDefault(DataComponentTypes.POTION_CONTENTS, PotionContentsComponent.DEFAULT);
+            for (StatusEffectInstance effect : contents.getEffects()) {
+                if (effect.getEffectType().value() != targetEffect) continue;
+                return i < 9 ? i + 36 : i;
             }
         }
         return -1;
@@ -77,12 +85,11 @@ public class AutoPot extends Module {
     public static int findPotion(StatusEffect targetEffect) {
         for (int i = 0; i < 9; ++i) {
             ItemStack itemStack = mc.player.getInventory().getStack(i);
-            if (Item.getRawId(itemStack.getItem()) != Item.getRawId(Items.SPLASH_POTION)) continue;
-            PotionContentsComponent potionContentsComponent = itemStack.getOrDefault(DataComponentTypes.POTION_CONTENTS, PotionContentsComponent.DEFAULT);
-            for (StatusEffectInstance effect : potionContentsComponent.getEffects()) {
-                if (effect.getEffectType().value() == targetEffect) {
-                    return i;
-                }
+            if (itemStack.getItem() != Items.SPLASH_POTION) continue;
+            PotionContentsComponent contents = itemStack.getOrDefault(DataComponentTypes.POTION_CONTENTS, PotionContentsComponent.DEFAULT);
+            for (StatusEffectInstance effect : contents.getEffects()) {
+                if (effect.getEffectType().value() != targetEffect) continue;
+                return i;
             }
         }
         return -1;
@@ -90,124 +97,333 @@ public class AutoPot extends Module {
 
     @Override
     public void onDisable() {
-        throwing = false;
+        this.throwing = false;
+        this.actuallyThrowing = false;
+        RiyueClient.EVENT_BUS.unsubscribe(this.tickListener);
     }
 
+    public boolean isActuallyThrowing() {
+        return this.actuallyThrowing;
+    }
+
+    // ========== 地面条件判断（保留原所有逻辑） ==========
+    public boolean isGroundConditionSatisfied() {
+        if (smart.getValue()) {
+            if (potStrafe.getValue() && EntityUtil.isInsideBlock()) {
+                this.throwDirection = Direction.DOWN;
+                return true;
+            }
+            for (Direction direction : Direction.values()) {
+                BlockPos checkPos = new BlockPosX(mc.player.getEntityPos()).offset(direction);
+                if (!mc.world.isAir(checkPos)) {
+                    this.throwDirection = direction;
+                    return true;
+                }
+            }
+            double excess = excessDistance.getValue();
+            if (excess > 0.0) {
+                double playerFeetY = mc.player.getY();
+                BlockPos downPos = new BlockPosX(mc.player.getEntityPos()).down();
+                if (!mc.world.isAir(downPos)) {
+                    VoxelShape shape = mc.world.getBlockState(downPos).getCollisionShape(mc.world, downPos);
+                    if (!shape.isEmpty()) {
+                        double blockTopY = downPos.getY() + shape.getMax(Direction.Axis.Y);
+                        double distance = playerFeetY - blockTopY;
+                        if (distance >= 0 && distance < excess) {
+                            this.throwDirection = Direction.DOWN;
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        if (!onlyGround.getValue()) {
+            this.throwDirection = Direction.DOWN;
+            return true;
+        }
+
+        if (mc.player.isOnGround() || RiyueClient.PLAYER.isInWeb((PlayerEntity) mc.player)) {
+            if (strictGround.getValue()) {
+                BlockPos downPos = new BlockPosX(mc.player.getEntityPos()).down();
+                if (!mc.world.isAir(downPos)) {
+                    this.throwDirection = Direction.DOWN;
+                    return true;
+                }
+            } else {
+                this.throwDirection = Direction.DOWN;
+                return true;
+            }
+        }
+
+        if (potStrafe.getValue() && EntityUtil.isInsideBlock()) {
+            this.throwDirection = Direction.DOWN;
+            return true;
+        }
+
+        double excess = excessDistance.getValue();
+        if (excess > 0.0) {
+            double playerFeetY = mc.player.getY();
+            BlockPos downPos = new BlockPosX(mc.player.getEntityPos()).down();
+            if (!mc.world.isAir(downPos)) {
+                VoxelShape shape = mc.world.getBlockState(downPos).getCollisionShape(mc.world, downPos);
+                if (!shape.isEmpty()) {
+                    double blockTopY = downPos.getY() + shape.getMax(Direction.Axis.Y);
+                    double distance = playerFeetY - blockTopY;
+                    if (distance >= 0 && distance < excess) {
+                        this.throwDirection = Direction.DOWN;
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    // ========== 效果是否需要投掷的判断（保留 saveDuration） ==========
+    private boolean shouldThrowResistance() {
+        StatusEffectInstance effect = mc.player.getStatusEffect(StatusEffects.RESISTANCE);
+        return effect == null ||
+                effect.getAmplifier() < 2 ||
+                (effect.getDuration() / 20.0f) < saveDuration.getValue();
+    }
+
+    private boolean shouldThrowSpeed() {
+        StatusEffectInstance effect = mc.player.getStatusEffect(StatusEffects.SPEED);
+        return effect == null || (effect.getDuration() / 20.0f) < saveDuration.getValue();
+    }
+
+    private boolean shouldThrowStrength() {
+        StatusEffectInstance effect = mc.player.getStatusEffect(StatusEffects.STRENGTH);
+        return effect == null || (effect.getDuration() / 20.0f) < saveDuration.getValue();
+    }
+
+    private boolean shouldThrowSlowFalling() {
+        StatusEffectInstance effect = mc.player.getStatusEffect(StatusEffects.SLOW_FALLING);
+        return effect == null || (effect.getDuration() / 20.0f) < saveDuration.getValue();
+    }
+
+    // ========== 重试判断（保留） ==========
+    private boolean shouldRetryThrow(StatusEffect targetEffect) {
+        if (!this.isOn()) return false;
+        if (!checkThrow(targetEffect)) return false;
+
+        float threshold = (float) saveDuration.getValue();
+
+        if (targetEffect == StatusEffects.RESISTANCE) {
+            StatusEffectInstance effect = mc.player.getStatusEffect(StatusEffects.RESISTANCE);
+            return effect == null || effect.getAmplifier() < 2 || (effect.getDuration() / 20.0f) < threshold;
+        } else if (targetEffect == StatusEffects.SPEED) {
+            StatusEffectInstance effect = mc.player.getStatusEffect(StatusEffects.SPEED);
+            return effect == null || (effect.getDuration() / 20.0f) < threshold;
+        } else if (targetEffect == StatusEffects.STRENGTH) {
+            StatusEffectInstance effect = mc.player.getStatusEffect(StatusEffects.STRENGTH);
+            return effect == null || (effect.getDuration() / 20.0f) < threshold;
+        } else if (targetEffect == StatusEffects.SLOW_FALLING) {
+            StatusEffectInstance effect = mc.player.getStatusEffect(StatusEffects.SLOW_FALLING);
+            return effect == null || (effect.getDuration() / 20.0f) < threshold;
+        }
+        return false;
+    }
+
+    public boolean checkThrow(StatusEffect targetEffect) {
+        if (!EntityUtil.inInventory()) return false;
+        if (this.usingPause.getValue() && mc.player.isUsingItem()) return false;
+        return findPotion(targetEffect) != -1 || (this.inventory.getValue() && findPotionInventorySlot(targetEffect) != -1);
+    }
+
+    public boolean shouldThrowNow() {
+        if (!this.isOn()) return false;
+        if (this.inventory.getValue() && !EntityUtil.inInventory()) return false;
+        if (this.usingPause.getValue() && mc.player.isUsingItem()) return false;
+        if (!this.delayTimer.passedMs((long)(this.delay.getValue() * 1000.0))) return false;
+        if (!isGroundConditionSatisfied()) return false;
+
+        if (this.resistance.getValue() && shouldThrowResistance() && checkThrow(StatusEffects.RESISTANCE.value())) return true;
+        if (this.speed.getValue() && shouldThrowSpeed() && checkThrow(StatusEffects.SPEED.value())) return true;
+        if (this.strength.getValue() && shouldThrowStrength() && checkThrow(StatusEffects.STRENGTH.value())) return true;
+        if (this.slowFalling.getValue() && shouldThrowSlowFalling() && checkThrow(StatusEffects.SLOW_FALLING.value())) return true;
+        return false;
+    }
+
+    // ========== 核心更新逻辑（删除 yawStep 相关分支） ==========
     @EventListener
     public void onUpdate(UpdateEvent event) {
-        if (inventory.getValue() && !EntityUtil.inInventory()) return;
-        if (!delayTimer.passedMs(delay.getValue() * 1000)) return;
-        if (!onlyGround.getValue() || (mc.player.isOnGround() || RiyueClient.PLAYER.isInWeb(mc.player)) && !mc.world.isAir(new BlockPosX(mc.player.getEntityPos().add(0, -1, 0)))) {
-            if (resistance.getValue() && (!mc.player.hasStatusEffect(StatusEffects.RESISTANCE) || mc.player.getStatusEffect(StatusEffects.RESISTANCE).getAmplifier() < 2)) {
-                throwing = checkThrow(StatusEffects.RESISTANCE.value());
-                if (isThrow()) {
-                    throwPotion(StatusEffects.RESISTANCE.value());
-                    return;
-                }
+        this.throwing = false;
+        if (this.inventory.getValue() && !EntityUtil.inInventory()) return;
+        if (!this.delayTimer.passedMs((long)(delay.getValue() * 1000.0))) return;
+        if (!isGroundConditionSatisfied()) return;
+
+        // 删除 pendingEffect/directionVec 检查和 RotationEvent 等待逻辑，直接投掷
+        if (this.resistance.getValue() && shouldThrowResistance()) {
+            this.throwing = this.checkThrow(StatusEffects.RESISTANCE.value());
+            if (this.isThrow()) {
+                this.throwPotion(StatusEffects.RESISTANCE.value());
+                return;
             }
-            if (speed.getValue() && !mc.player.hasStatusEffect(StatusEffects.SPEED)) {
-                throwing = checkThrow(StatusEffects.SPEED.value());
-                if (isThrow()) {
-                    throwPotion(StatusEffects.SPEED.value());
-                    return;
-                }
+        }
+        if (this.speed.getValue() && shouldThrowSpeed()) {
+            this.throwing = this.checkThrow(StatusEffects.SPEED.value());
+            if (this.isThrow()) {
+                this.throwPotion(StatusEffects.SPEED.value());
+                return;
             }
-            if (strength.getValue() && !mc.player.hasStatusEffect(StatusEffects.STRENGTH)) {
-                throwing = checkThrow(StatusEffects.STRENGTH.value());
-                if (isThrow()) {
-                    throwPotion(StatusEffects.STRENGTH.value());
-                    return;
-                }
+        }
+        if (this.strength.getValue() && shouldThrowStrength()) {
+            this.throwing = this.checkThrow(StatusEffects.STRENGTH.value());
+            if (this.isThrow()) {
+                this.throwPotion(StatusEffects.STRENGTH.value());
+                return;
             }
-            if (slowFalling.getValue() && !mc.player.hasStatusEffect(StatusEffects.SLOW_FALLING)) {
-                throwing = checkThrow(StatusEffects.SLOW_FALLING.value());
-                if (isThrow()) {
-                    throwPotion(StatusEffects.SLOW_FALLING.value());
-                }
+        }
+        if (this.slowFalling.getValue() && shouldThrowSlowFalling()) {
+            this.throwing = this.checkThrow(StatusEffects.SLOW_FALLING.value());
+            if (this.isThrow()) {
+                this.throwPotion(StatusEffects.SLOW_FALLING.value());
             }
         }
     }
 
+    // ========== 删除 onRotate 和 isRotationReady ==========
+
+    // ========== 投掷方法（保留原有 smart 方向计算，改用 snapAt/snapBack） ==========
     public void throwPotion(StatusEffect targetEffect) {
+        this.actuallyThrowing = true;
+        float yaw = RiyueClient.ROTATION.rotationYaw;
+        float pitch = 90.0f;
+
+        if (this.smart.getValue() && this.throwDirection != Direction.DOWN) {
+            if (this.throwDirection == Direction.UP) {
+                pitch = -90.0f;
+            } else {
+                BlockPos clickBlockPos = new BlockPosX(mc.player.getEntityPos()).offset(this.throwDirection);
+                Vec3d center = clickBlockPos.toCenterPos();
+                double offsetX = this.throwDirection.getOffsetX() * 0.5;
+                double offsetY = this.throwDirection.getOffsetY() * 0.5;
+                double offsetZ = this.throwDirection.getOffsetZ() * 0.5;
+                Vec3d clickPos = new Vec3d(center.x + offsetX, center.y + offsetY, center.z + offsetZ);
+                float[] angles = RiyueClient.ROTATION.getRotation(clickPos);
+                yaw = angles[0];
+                pitch = angles[1];
+            }
+        }
+
+        // 直接瞬间旋转并投掷
+        executeThrowDirect(targetEffect, yaw, pitch);
+    }
+
+    private void executeThrowDirect(StatusEffect targetEffect, float yaw, float pitch) {
         int oldSlot = mc.player.getInventory().selectedSlot;
         int newSlot;
-        if (inventory.getValue() && (newSlot = findPotionInventorySlot(targetEffect)) != -1) {
-            RiyueClient.ROTATION.snapAt(RiyueClient.ROTATION.rotationYaw, 90);
+
+        // 瞬间转向
+        RiyueClient.ROTATION.snapAt(yaw, pitch);
+
+        if (this.inventory.getValue() && (newSlot = findPotionInventorySlot(targetEffect)) != -1) {
             InventoryUtil.inventorySwap(newSlot, mc.player.getInventory().selectedSlot);
-            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
-            InventoryUtil.inventorySwap(newSlot, mc.player.getInventory().selectedSlot);
-            EntityUtil.syncInventory();
-            RiyueClient.ROTATION.snapBack();
-            delayTimer.reset();
+
+            final int inventorySlot = newSlot;
+            final float finalYaw = RiyueClient.ROTATION.getLastYaw();
+            final float finalPitch = RiyueClient.ROTATION.getLastPitch();
+            mc.execute(() -> {
+                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, finalYaw, finalPitch));
+                mc.execute(() -> {
+                    InventoryUtil.inventorySwap(inventorySlot, mc.player.getInventory().selectedSlot);
+                    EntityUtil.syncInventory();
+                    this.delayTimer.reset();
+                    this.throwing = false;
+                    RiyueClient.ROTATION.snapBack();  // 恢复旋转
+
+                    mc.execute(() -> {
+                        mc.execute(() -> {
+                            if (this.shouldRetryThrow(targetEffect)) {
+                                this.throwPotion(targetEffect);
+                            } else {
+                                this.actuallyThrowing = false;
+                            }
+                        });
+                    });
+                });
+            });
         } else if ((newSlot = findPotion(targetEffect)) != -1) {
-            RiyueClient.ROTATION.snapAt(RiyueClient.ROTATION.rotationYaw, 90);
             InventoryUtil.switchToSlot(newSlot);
-            sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
-            InventoryUtil.switchToSlot(oldSlot);
-            RiyueClient.ROTATION.snapBack();
-            delayTimer.reset();
+
+            final float finalYaw = RiyueClient.ROTATION.getLastYaw();
+            final float finalPitch = RiyueClient.ROTATION.getLastPitch();
+            mc.execute(() -> {
+                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, finalYaw, finalPitch));
+                mc.execute(() -> {
+                    InventoryUtil.switchToSlot(oldSlot);
+                    this.delayTimer.reset();
+                    this.throwing = false;
+                    RiyueClient.ROTATION.snapBack();  // 恢复旋转
+
+                    mc.execute(() -> {
+                        mc.execute(() -> {
+                            if (this.shouldRetryThrow(targetEffect)) {
+                                this.throwPotion(targetEffect);
+                            } else {
+                                this.actuallyThrowing = false;
+                            }
+                        });
+                    });
+                });
+            });
+        } else {
+            this.actuallyThrowing = false;
+            RiyueClient.ROTATION.snapBack(); // 没找到药水也要恢复旋转
         }
     }
 
     public boolean isThrow() {
-        return throwing;
+        return this.throwing;
     }
 
-    public boolean checkThrow(StatusEffect targetEffect) {
-        if (!EntityUtil.inInventory()) {
-            return false;
-        }
-        if (usingPause.getValue() && mc.player.isUsingItem()) {
-            return false;
-        }
-        return findPotion(targetEffect) != -1 || (inventory.getValue() && findPotionInventorySlot(targetEffect) != -1);
-    }
-
+    // ========== 按键触发内部类（保留原有逻辑） ==========
     public class AutoPotTick {
-
         @EventListener
         public void onTick(ClientTickEvent event) {
-            if (nullCheck() || event.isPost()) return;
-            if (inventory.getValue() && !EntityUtil.inInventory()) return;
-            if (mc.currentScreen == null) {
-                if (resistanceKey.isPressed()) {
-                    if (!turtlePress) {
-                        if (checkThrow(StatusEffects.RESISTANCE.value())) {
-                            throwPotion(StatusEffects.RESISTANCE.value());
-                            turtlePress = true;
-                            return;
-                        }
+            if (Module.nullCheck() || event.isPost()) return;
+            if (AutoPot.this.inventory.getValue() && !EntityUtil.inInventory()) return;
+            if (Wrapper.mc.currentScreen == null) {
+                if (AutoPot.this.resistanceKey.isPressed()) {
+                    if (!AutoPot.this.turtlePress && AutoPot.this.checkThrow(StatusEffects.RESISTANCE.value())) {
+                        AutoPot.this.throwDirection = Direction.DOWN;
+                        AutoPot.this.throwPotion(StatusEffects.RESISTANCE.value());
+                        AutoPot.this.turtlePress = true;
+                        return;
                     }
                 } else {
-                    turtlePress = false;
+                    AutoPot.this.turtlePress = false;
                 }
 
-                if (strengthKey.isPressed()) {
-                    if (!strengthPress) {
-                        if (checkThrow(StatusEffects.STRENGTH.value())) {
-                            throwPotion(StatusEffects.STRENGTH.value());
-                            strengthPress = true;
-                            return;
+                if (AutoPot.this.strengthKey.isPressed()) {
+                    if (!AutoPot.this.strengthPress && AutoPot.this.checkThrow(StatusEffects.STRENGTH.value())) {
+                        if (AutoPot.this.isGroundConditionSatisfied()) {
+                            AutoPot.this.throwPotion(StatusEffects.STRENGTH.value());
                         }
+                        AutoPot.this.strengthPress = true;
+                        return;
                     }
                 } else {
-                    strengthPress = false;
+                    AutoPot.this.strengthPress = false;
                 }
 
-                if (speedKey.isPressed()) {
-                    if (!speedPress) {
-                        if (checkThrow(StatusEffects.SPEED.value())) {
-                            throwPotion(StatusEffects.SPEED.value());
-                            speedPress = true;
+                if (AutoPot.this.speedKey.isPressed()) {
+                    if (!AutoPot.this.speedPress && AutoPot.this.checkThrow(StatusEffects.SPEED.value())) {
+                        if (AutoPot.this.isGroundConditionSatisfied()) {
+                            AutoPot.this.throwPotion(StatusEffects.SPEED.value());
                         }
+                        AutoPot.this.speedPress = true;
                     }
                 } else {
-                    speedPress = false;
+                    AutoPot.this.speedPress = false;
                 }
             } else {
-                speedPress = false;
-                turtlePress = false;
-                strengthPress = false;
+                AutoPot.this.speedPress = false;
+                AutoPot.this.turtlePress = false;
+                AutoPot.this.strengthPress = false;
             }
         }
     }

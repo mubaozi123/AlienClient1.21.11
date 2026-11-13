@@ -250,6 +250,32 @@ public class Aura extends Module {
         }
     }
 
+    /**
+     * 发送多个攻击包（供 Mace 类模块使用，移植自 Loppu Aura.doMultiAttack）
+     */
+    public void doMultiAttack(int count) {
+        if (!check() || target == null) {
+            return;
+        }
+        if (rotate.getValue()) {
+            Vec3d hitVec = getAttackVec(target);
+            if (!faceVector(hitVec)) {
+                return;
+            }
+        }
+        animation.to = 1.0;
+        animation.from = 1.0;
+        for (int i = 0; i < count; i++) {
+            mc.getNetworkHandler().sendPacket(PlayerInteractEntityC2SPacket.attack(target, mc.player.isSneaking()));
+        }
+        mc.player.resetTicksSinceLastAttack();
+        EntityUtil.swingHand(Hand.MAIN_HAND, swingMode.getValue());
+        tick.reset();
+        if (rotate.getValue() && !shouldYawStep()) {
+            RiyueClient.ROTATION.snapBack();
+        }
+    }
+
     private Vec3d getAttackVec(Entity entity) {
         return MathUtil.getClosestPointToBox(mc.player.getEyePos(), entity.getBoundingBox());
     }

@@ -378,7 +378,7 @@ public class AutoCrystal
                     this.displayTarget = pap.player;
                 }
             }
-            if (this.doCrystal.getValue() && this.tempBreakCrystal != null && !shouldReturn) {
+            if (!this.thread.getValue() && this.doCrystal.getValue() && this.tempBreakCrystal != null && !shouldReturn) {
                 this.doBreak(this.tempBreakCrystal);
                 this.tempBreakCrystal = null;
             }
@@ -391,7 +391,13 @@ public class AutoCrystal
                     CombatUtil.modifyBlockState = Blocks.OBSIDIAN.getDefaultState();
                     base = true;
                 }
-                if (base && RiyueClient.BREAK.isMining(pos.down()) && this.detectMining.getValue() || (attackVec = this.getAttackVec(pos.toBottomCenterPos())) == null || this.behindWall(pos, attackVec) || !this.canTouch(pos.down()) || !this.canPlaceCrystal(pos, true, false)) continue;
+                // 性能：先做便宜的方块/几何过滤（canTouch/canPlaceCrystal），绝大多数
+                // 候选位置（非黑曜石/基岩底座）在此被剔除，避免对每个位置都跑
+                // getAttackVec 的暴力网格搜索（数千次迭代）和 behindWall 的 raycast。
+                // 这些条件均为纯查询且相互独立，调整顺序不影响结果。
+                if (base && RiyueClient.BREAK.isMining(pos.down()) && this.detectMining.getValue() || !this.canTouch(pos.down()) || !this.canPlaceCrystal(pos, true, false)) continue;
+                attackVec = this.getAttackVec(pos.toBottomCenterPos());
+                if (attackVec == null || this.behindWall(pos, attackVec)) continue;
                 selfDamage = base ? this.calculateBaseDamage(pos, self.player, self.predict) : this.calculateDamage(pos, self.player, self.predict);
                 for (PlayerEntityPredict pap : list) {
                     if (base && this.onlyBelow.getValue() && (double)pos.getY() - 0.5 > pap.player.getY()) continue;
@@ -424,7 +430,7 @@ public class AutoCrystal
                             float selfDamage2;
                             if (direction == Direction.DOWN || direction == Direction.UP || !this.canPlaceCrystal(offsetPos.offset(direction), false, false) || !((double)(selfDamage2 = this.calculateDamage(offsetPos.offset(direction), self.player, self.predict)) < this.maxSelf.getValue()) || this.reserve.getValue() > 0.0 && (double)selfDamage2 > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue()) continue;
                             this.tempPos = offsetPos.offset(direction);
-                            if (this.doCrystal.getValue() && this.tempPos != null && !shouldReturn) {
+                            if (!this.thread.getValue() && this.doCrystal.getValue() && this.tempPos != null && !shouldReturn) {
                                 this.doCrystal(this.tempPos);
                             }
                             return;
@@ -433,7 +439,7 @@ public class AutoCrystal
                 }
             }
         }
-        if (this.doCrystal.getValue() && this.tempPos != null && !shouldReturn) {
+        if (!this.thread.getValue() && this.doCrystal.getValue() && this.tempPos != null && !shouldReturn) {
             this.doCrystal(this.tempPos);
         }
     }
@@ -451,7 +457,16 @@ public class AutoCrystal
         BlockPos obsPos = pos.down();
         BlockPos boost = obsPos.up();
         BlockPos boost2 = boost.up();
-        return !(BlockUtil.getBlock(obsPos) != Blocks.BEDROCK && BlockUtil.getBlock(obsPos) != Blocks.OBSIDIAN || BlockUtil.getClickSideStrict(obsPos) == null || !this.noEntityBlockCrystal(boost, ignoreCrystal, ignoreItem) || !this.noEntityBlockCrystal(boost2, ignoreCrystal, ignoreItem) || !AutoCrystal.mc.world.isAir(boost) && (!BlockUtil.hasCrystal(boost) || BlockUtil.getBlock(boost) != Blocks.FIRE) || ClientSetting.INSTANCE.lowVersion.getValue() && !AutoCrystal.mc.world.isAir(boost2));
+        // 性能：原实现连续两次 getBlock(obsPos)（各一次完整 getBlockState），合并为一次
+        net.minecraft.block.Block baseBlock = BlockUtil.getBlock(obsPos);
+        if (baseBlock != Blocks.BEDROCK && baseBlock != Blocks.OBSIDIAN) {
+            return false;
+        }
+        return BlockUtil.getClickSideStrict(obsPos) != null
+                && this.noEntityBlockCrystal(boost, ignoreCrystal, ignoreItem)
+                && this.noEntityBlockCrystal(boost2, ignoreCrystal, ignoreItem)
+                && (AutoCrystal.mc.world.isAir(boost) || (BlockUtil.hasCrystal(boost) && BlockUtil.getBlock(boost) == Blocks.FIRE))
+                && (!ClientSetting.INSTANCE.lowVersion.getValue() || AutoCrystal.mc.world.isAir(boost2));
     }
 
     private boolean noEntityBlockCrystal(BlockPos pos, boolean ignoreCrystal, boolean ignoreItem) {
@@ -523,6 +538,7 @@ public class AutoCrystal
             CombatUtil.modifyBlockState = Blocks.AIR.getDefaultState();
         }
         if (this.terrainIgnore.getValue()) {
+            CombatUtil.invalidateChunkCache();
             CombatUtil.terrainIgnore = true;
         }
         float damage = ExplosionUtil.calculateDamage(pos, player, predict, 6.0f);
@@ -533,6 +549,7 @@ public class AutoCrystal
 
     public float calculateBaseDamage(BlockPos pos, PlayerEntity player, PlayerEntity predict) {
         if (this.terrainIgnore.getValue()) {
+            CombatUtil.invalidateChunkCache();
             CombatUtil.terrainIgnore = true;
         }
         float damage = DamageUtils.overridingExplosionDamage(player, predict, new Vec3d((double)pos.getX() + 0.5, (double)pos.getY(), (double)pos.getZ() + 0.5), 12.0f, pos.down(), Blocks.OBSIDIAN.getDefaultState());

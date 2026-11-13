@@ -56,6 +56,8 @@ implements Closeable {
     };
     private static final ExecutorService ASYNC_WORKER = Executors.newCachedThreadPool();
     private final Object2ObjectMap<Identifier, ObjectList<DrawEntry>> GLYPH_PAGE_CACHE = new Object2ObjectOpenHashMap<>();
+    private static final int WIDTH_CACHE_LIMIT = 1024;
+    private final Object2ObjectMap<String, Float> widthCache = new Object2ObjectOpenHashMap<>();
     private final float originalSize;
     private final ObjectList<GlyphMap> maps = new ObjectArrayList();
     private final Char2ObjectArrayMap<Glyph> allGlyphs = new Char2ObjectArrayMap();
@@ -345,6 +347,22 @@ implements Closeable {
     }
 
     public float getWidth(String text) {
+        // 宽度计算每帧会被 HUD/GUI 对相同字符串重复调用，这里做小缓存，
+        // close()（字体缩放重建）时整体失效。
+        Object2ObjectMap<String, Float> cache = this.widthCache;
+        Float cached = cache.get(text);
+        if (cached != null) {
+            return cached;
+        }
+        float width = this.computeWidth(text);
+        if (cache.size() >= WIDTH_CACHE_LIMIT) {
+            cache.clear();
+        }
+        cache.put(text, width);
+        return width;
+    }
+
+    private float computeWidth(String text) {
         char[] c = FontRenderer.stripControlCodes(text).toCharArray();
         float currentLine = 0.0f;
         float maxPreviousLines = 0.0f;
@@ -395,6 +413,7 @@ implements Closeable {
             }
             this.maps.clear();
             this.allGlyphs.clear();
+            this.widthCache.clear();
             this.initialized = false;
         }
         catch (Exception exception) {

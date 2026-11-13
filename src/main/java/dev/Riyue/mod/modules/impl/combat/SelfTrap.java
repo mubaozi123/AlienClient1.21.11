@@ -28,8 +28,10 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.math.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class SelfTrap extends Module {
     public static SelfTrap INSTANCE;
@@ -174,7 +176,8 @@ public class SelfTrap extends Module {
         shouldCenter = true;
     }
 
-    public static final List<BlockPos> airList = new ArrayList<>();
+    /** 会被 getBlockState 的 mixin 每次调用 contains，必须是 O(1) 的 Set 结构。 */
+    public static final Set<BlockPos> airList = new HashSet<>();
 
     @EventListener
     public void onTick(ClientTickEvent event) {

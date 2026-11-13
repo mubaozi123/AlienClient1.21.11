@@ -13,6 +13,7 @@ import dev.Riyue.mod.modules.Module;
 import dev.Riyue.mod.modules.impl.client.ClientSetting;
 import dev.Riyue.mod.modules.impl.combat.AutoAnchor;
 import dev.Riyue.mod.modules.impl.combat.AutoCrystal;
+import dev.Riyue.mod.modules.impl.combat.Crystalbot;
 import dev.Riyue.mod.modules.impl.render.HoleESP;
 import dev.Riyue.mod.modules.impl.render.PlaceRender;
 import net.minecraft.client.MinecraftClient;
@@ -300,11 +301,13 @@ public class ThreadManager implements Wrapper {
                     // 并行派发各模块的后台任务，充分利用多核
                     java.util.concurrent.CompletableFuture<?> ac =
                             java.util.concurrent.CompletableFuture.runAsync(AutoCrystal.INSTANCE::onThread, WorkPool.compute());
+                    java.util.concurrent.CompletableFuture<?> cb =
+                            java.util.concurrent.CompletableFuture.runAsync(Crystalbot.INSTANCE::onThread, WorkPool.compute());
                     java.util.concurrent.CompletableFuture<?> he =
                             java.util.concurrent.CompletableFuture.runAsync(HoleESP.INSTANCE::onThread, WorkPool.worldScan());
                     java.util.concurrent.CompletableFuture<?> aa =
                             java.util.concurrent.CompletableFuture.runAsync(AutoAnchor.INSTANCE::onThread, WorkPool.compute());
-                    java.util.concurrent.CompletableFuture.allOf(ac, he, aa).join();
+                    java.util.concurrent.CompletableFuture.allOf(ac, cb, he, aa).join();
                 } catch (InterruptedException e) {
                     interrupt();
                     return;

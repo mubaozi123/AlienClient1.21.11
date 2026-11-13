@@ -591,7 +591,7 @@ implements Wrapper {
     }
 
     public static boolean canReplace(BlockPos pos) {
-        if (pos.getY() >= 320) {
+        if (pos.getY() > 320) {
             return false;
         }
         if (AntiCheat.INSTANCE.multiPlace.getValue() && placedPos.contains(pos)) {

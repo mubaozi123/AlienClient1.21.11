@@ -89,6 +89,7 @@ public class ClickGuiScreen extends Screen {
             ImmediateDrawUtil.resetColorModulator();
             renderingAlpha = 1.0F;
         }
+        flushRender();
     }
 
     private int toContentX(double mouseX, float scale) {

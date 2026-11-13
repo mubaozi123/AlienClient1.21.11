@@ -17,7 +17,10 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.WorldChunk;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +30,39 @@ public class CombatUtil implements Wrapper {
     public static boolean terrainIgnore = false;
     public static BlockPos modifyPos;
     public static BlockState modifyBlockState = Blocks.AIR.getDefaultState();
+
+    /**
+     * 伤害计算期间 terrainIgnore 会把大量 getBlockState 引到 MixinWorld 的改写路径，
+     * 该路径需要逐方块做 chunk 定位（成本约等于原始 getBlockState，等于双倍开销）。
+     * 这里按线程缓存最近使用的区块引用：爆炸暴露计算空间连续，命中率极高。
+     * 缓存生命周期 = 单次伤害计算，调用方在计算开始时调用 {@link #invalidateChunkCache()}。
+     */
+    private static final ThreadLocal<WorldChunk> CACHED_CHUNK = new ThreadLocal<>();
+    /** key: [world引用, chunkX, chunkZ] —— world 引用参与比较，世界重建/换维度时自动失配。 */
+    private static final ThreadLocal<Object[]> CACHED_CHUNK_KEY = ThreadLocal.withInitial(() -> new Object[3]);
+
+    public static WorldChunk cachedChunk(World world, int chunkX, int chunkZ) {
+        Object[] key = CACHED_CHUNK_KEY.get();
+        if (key[0] == world && (Integer) key[1] == chunkX && (Integer) key[2] == chunkZ) {
+            WorldChunk cached = CACHED_CHUNK.get();
+            if (cached != null) {
+                return cached;
+            }
+        }
+        WorldChunk chunk = world.getChunk(chunkX, chunkZ);
+        CACHED_CHUNK.set(chunk);
+        key[0] = world;
+        key[1] = chunkX;
+        key[2] = chunkZ;
+        return chunk;
+    }
+
+    public static void invalidateChunkCache() {
+        CACHED_CHUNK_KEY.get()[0] = null;
+        CACHED_CHUNK_KEY.get()[1] = Integer.MIN_VALUE;
+        CACHED_CHUNK_KEY.get()[2] = Integer.MIN_VALUE;
+        CACHED_CHUNK.set(null);
+    }
 
     public static List<PlayerEntity> getEnemies(double range) {
         List<PlayerEntity> list = new ArrayList<>();

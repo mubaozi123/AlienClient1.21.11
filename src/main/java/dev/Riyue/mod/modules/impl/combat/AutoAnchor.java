@@ -487,6 +487,7 @@ public class AutoAnchor extends Module {
 
     public double getAnchorDamage(BlockPos anchorPos, PlayerEntity target, PlayerEntity predict) {
         if (terrainIgnore.getValue()) {
+            CombatUtil.invalidateChunkCache();
             CombatUtil.terrainIgnore = true;
         }
         double damage = ExplosionUtil.anchorDamage(anchorPos, target, predict);

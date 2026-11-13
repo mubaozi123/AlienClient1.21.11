@@ -54,6 +54,10 @@ public class RiyueClient implements ModInitializer {
     }
 
     public static void save() {
+        // 配置加载早期（玩家未进世界时 ClickGui 开关链路）TRADE 可能尚未初始化
+        if (CONFIG == null || TRADE == null) {
+            return;
+        }
         System.out.println("[" + RiyueClient.NAME + "] Saving");
         CONFIG.save();
         CLEANER.save();

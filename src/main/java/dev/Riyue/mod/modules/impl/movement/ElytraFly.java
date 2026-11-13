@@ -1,13 +1,37 @@
+/*
+ * 由仓库2 (Loppu-client / dev.luminous / MC 1.21.1) 的 ElytraFly 移植而来，
+ * 用于替换仓库1 原 ElytraFly。跨版本适配点（1.21.1 -> 1.21.11）：
+ *  - dev.luminous.* -> dev.Riyue.*；Alien -> RiyueClient
+ *  - isFallFlying/startFallFlying/stopFallFlying -> isGliding/startGliding/stopGliding
+ *  - prevX/prevY/prevZ -> lastX/lastY/lastZ；getTickDelta(true) -> getDynamicDeltaTicks()
+ *  - Entity.getPos() -> getEntityPos()（HitResult.getPos() 保留）
+ *  - ElytraItem 类在 1.21.11 不存在：isUsable()/instanceof 改为 isOf(Items.ELYTRA)+getDamage()
+ *  - getArmorItems() 已移除：改为遍历 4 个 EquipmentSlot
+ *  - input.jumping/sneaking -> options.jumpKey/sneakKey.isPressed()
+ *  - ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY 已移除 -> STOP_SLEEPING（沿用仓库1 原版）
+ *  - Rotation/RotationUtils 依赖见 dev.Riyue.api.utils.rotation（精简自包含移植）
+ * 新增功能：SpeedRamp / TurtleSpeed / ResistanceAdapt / SmartSpeed / SmartLimit /
+ *          FollowPlayer / Avoid / TargetSwitch 等。
+ */
+
 package dev.Riyue.mod.modules.impl.movement;
 
 import dev.Riyue.RiyueClient;
 import dev.Riyue.api.events.eventbus.EventListener;
-import dev.Riyue.api.events.impl.*;
+import dev.Riyue.api.events.impl.ClientTickEvent;
+import dev.Riyue.api.events.impl.MoveEvent;
+import dev.Riyue.api.events.impl.PacketEvent;
+import dev.Riyue.api.events.impl.TravelEvent;
+import dev.Riyue.api.events.impl.UpdateEvent;
+import dev.Riyue.api.events.impl.UpdateRotateEvent;
+import dev.Riyue.api.utils.Wrapper;
 import dev.Riyue.api.utils.math.MathUtil;
 import dev.Riyue.api.utils.math.Timer;
 import dev.Riyue.api.utils.player.EntityUtil;
 import dev.Riyue.api.utils.player.InventoryUtil;
 import dev.Riyue.api.utils.player.MovementUtil;
+import dev.Riyue.api.utils.rotation.Rotation;
+import dev.Riyue.api.utils.rotation.RotationUtils;
 import dev.Riyue.asm.accessors.IFireworkRocketEntity;
 import dev.Riyue.asm.accessors.ILivingEntity;
 import dev.Riyue.mod.modules.Module;
@@ -16,12 +40,14 @@ import dev.Riyue.mod.modules.settings.impl.BindSetting;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
 import dev.Riyue.mod.modules.settings.impl.EnumSetting;
 import dev.Riyue.mod.modules.settings.impl.SliderSetting;
+import java.util.ArrayList;
+import java.util.Comparator;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.FireworkRocketEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -31,111 +57,165 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RaycastContext;
 
-import static dev.Riyue.api.utils.player.MovementUtil.*;
-
-public class ElytraFly extends Module {
+public class ElytraFly
+        extends Module {
     public static ElytraFly INSTANCE;
-    public final EnumSetting<Mode> mode = add(new EnumSetting<>("Mode", Mode.Control));
-    public final BooleanSetting infiniteDura = add(new BooleanSetting("InfiniteDura", false));
-    public final BooleanSetting packet = add(new BooleanSetting("Packet", false).setParent());
-    private final SliderSetting packetDelay =
-            add(new SliderSetting("PacketDelay", 0, 0, 20, 1, packet::isOpen));
-    private final BooleanSetting setFlag = add(new BooleanSetting("SetFlag", false, () -> !mode.is(Mode.Bounce)));
-    private final BooleanSetting firework = add(new BooleanSetting("Firework", false).setParent());
-    public final BindSetting fireWork = add(new BindSetting("FireWorkBind", -1, firework::isOpen));
-    public final BooleanSetting packetInteract = add(new BooleanSetting("PacketInteract", true, firework::isOpen));
-    public final BooleanSetting inventory = add(new BooleanSetting("InventorySwap", true, firework::isOpen));
-    public final BooleanSetting onlyOne = add(new BooleanSetting("OnlyOne", true, firework::isOpen));
-    private final BooleanSetting usingPause = add(new BooleanSetting("UsingPause", true, firework::isOpen));
-    public final BooleanSetting autoJump = add(new BooleanSetting("AutoJump", true, () -> mode.is(Mode.Bounce)));
-    public final SliderSetting upPitch = add(new SliderSetting("UpPitch", 0.0f, 0.0f, 90.0f, () -> mode.getValue() == Mode.Control));
-    public final SliderSetting upFactor = add(new SliderSetting("UpFactor", 1.0f, 0.0f, 10.0f, () -> mode.getValue() == Mode.Control));
-    public final SliderSetting downFactor = add(new SliderSetting("FallSpeed", 1.0f, 0.0f, 10.0f, () -> mode.getValue() == Mode.Control));
-    public final SliderSetting speed = add(new SliderSetting("Speed", 1.0f, 0.1f, 10.0f, () -> mode.getValue() == Mode.Control));
-    public final BooleanSetting speedLimit = add(new BooleanSetting("SpeedLimit", true, () -> mode.getValue() == Mode.Control));
-    public final SliderSetting maxSpeed = add(new SliderSetting("MaxSpeed", 2.5f, 0.1f, 10.0f, () -> speedLimit.getValue() && mode.getValue() == Mode.Control));
-    public final BooleanSetting noDrag = add(new BooleanSetting("NoDrag", false, () -> mode.getValue() == Mode.Control));
-    public final Timer fireworkTimer = new Timer();
-    private final BooleanSetting autoStop = add(new BooleanSetting("AutoStop", true));
-    private final BooleanSetting sprint = add(new BooleanSetting("Sprint", true, () -> mode.is(Mode.Bounce)));
-    private final SliderSetting pitch =
-            add(new SliderSetting("Pitch", 88, -90, 90, 0.1, () -> mode.is(Mode.Bounce)));
-    private final BooleanSetting instantFly = add(new BooleanSetting("AutoStart", true, () -> !mode.is(Mode.Bounce)));
-    private final BooleanSetting checkSpeed = add(new BooleanSetting("CheckSpeed", false, () -> !mode.is(Mode.Bounce)));
-    public final SliderSetting minSpeed = add(new SliderSetting("MinSpeed", 70.0, 0.1, 200.0, () -> !mode.is(Mode.Bounce)));
-    private final SliderSetting delay =
-            add(new SliderSetting("Delay", 1000, 0, 20000, 50, () -> !mode.is(Mode.Bounce)));
-    private final SliderSetting timeout = add(new SliderSetting("Timeout", 0, 0.1, 1, 0.1, () -> !mode.is(Mode.Bounce)));
-    private final SliderSetting sneakDownSpeed = add(new SliderSetting("DownSpeed", 1.0, 0.1, 10.0, () -> mode.getValue() == Mode.Control));
-    private final SliderSetting boost = add(new SliderSetting("Boost", 1, 0.1, 4, () -> mode.getValue() == Mode.Boost));
-    private final BooleanSetting freeze = add(new BooleanSetting("Freeze", false, () -> mode.is(Mode.Rotation)));
-    private final BooleanSetting motionStop = add(new BooleanSetting("MotionStop", false, () -> mode.is(Mode.Rotation)));
-    private final SliderSetting infiniteMaxSpeed = add(new SliderSetting("InfiniteMaxSpeed", 150f, 50f, 170f, () -> mode.getValue() == Mode.Pitch));
-    private final SliderSetting infiniteMinSpeed = add(new SliderSetting("InfiniteMinSpeed", 25f, 10f, 70f, () -> mode.getValue() == Mode.Pitch));
-    private final SliderSetting infiniteMaxHeight = add(new SliderSetting("InfiniteMaxHeight", 200, -50, 360, () -> mode.getValue() == Mode.Pitch));
-    public final BooleanSetting releaseSneak = add(new BooleanSetting("ReleaseSneak", false));
-    private final Timer instantFlyTimer = new Timer();
+    public final EnumSetting<Mode> mode = this.add(new EnumSetting<Mode>("Mode", Mode.Control));
+    public final BooleanSetting infiniteDura = this.add(new BooleanSetting("InfiniteDura", false));
+    public final BooleanSetting packet = this.add(new BooleanSetting("Packet", false).setParent());
+    private final SliderSetting packetDelay = this.add(new SliderSetting("PacketDelay", 0.0, 0.0, 20.0, 1.0, this.packet::isOpen));
+    private final BooleanSetting setFlag = this.add(new BooleanSetting("SetFlag", false, () -> !this.mode.is(Mode.Bounce)));
+    private final BooleanSetting firework = this.add(new BooleanSetting("Firework", false).setParent());
+    public final BindSetting fireWork = this.add(new BindSetting("FireWorkBind", -1, this.firework::isOpen));
+    public final BooleanSetting packetInteract = this.add(new BooleanSetting("PacketInteract", true, this.firework::isOpen));
+    public final BooleanSetting inventory = this.add(new BooleanSetting("InventorySwap", true, this.firework::isOpen));
+    public final BooleanSetting onlyOne = this.add(new BooleanSetting("OnlyOne", true, this.firework::isOpen));
+    private final BooleanSetting usingPause = this.add(new BooleanSetting("UsingPause", true, this.firework::isOpen));
+    public final BooleanSetting autoJump = this.add(new BooleanSetting("AutoJump", true, () -> this.mode.is(Mode.Bounce)));
+    public final SliderSetting upPitch = this.add(new SliderSetting("UpPitch", 0.0, 0.0, 90.0, () -> this.mode.getValue() == Mode.Control));
+    public final SliderSetting upFactor = this.add(new SliderSetting("UpFactor", 1.0, 0.0, 10.0, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)));
+    public final SliderSetting downFactor = this.add(new SliderSetting("FallSpeed", 1.0, 0.0, 10.0, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)));
+    public final SliderSetting speed = this.add(new SliderSetting("Speed", 1.0, 0.0, 13.89, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)));
+    
+    // SpeedRamp 速度渐进
+    public final BooleanSetting speedRamp = this.add(new BooleanSetting("SpeedRamp", false, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)).setParent());
+    public final SliderSetting rampStartSpeed = this.add(new SliderSetting("RampStartSpeed", 0.7, 0.0, 10.0, 0.01, () -> this.speedRamp.isOpen() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    public final SliderSetting rampIncreasePerSecond = this.add(new SliderSetting("RampPerSecond", 0.5, 0.0, 10.0, 0.01, () -> this.speedRamp.isOpen() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    public final SliderSetting rampTargetSpeed = this.add(new SliderSetting("RampTargetSpeed", 2.5, 0.0, 13.89, 0.01, () -> this.speedRamp.isOpen() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    public final BooleanSetting onlyResistance = this.add(new BooleanSetting("OnlyResistance", false, () -> this.speedRamp.isOpen() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    
+    // TurtleSpeed 神龟速度
+    public final BooleanSetting turtleSpeedToggle = this.add(new BooleanSetting("TurtleSpeed", false, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)).setParent());
+    public final SliderSetting turtleSpeed = this.add(new SliderSetting("TurtleHelmetSpeed", 0.7, 0.0, 13.89, () -> this.turtleSpeedToggle.isOpen() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    public final SliderSetting turtleNormalSpeed = this.add(new SliderSetting("TurtleNormalSpeed", 3.0, 0.0, 13.89, () -> this.turtleSpeedToggle.isOpen() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    
+    // ResistanceAdapt 抗性适应
+    public final BooleanSetting resistanceAdapt = this.add(new BooleanSetting("ResistanceAdapt", false, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)).setParent());
+    public final SliderSetting resistanceStrength = this.add(new SliderSetting("ResistanceStrength", 0.7, 0.0, 1.0, 0.01, () -> this.resistanceAdapt.isOpen() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    
+    public final BooleanSetting speedLimit = this.add(new BooleanSetting("SpeedLimit", true, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)));
+    public final SliderSetting maxSpeed = this.add(new SliderSetting("MaxSpeed", 2.5, 0.1, 13.89, () -> this.speedLimit.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    public final BooleanSetting noDrag = this.add(new BooleanSetting("NoDrag", false, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)));
+    public final BooleanSetting followPlayer = this.add(new BooleanSetting("FollowPlayer", false, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)));
+    public final SliderSetting range = this.add(new SliderSetting("Range", 64.0, 1.0, 256.0, 1.0, () -> this.followPlayer.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    public final SliderSetting fov = this.add(new SliderSetting("Fov", 180.0, 0.0, 360.0, 1.0, () -> this.followPlayer.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    public final SliderSetting count = this.add(new SliderSetting("Count", 1, 1, 8, () -> this.followPlayer.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))));
+    private final BooleanSetting targetSwitch = this.add(new BooleanSetting("TargetSwitch", false, () -> this.followPlayer.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))).setParent());
+    public final BindSetting nextTarget = this.add(new BindSetting("NextTarget", -1, this.targetSwitch::isOpen));
+    private final SliderSetting switchDelay = this.add(new SliderSetting("SwitchDelay", 0.0, 0.0, 5000.0, 50.0, this.targetSwitch::isOpen));
+    private final BooleanSetting avoid = this.add(new BooleanSetting("Avoid", true, () -> this.followPlayer.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))).setParent());
+    private final SliderSetting avoidRange = this.add(new SliderSetting("AvoidRange", 4.0, 0.5, 12.0, 0.5, this.avoid::isOpen));
+    private final SliderSetting avoidUp = this.add(new SliderSetting("AvoidUp", 1.2, 0.0, 5.0, 0.1, this.avoid::isOpen));
+    private final SliderSetting avoidSide = this.add(new SliderSetting("AvoidSide", 0.8, 0.0, 3.0, 0.1, this.avoid::isOpen));
+    // 抗性4限速
+    private final BooleanSetting resistanceLimit = this.add(new BooleanSetting("ResistanceLimit", false, () -> this.mode.is(Mode.Control)).setParent());
+    private final BooleanSetting smartLimit = this.add(new BooleanSetting("SmartLimit", false, this.resistanceLimit::isOpen));
 
+    // SmartSpeed 神龟加速
+    private final BooleanSetting smartSpeed = this.add(new BooleanSetting("SmartSpeed", false, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)).setParent());
+    private final SliderSetting glideTime = this.add(new SliderSetting("GlideTime", 5.0, 1.0, 30.0, 0.5, this.smartSpeed::isOpen).setSuffix("s"));
+
+    public final Timer fireworkTimer = new Timer();
+    private final BooleanSetting autoStop = this.add(new BooleanSetting("AutoStop", true));
+    private final BooleanSetting sprint = this.add(new BooleanSetting("Sprint", true, () -> this.mode.is(Mode.Bounce)));
+    private final SliderSetting pitch = this.add(new SliderSetting("Pitch", 88.0, -90.0, 90.0, 0.1, () -> this.mode.is(Mode.Bounce)));
+    private final BooleanSetting instantFly = this.add(new BooleanSetting("AutoStart", true, () -> !this.mode.is(Mode.Bounce)));
+    private final BooleanSetting checkSpeed = this.add(new BooleanSetting("CheckSpeed", false, () -> !this.mode.is(Mode.Bounce)));
+    public final SliderSetting minSpeed = this.add(new SliderSetting("MinSpeed", 70.0, 0.1, 200.0, () -> !this.mode.is(Mode.Bounce)));
+    private final SliderSetting delay = this.add(new SliderSetting("Delay", 1000.0, 0.0, 20000.0, 50.0, () -> !this.mode.is(Mode.Bounce)));
+    private final SliderSetting timeout = this.add(new SliderSetting("Timeout", 0.0, 0.1, 1.0, 0.1, () -> !this.mode.is(Mode.Bounce)));
+    private final SliderSetting sneakDownSpeed = this.add(new SliderSetting("DownSpeed", 1.0, 0.1, 10.0, () -> this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)));
+    private final SliderSetting boost = this.add(new SliderSetting("Boost", 1.0, 0.1, 4.0, () -> this.mode.getValue() == Mode.Boost));
+    private final BooleanSetting freeze = this.add(new BooleanSetting("Freeze", false, () -> this.mode.is(Mode.Rotation)));
+    private final BooleanSetting motionStop = this.add(new BooleanSetting("MotionStop", false, () -> this.mode.is(Mode.Rotation)));
+    private final SliderSetting infiniteMaxSpeed = this.add(new SliderSetting("InfiniteMaxSpeed", 150.0, 50.0, 1000.0, () -> this.mode.getValue() == Mode.Pitch));
+    private final SliderSetting infiniteMinSpeed = this.add(new SliderSetting("InfiniteMinSpeed", 25.0, 10.0, 70.0, () -> this.mode.getValue() == Mode.Pitch));
+    private final SliderSetting infiniteMaxHeight = this.add(new SliderSetting("InfiniteMaxHeight", 200, -50, 360, () -> this.mode.getValue() == Mode.Pitch));
+    public final BooleanSetting releaseSneak = this.add(new BooleanSetting("ReleaseSneak", false));
+    private final Timer instantFlyTimer = new Timer();
+    private final Timer followSwitchTimer = new Timer();
+    private final Timer smartSpeedTimer = new Timer();
+    private final Timer speedRampTimer = new Timer();
+    private boolean wasSmartSpeedActive = false;
+    private boolean nextTargetPressed;
+    private int followSwitchIndex;
+    private double currentRampSpeed;
+    private boolean rampInitialized;
     boolean prev;
     float prePitch;
     private boolean hasElytra = false;
+    float yaw = 0.0f;
+    float rotationPitch = 0.0f;
+    boolean flying = false;
+    int packetDelayInt = 0;
+    private boolean down;
+    private float lastInfinitePitch;
+    private float infinitePitch;
 
     public ElytraFly() {
-        super("ElytraFly", Category.Movement);
-        setChinese("鞘翅飞行");
+        super("ElytraFly", Module.Category.Movement);
+        this.setChinese("鞘翅飞行");
         INSTANCE = this;
         RiyueClient.EVENT_BUS.subscribe(new FireWorkTweak());
     }
 
     public void off() {
-        if (inventory.getValue() && !EntityUtil.inInventory()) return;
-        if (onlyOne.getValue()) {
-            for (Entity entity : RiyueClient.THREAD.getEntities()) {
-                if (entity instanceof FireworkRocketEntity fireworkRocketEntity) {
-                    if (((IFireworkRocketEntity) fireworkRocketEntity).getShooter() == mc.player) {
-                        return;
-                    }
-                }
-            }
-        }
-        ElytraFly.INSTANCE.fireworkTimer.reset();
         int firework;
-        if (mc.player.getMainHandStack().getItem() == Items.FIREWORK_ROCKET) {
-            if (packetInteract.getValue()) {
-                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
+        if (this.inventory.getValue() && !EntityUtil.inInventory()) return;
+        if (this.onlyOne.getValue() && this.isFireworkActive()) return;
+        ElytraFly.INSTANCE.fireworkTimer.reset();
+        if (ElytraFly.mc.player.getMainHandStack().getItem() == Items.FIREWORK_ROCKET) {
+            if (this.packetInteract.getValue()) {
+                ElytraFly.sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             } else {
-                mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+                ElytraFly.mc.interactionManager.interactItem((PlayerEntity)ElytraFly.mc.player, Hand.MAIN_HAND);
             }
-        } else if (inventory.getValue() && (firework = InventoryUtil.findItemInventorySlot(Items.FIREWORK_ROCKET)) != -1) {
-            InventoryUtil.inventorySwap(firework, mc.player.getInventory().selectedSlot);
-            if (packetInteract.getValue()) {
-                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
+        } else if (this.inventory.getValue() && (firework = InventoryUtil.findItemInventorySlot(Items.FIREWORK_ROCKET)) != -1) {
+            InventoryUtil.inventorySwap(firework, ElytraFly.mc.player.getInventory().selectedSlot);
+            if (this.packetInteract.getValue()) {
+                ElytraFly.sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
             } else {
-                mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+                ElytraFly.mc.interactionManager.interactItem((PlayerEntity)ElytraFly.mc.player, Hand.MAIN_HAND);
             }
-            InventoryUtil.inventorySwap(firework, mc.player.getInventory().selectedSlot);
+            InventoryUtil.inventorySwap(firework, ElytraFly.mc.player.getInventory().selectedSlot);
             EntityUtil.syncInventory();
-        } else if ((firework = InventoryUtil.findItem(Items.FIREWORK_ROCKET)) != -1) {
-            int old = mc.player.getInventory().selectedSlot;
-            InventoryUtil.switchToSlot(firework);
-            if (packetInteract.getValue()) {
-                sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
-            } else {
-                mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+        } else {
+            firework = InventoryUtil.findItem(Items.FIREWORK_ROCKET);
+            if (firework != -1) {
+                int old = ElytraFly.mc.player.getInventory().selectedSlot;
+                InventoryUtil.switchToSlot(firework);
+                if (this.packetInteract.getValue()) {
+                    ElytraFly.sendSequencedPacket(id -> new PlayerInteractItemC2SPacket(Hand.MAIN_HAND, id, RiyueClient.ROTATION.getLastYaw(), RiyueClient.ROTATION.getLastPitch()));
+                } else {
+                    ElytraFly.mc.interactionManager.interactItem((PlayerEntity)ElytraFly.mc.player, Hand.MAIN_HAND);
+                }
+                InventoryUtil.switchToSlot(old);
             }
-            InventoryUtil.switchToSlot(old);
         }
     }
 
+    private boolean isFireworkActive() {
+        for (Entity entity : RiyueClient.THREAD.getEntities()) {
+            if (entity instanceof FireworkRocketEntity) {
+                IFireworkRocketEntity fireworkEntity = (IFireworkRocketEntity) entity;
+                if (fireworkEntity.getShooter() == ElytraFly.mc.player) return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean recastElytra(ClientPlayerEntity player) {
-        if (checkConditions(player) && ignoreGround(player)) {
+        if (ElytraFly.checkConditions(player) && ElytraFly.ignoreGround(player)) {
             player.networkHandler.sendPacket(new ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-            if (INSTANCE.setFlag.getValue()) mc.player.startGliding();
+            if (ElytraFly.INSTANCE.setFlag.getValue()) ElytraFly.mc.player.startGliding();
             return true;
-        } else return false;
+        }
+        return false;
     }
 
     public static boolean checkConditions(ClientPlayerEntity player) {
@@ -157,181 +237,211 @@ public class ElytraFly extends Module {
 
     @Override
     public String getInfo() {
-        return mode.getValue().name();
+        return this.mode.getValue().name();
     }
 
     @Override
     public void onEnable() {
-        if (nullCheck()) return;
-        hasElytra = false;
-        yaw = mc.player.getYaw();
-        rotationPitch = mc.player.getPitch();
+        if (ElytraFly.nullCheck()) return;
+        this.hasElytra = false;
+        this.yaw = ElytraFly.mc.player.getYaw();
+        this.rotationPitch = ElytraFly.mc.player.getPitch();
+        this.smartSpeedTimer.reset();
+        this.resetSpeedRamp();
     }
 
     @Override
     public void onDisable() {
-        if (ElytraFly.nullCheck()) {
-            return;
-        }
+        this.resetSpeedRamp();
+        if (ElytraFly.nullCheck()) return;
         if (this.releaseSneak.getValue()) {
-            mc.getNetworkHandler().sendPacket((Packet)new ClientCommandC2SPacket((Entity)ElytraFly.mc.player, ClientCommandC2SPacket.Mode.STOP_SLEEPING));
+            mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(ElytraFly.mc.player, ClientCommandC2SPacket.Mode.STOP_SLEEPING));
         }
     }
 
     private void boost() {
-        if (hasElytra) {
-            if (!isGliding()) {
-                return;
-            }
-            float yaw = (float) Math.toRadians(mc.player.getYaw());
-            if (mc.options.forwardKey.isPressed()) {
-                mc.player.addVelocity(-MathHelper.sin(yaw) * boost.getValueFloat() / 10, 0, MathHelper.cos(yaw) * boost.getValueFloat() / 10);
+        if (this.hasElytra) {
+            if (!this.isGliding()) return;
+            float yaw = (float)Math.toRadians(ElytraFly.mc.player.getYaw());
+            if (ElytraFly.mc.options.forwardKey.isPressed()) {
+                ElytraFly.mc.player.addVelocity(-MathHelper.sin(yaw) * this.boost.getValueFloat() / 10.0f, 0.0, MathHelper.cos(yaw) * this.boost.getValueFloat() / 10.0f);
             }
         }
     }
 
-    float yaw = 0;
-    float rotationPitch = 0;
-
-    @EventListener(priority = -9999)
+    @EventListener(priority=-9999)
     public void onRotation(UpdateRotateEvent event) {
-        if (nullCheck()) return;
-        if (mode.is(Mode.Rotation)) {
-            if (isGliding()) {
-                if (MovementUtil.isMoving()) {
-                    if (mc.options.jumpKey.isPressed()) {
-                        rotationPitch = (-45);
-                    } else if (mc.options.sneakKey.isPressed()) {
-                        rotationPitch = (45);
-                    } else {
-                        rotationPitch = (-1.9f);
-                        if (motionStop.getValue()) {
-                            setY(0);
-                        }
-                    }
-                } else {
-                    if (mc.options.jumpKey.isPressed()) {
-                        rotationPitch = (-89);
-                    } else if (mc.options.sneakKey.isPressed()) {
-                        rotationPitch = (89);
-                    } else {
-                        if (motionStop.getValue()) {
-                            setY(0);
-                        }
-                    }
-                }
-                if (mc.options.forwardKey.isPressed() || mc.options.backKey.isPressed() || mc.options.leftKey.isPressed() || mc.options.rightKey.isPressed()) {
-                    yaw = Sprint.getSprintYaw(mc.player.getYaw());
-                } else if (motionStop.getValue()) {
-                    setX(0);
-                    setZ(0);
-                }
-                event.setYaw(yaw);
-                event.setPitch(rotationPitch);
-            }
-        } else if (mode.is(Mode.Pitch)) {
-            if (isGliding()) {
-                event.setPitch(infinitePitch);
-            }
-        } else if (mode.is(Mode.Bounce)) {
-            if (isGliding()) {
-                event.setPitch(pitch.getValueFloat());
+        if (ElytraFly.nullCheck()) return;
+        if ((this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)) && this.followPlayer.getValue() && this.hasElytra && this.isGliding()) {
+            Vec3d targetPos = this.getFollowTargetPos();
+            if (targetPos != null) {
+                Rotation rot = RotationUtils.calculate(ElytraFly.mc.player.getEyePos(), targetPos);
+                event.setYaw(rot.getYaw());
+                event.setPitch(rot.getPitch());
             }
         }
+        if (this.mode.is(Mode.Rotation)) {
+            if (this.isGliding()) {
+                if (MovementUtil.isMoving()) {
+                    if (ElytraFly.mc.options.jumpKey.isPressed()) {
+                        this.rotationPitch = -45.0f;
+                    } else if (ElytraFly.mc.options.sneakKey.isPressed()) {
+                        this.rotationPitch = 45.0f;
+                    } else {
+                        this.rotationPitch = -1.9f;
+                        if (this.motionStop.getValue()) this.setY(0.0);
+                    }
+                } else if (ElytraFly.mc.options.jumpKey.isPressed()) {
+                    this.rotationPitch = -89.0f;
+                } else if (ElytraFly.mc.options.sneakKey.isPressed()) {
+                    this.rotationPitch = 89.0f;
+                } else if (this.motionStop.getValue()) {
+                    this.setY(0.0);
+                }
+                if (ElytraFly.mc.options.forwardKey.isPressed() || ElytraFly.mc.options.backKey.isPressed() || ElytraFly.mc.options.leftKey.isPressed() || ElytraFly.mc.options.rightKey.isPressed()) {
+                    this.yaw = Sprint.getSprintYaw(ElytraFly.mc.player.getYaw());
+                } else if (this.motionStop.getValue()) {
+                    this.setX(0.0);
+                    this.setZ(0.0);
+                }
+                event.setYaw(this.yaw);
+                event.setPitch(this.rotationPitch);
+            }
+        } else if (this.mode.is(Mode.Pitch)) {
+            if (this.isGliding()) event.setPitch(this.infinitePitch);
+        } else if (this.mode.is(Mode.Bounce) && this.isGliding()) {
+            event.setPitch(this.pitch.getValueFloat());
+        }
     }
-
-    boolean flying = false;
-    int packetDelayInt = 0;
 
     @EventListener
     public void onUpdate(UpdateEvent event) {
-        getInfinitePitch();
-        flying = false;
-        if (packet.getValue()) {
-            hasElytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA) != -1;
+        // SmartSpeed: 检测神龟效果状态变化并管理计时器
+        boolean isNowSmartSpeedActive = isSmartSpeedActive();
+        if (isNowSmartSpeedActive && !wasSmartSpeedActive) {
+            // 神龟效果激活，开始平滑加速计时
+            smartSpeedTimer.reset();
+        } else if (!isNowSmartSpeedActive && wasSmartSpeedActive) {
+            // 神龟效果消失，重置计时器
+            smartSpeedTimer.reset();
+        }
+        wasSmartSpeedActive = isNowSmartSpeedActive;
+
+        this.getInfinitePitch();
+        this.flying = false;
+        if (this.packet.getValue()) {
+            this.hasElytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA) != -1;
         } else {
-            hasElytra = false;
-            for (net.minecraft.entity.EquipmentSlot slot : new net.minecraft.entity.EquipmentSlot[]{net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.entity.EquipmentSlot.LEGS, net.minecraft.entity.EquipmentSlot.FEET}) {
-                ItemStack is = ElytraFly.mc.player.getEquippedStack(slot);
-                if (!(is.isOf(Items.ELYTRA))) continue;
-                this.hasElytra = true;
-                break;
-            }
-            if (infiniteDura.getValue()) {
-                if (!mc.player.isOnGround() && hasElytra) {
-                    flying = true;
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
-                    mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-                    if (setFlag.getValue()) mc.player.startGliding();
+            this.hasElytra = false;
+            for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
+                if (ElytraFly.mc.player.getEquippedStack(slot).isOf(Items.ELYTRA)) {
+                    this.hasElytra = true;
+                    break;
                 }
             }
-            if (mode.is(Mode.Bounce)) {
-                ((ILivingEntity) mc.player).setLastJumpCooldown(0);
+            if (this.infiniteDura.getValue() && !ElytraFly.mc.player.isOnGround() && this.hasElytra) {
+                this.flying = true;
+                ElytraFly.mc.interactionManager.clickSlot(ElytraFly.mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, ElytraFly.mc.player);
+                ElytraFly.mc.interactionManager.clickSlot(ElytraFly.mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, ElytraFly.mc.player);
+                mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(ElytraFly.mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
+                if (this.setFlag.getValue()) ElytraFly.mc.player.startGliding();
+            }
+            if (this.mode.is(Mode.Bounce)) {
+                ((ILivingEntity)ElytraFly.mc.player).setLastJumpCooldown(0);
                 return;
             }
         }
-        double x = mc.player.getX() - mc.player.lastX;
-        double y = mc.player.getY() - mc.player.lastY;
-        double z = mc.player.getZ() - mc.player.lastZ;
-        double dist = Math.sqrt(x * x + z * z + y * y) / 1000.0;
-        double div = 0.05 / 3600.0;
-        float timer = RiyueClient.TIMER.get();
-        final double speed = dist / div * timer;
-        if (mode.getValue() == Mode.Boost) {
-            boost();
+
+        boolean followActive = this.followPlayer.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)) && this.hasElytra && this.isGliding();
+        if (!followActive || !this.targetSwitch.getValue()) {
+            this.followSwitchIndex = 0;
+            this.nextTargetPressed = false;
+            this.followSwitchTimer.reset();
+        } else {
+            boolean pressed = this.nextTarget.isPressed();
+            if (pressed && !this.nextTargetPressed) {
+                ++this.followSwitchIndex;
+                this.followSwitchTimer.reset();
+            }
+            this.nextTargetPressed = pressed;
+            int delayMs = this.switchDelay.getValueInt();
+            if (delayMs > 0 && this.followSwitchTimer.passed(delayMs)) {
+                ++this.followSwitchIndex;
+                this.followSwitchTimer.reset();
+            }
         }
-        if (packet.getValue()) {
-            if (mc.player.isOnGround()) return;
-            packetDelayInt++;
-            if (packetDelayInt <= packetDelay.getValue()) return;
+
+        double x = ElytraFly.mc.player.getX() - ElytraFly.mc.player.lastX;
+        double y = ElytraFly.mc.player.getY() - ElytraFly.mc.player.lastY;
+        double z = ElytraFly.mc.player.getZ() - ElytraFly.mc.player.lastZ;
+        double dist = Math.sqrt(x * x + z * z + y * y) / 1000.0;
+        double div = 1.388888888888889E-5;
+        float timer = RiyueClient.TIMER.get();
+        double currentSpeed = dist / div * timer;
+        if (this.mode.getValue() == Mode.Boost) this.boost();
+
+        // SmartLimit 烟花逻辑
+        if (this.resistanceLimit.getValue() && this.smartLimit.getValue()
+                && mc.player.hasStatusEffect(StatusEffects.RESISTANCE)
+                && mc.player.getStatusEffect(StatusEffects.RESISTANCE).getAmplifier() >= 3
+                && MovementUtil.isMoving()
+                && InventoryUtil.findItem(Items.FIREWORK_ROCKET) != -1
+                && !this.isFireworkActive()
+                && this.fireworkTimer.passed(this.delay.getValueInt())) {
+            this.off();
+        }
+
+        if (this.packet.getValue()) {
+            if (ElytraFly.mc.player.isOnGround()) return;
+            ++this.packetDelayInt;
+            if ((double)this.packetDelayInt <= this.packetDelay.getValue()) return;
             int elytra = InventoryUtil.findItem(Items.ELYTRA);
             if (elytra != -1) {
-                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, elytra, SlotActionType.SWAP, mc.player);
-                mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-                mc.player.startGliding();
-                if ((!checkSpeed.getValue() || speed <= minSpeed.getValue()) && firework.getValue() && fireworkTimer.passed(delay.getValueInt()) && (MovementUtil.isMoving() || mode.is(Mode.Rotation) && (mc.options.jumpKey.isPressed())) && (!mc.player.isUsingItem() || !usingPause.getValue()) && isGliding()) {
-                    off();
-                    fireworkTimer.reset();
+                ElytraFly.mc.interactionManager.clickSlot(ElytraFly.mc.player.currentScreenHandler.syncId, 6, elytra, SlotActionType.SWAP, ElytraFly.mc.player);
+                mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(ElytraFly.mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
+                ElytraFly.mc.player.startGliding();
+                if ((!this.checkSpeed.getValue() || currentSpeed <= this.minSpeed.getValue()) && this.firework.getValue() && this.fireworkTimer.passed(this.delay.getValueInt()) && (MovementUtil.isMoving() || this.mode.is(Mode.Rotation) && ElytraFly.mc.options.jumpKey.isPressed()) && (!ElytraFly.mc.player.isUsingItem() || !this.usingPause.getValue()) && this.isGliding()) {
+                    this.off();
+                    this.fireworkTimer.reset();
                 }
-                mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, elytra, SlotActionType.SWAP, mc.player);
-                packetDelayInt = 0;
+                ElytraFly.mc.interactionManager.clickSlot(ElytraFly.mc.player.currentScreenHandler.syncId, 6, elytra, SlotActionType.SWAP, ElytraFly.mc.player);
+                this.packetDelayInt = 0;
             } else {
                 elytra = InventoryUtil.findItemInventorySlot(Items.ELYTRA);
                 if (elytra != -1) {
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
-                    mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-                    mc.player.startGliding();
-                    if ((!checkSpeed.getValue() || speed <= minSpeed.getValue()) && firework.getValue() && fireworkTimer.passed(delay.getValueInt()) && (MovementUtil.isMoving() || mode.is(Mode.Rotation) && (mc.options.jumpKey.isPressed())) && (!mc.player.isUsingItem() || !usingPause.getValue()) && isGliding()) {
-                        off();
-                        fireworkTimer.reset();
+                    ElytraFly.mc.interactionManager.clickSlot(ElytraFly.mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, ElytraFly.mc.player);
+                    ElytraFly.mc.interactionManager.clickSlot(ElytraFly.mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, ElytraFly.mc.player);
+                    mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(ElytraFly.mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
+                    ElytraFly.mc.player.startGliding();
+                    if ((!this.checkSpeed.getValue() || currentSpeed <= this.minSpeed.getValue()) && this.firework.getValue() && this.fireworkTimer.passed(this.delay.getValueInt()) && (MovementUtil.isMoving() || this.mode.is(Mode.Rotation) && ElytraFly.mc.options.jumpKey.isPressed()) && (!ElytraFly.mc.player.isUsingItem() || !this.usingPause.getValue()) && this.isGliding()) {
+                        this.off();
+                        this.fireworkTimer.reset();
                     }
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, mc.player);
-                    mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, mc.player);
-                    packetDelayInt = 0;
+                    ElytraFly.mc.interactionManager.clickSlot(ElytraFly.mc.player.currentScreenHandler.syncId, 6, 0, SlotActionType.PICKUP, ElytraFly.mc.player);
+                    ElytraFly.mc.interactionManager.clickSlot(ElytraFly.mc.player.currentScreenHandler.syncId, elytra, 0, SlotActionType.PICKUP, ElytraFly.mc.player);
+                    this.packetDelayInt = 0;
                 }
             }
             return;
         }
-        if ((!checkSpeed.getValue() || speed <= minSpeed.getValue()) && firework.getValue() && fireworkTimer.passed(delay.getValueInt()) && (MovementUtil.isMoving() || mode.is(Mode.Rotation) && (mc.options.jumpKey.isPressed())) && (!mc.player.isUsingItem() || !usingPause.getValue()) && isGliding()) {
-            off();
-            fireworkTimer.reset();
+        if ((!this.checkSpeed.getValue() || currentSpeed <= this.minSpeed.getValue()) && this.firework.getValue() && this.fireworkTimer.passed(this.delay.getValueInt()) && (MovementUtil.isMoving() || this.mode.is(Mode.Rotation) && ElytraFly.mc.options.jumpKey.isPressed()) && (!ElytraFly.mc.player.isUsingItem() || !this.usingPause.getValue()) && this.isGliding()) {
+            this.off();
+            this.fireworkTimer.reset();
         }
-        if (!isGliding() && hasElytra) {
-            fireworkTimer.setMs(99999999);
-            if (!mc.player.isOnGround() && instantFly.getValue() && mc.player.getVelocity().getY() < 0D && !infiniteDura.getValue()) {
-                if (!instantFlyTimer.passed((long) (1000 * timeout.getValue()))) return;
-                instantFlyTimer.reset();
-                mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-                if (setFlag.getValue()) mc.player.startGliding();
+        if (!this.isGliding() && this.hasElytra) {
+            this.fireworkTimer.setMs(99999999L);
+            if (!ElytraFly.mc.player.isOnGround() && this.instantFly.getValue() && ElytraFly.mc.player.getVelocity().getY() < 0.0 && !this.infiniteDura.getValue()) {
+                if (!this.instantFlyTimer.passed((long)(1000.0 * this.timeout.getValue()))) return;
+                this.instantFlyTimer.reset();
+                mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(ElytraFly.mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
+                if (this.setFlag.getValue()) ElytraFly.mc.player.startGliding();
             }
         }
     }
 
     protected final Vec3d getRotationVector(float pitch, float yaw) {
-        float f = pitch * 0.017453292F;
-        float g = -yaw * 0.017453292F;
+        float f = pitch * ((float)Math.PI / 180);
+        float g = -yaw * ((float)Math.PI / 180);
         float h = MathHelper.cos(g);
         float i = MathHelper.sin(g);
         float j = MathHelper.cos(f);
@@ -340,236 +450,477 @@ public class ElytraFly extends Module {
     }
 
     public Vec3d getRotationVec(float tickDelta) {
-        return this.getRotationVector(-upPitch.getValueFloat(), mc.player.getYaw(tickDelta));
+        return this.getRotationVector(-this.upPitch.getValueFloat(), ElytraFly.mc.player.getYaw(tickDelta));
     }
 
     @EventListener
     private void onPlayerMove(MoveEvent event) {
-        if (autoStop.getValue()) {
-            if (isGliding()) {
-                int chunkX = (int) ((mc.player.getX()) / 16);
-                int chunkZ = (int) ((mc.player.getZ()) / 16);
-                if (!mc.world.getChunkManager().isChunkLoaded(chunkX, chunkZ)) {
-                    event.cancel();
-                }
-            }
+        if (this.autoStop.getValue() && this.isGliding()) {
+            int chunkX = (int)(ElytraFly.mc.player.getX() / 16.0);
+            int chunkZ = (int)(ElytraFly.mc.player.getZ() / 16.0);
+            if (!ElytraFly.mc.world.getChunkManager().isChunkLoaded(chunkX, chunkZ)) event.cancel();
         }
     }
 
     @EventListener
     private void onTick(ClientTickEvent event) {
-        if (nullCheck()) return;
-        if (mode.is(Mode.Bounce) && hasElytra) {
-            if (autoJump.getValue()) mc.options.jumpKey.setPressed(true);
+        if (ElytraFly.nullCheck()) return;
+        if (this.mode.is(Mode.Bounce) && this.hasElytra) {
+            if (this.autoJump.getValue()) ElytraFly.mc.options.jumpKey.setPressed(true);
             if (event.isPost()) {
-                if (!isGliding())
-                    mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
-
-                if (checkConditions(mc.player)) {
-                    if (!sprint.getValue()) {
-                        // Sprinting all the time (when not on ground) makes it rubberband on certain anticheats.
-                        if (isGliding()) mc.player.setSprinting(mc.player.isOnGround());
-                        else mc.player.setSprinting(true);
-                    }
+                if (!this.isGliding()) {
+                    mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(ElytraFly.mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
                 }
-            } else {
-                if (checkConditions(mc.player) && sprint.getValue()) mc.player.setSprinting(true);
+                if (ElytraFly.checkConditions(ElytraFly.mc.player) && !this.sprint.getValue()) {
+                    if (this.isGliding()) ElytraFly.mc.player.setSprinting(ElytraFly.mc.player.isOnGround());
+                    else ElytraFly.mc.player.setSprinting(true);
+                }
+            } else if (ElytraFly.checkConditions(ElytraFly.mc.player) && this.sprint.getValue()) {
+                ElytraFly.mc.player.setSprinting(true);
             }
         }
     }
 
     @EventListener
     private void onPacketSend(PacketEvent.Send event) {
-        if (nullCheck()) return;
-        if (mode.is(Mode.Bounce) && hasElytra && event.getPacket() instanceof ClientCommandC2SPacket && ((ClientCommandC2SPacket) event.getPacket()).getMode().equals(ClientCommandC2SPacket.Mode.START_FALL_FLYING) && !sprint.getValue()) {
-            mc.player.setSprinting(true);
+        if (ElytraFly.nullCheck()) return;
+        if (this.mode.is(Mode.Bounce) && this.hasElytra && event.getPacket() instanceof ClientCommandC2SPacket && ((ClientCommandC2SPacket)event.getPacket()).getMode().equals(ClientCommandC2SPacket.Mode.START_FALL_FLYING) && !this.sprint.getValue()) {
+            ElytraFly.mc.player.setSprinting(true);
         }
     }
 
     @EventListener
     private void onPacketReceive(PacketEvent.Receive event) {
-        if (nullCheck()) return;
-        if (mode.is(Mode.Bounce) && hasElytra && event.getPacket() instanceof PlayerPositionLookS2CPacket) {
-            mc.player.stopGliding();
+        if (ElytraFly.nullCheck()) return;
+        // SpeedRamp: 服务器位置校正时重置
+        if (this.speedRamp.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)) && event.getPacket() instanceof PlayerPositionLookS2CPacket) {
+            this.resetSpeedRamp();
+        }
+        if (this.mode.is(Mode.Bounce) && this.hasElytra && event.getPacket() instanceof PlayerPositionLookS2CPacket) {
+            ElytraFly.mc.player.stopGliding();
         }
     }
 
     @EventListener
     public void travel(TravelEvent event) {
-        if (nullCheck()) return;
+        if (ElytraFly.nullCheck()) return;
         if (!AntiCheat.INSTANCE.movementSync()) {
-            if (mode.is(Mode.Bounce) && hasElytra) {
+            if (this.mode.is(Mode.Bounce) && this.hasElytra) {
                 if (event.isPre()) {
-                    prev = true;
-                    prePitch = mc.player.getPitch();
-                    mc.player.setPitch(pitch.getValueFloat());
-                } else {
-                    if (prev) {
-                        prev = false;
-                        mc.player.setPitch(prePitch);
-                    }
+                    this.prev = true;
+                    this.prePitch = ElytraFly.mc.player.getPitch();
+                    ElytraFly.mc.player.setPitch(this.pitch.getValueFloat());
+                } else if (this.prev) {
+                    this.prev = false;
+                    ElytraFly.mc.player.setPitch(this.prePitch);
                 }
-            } else if (mode.is(Mode.Pitch) && isGliding()) {
+            } else if (this.mode.is(Mode.Pitch) && this.isGliding()) {
                 if (event.isPre()) {
-                    prev = true;
-                    prePitch = mc.player.getPitch();
-                    mc.player.setPitch(lastInfinitePitch);
-                } else {
-                    if (prev) {
-                        prev = false;
-                        mc.player.setPitch(prePitch);
-                    }
+                    this.prev = true;
+                    this.prePitch = ElytraFly.mc.player.getPitch();
+                    ElytraFly.mc.player.setPitch(this.lastInfinitePitch);
+                } else if (this.prev) {
+                    this.prev = false;
+                    ElytraFly.mc.player.setPitch(this.prePitch);
+                }
+            }
+            
+            // SpeedRamp: 碰撞时重置
+            if (this.speedRamp.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)) && this.isGliding()) {
+                if (ElytraFly.mc.player.horizontalCollision || ElytraFly.mc.player.verticalCollision || ElytraFly.mc.player.isInsideWall()) {
+                    this.resetSpeedRamp();
                 }
             }
         }
+    }
+
+    private double getEffectiveSpeed() {
+        // TurtleSpeed 神龟速度：根据是否有神龟效果调整速度
+        if (this.turtleSpeedToggle.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))) {
+            if (ElytraFly.mc.player.hasStatusEffect(StatusEffects.SLOWNESS)) {
+                return this.turtleSpeed.getValue();
+            } else {
+                return this.turtleNormalSpeed.getValue();
+            }
+        }
+        
+        // SpeedRamp 速度渐进：从rampStartSpeed平滑加速到rampTargetSpeed
+        if (this.speedRamp.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))) {
+            // OnlyResistance: 只在有神龟效果时才启用SpeedRamp
+            if (this.onlyResistance.getValue()) {
+                if (mc.player.hasStatusEffect(StatusEffects.SLOWNESS)) {
+                    return this.getRampedSpeed();
+                } else {
+                    return this.speed.getValue();
+                }
+            } else {
+                return this.getRampedSpeed();
+            }
+        }
+        
+        if (isResistanceLimited()) {
+            if (smartLimit.getValue() && InventoryUtil.findItem(Items.FIREWORK_ROCKET) != -1) return this.speed.getValue();
+            return 0.7;
+        }
+        // SmartSpeed 神龟加速：从0平滑加速到speed
+        if (isSmartSpeedActive()) {
+            double targetSpeed = this.speed.getValue();
+            double glideTimeSec = glideTime.getValue();
+            long elapsedMs = smartSpeedTimer.getMs();
+            double elapsedSec = elapsedMs / 1000.0;
+
+            if (elapsedSec >= glideTimeSec) {
+                return targetSpeed;
+            } else {
+                // 从0平滑加速到speed
+                double progress = elapsedSec / glideTimeSec;
+                // 使用 ease-out 缓动
+                progress = 1 - Math.pow(1 - progress, 3);
+                return targetSpeed * progress;
+            }
+        }
+        // SpeedLimit 开启时：MaxSpeed 即最高巡航速度（拉到 13.89 = 1000 km/h），
+        // 取 Speed 与 MaxSpeed 的较大者，避免 Speed 滑条卡住最高速度。
+        if (this.speedLimit.getValue() && (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze))) {
+            return Math.max(this.speed.getValue(), this.maxSpeed.getValue());
+        }
+        return this.speed.getValue();
+    }
+
+    private boolean isResistanceLimited() {
+        return resistanceLimit.getValue()
+                && mc.player.hasStatusEffect(StatusEffects.RESISTANCE)
+                && mc.player.getStatusEffect(StatusEffects.RESISTANCE).getAmplifier() >= 3;
+    }
+
+    private boolean isSmartSpeedActive() {
+        return smartSpeed.getValue()
+                && (mode.is(Mode.Control) || mode.is(Mode.Freeze))
+                && mc.player.hasStatusEffect(StatusEffects.RESISTANCE)
+                && mc.player.getStatusEffect(StatusEffects.RESISTANCE).getAmplifier() >= 3
+                && mc.player.hasStatusEffect(StatusEffects.SLOWNESS);
+    }
+    
+    /**
+     * SpeedRamp: 获取渐进速度
+     */
+    private double getRampedSpeed() {
+        if (!MovementUtil.isMoving()) {
+            this.currentRampSpeed = this.rampStartSpeed.getValue();
+            this.speedRampTimer.reset();
+            this.rampInitialized = true;
+            return this.currentRampSpeed;
+        }
+        
+        if (!this.rampInitialized) {
+            this.currentRampSpeed = this.rampStartSpeed.getValue();
+            this.speedRampTimer.reset();
+            this.rampInitialized = true;
+            return this.currentRampSpeed;
+        }
+        
+        double elapsedSeconds = this.speedRampTimer.getMs() / 1000.0;
+        if (elapsedSeconds > 0.0) {
+            this.currentRampSpeed = Math.min(
+                    this.rampTargetSpeed.getValue(),
+                    this.currentRampSpeed + elapsedSeconds * this.rampIncreasePerSecond.getValue()
+            );
+            this.speedRampTimer.reset();
+        }
+        
+        return this.currentRampSpeed;
+    }
+    
+    /**
+     * SpeedRamp: 重置渐进速度
+     */
+    private void resetSpeedRamp() {
+        this.currentRampSpeed = this.rampStartSpeed.getValue();
+        this.rampInitialized = false;
+        this.speedRampTimer.reset();
+    }
+    
+    /**
+     * ResistanceAdapt: 应用抗性适应阻力
+     */
+    private void applyResistanceAdapt() {
+        double motionX = this.getX();
+        double motionY = this.getY();
+        double motionZ = this.getZ();
+        double horizontalSpeed = Math.sqrt(motionX * motionX + motionZ * motionZ);
+        double descendBoost = MathHelper.clamp(-motionY * 2.0, 0.0, 1.0);
+        double ascendPenalty = MathHelper.clamp(motionY * 2.0, 0.0, 1.0);
+        double pitchWeight = Math.abs(ElytraFly.mc.player.getPitch()) / 90.0;
+        double speedWeight = this.speedLimit.getValue()
+                ? MathHelper.clamp(horizontalSpeed / Math.max(0.1, this.maxSpeed.getValue()), 0.0, 1.0)
+                : MathHelper.clamp(horizontalSpeed / Math.max(0.1, this.speed.getValue()), 0.0, 1.0);
+        double targetHorizontalDrag = MathHelper.clamp(0.91 + descendBoost * 0.04 + speedWeight * 0.02 - ascendPenalty * 0.03 + pitchWeight * 0.01, 0.88, 0.995);
+        double targetVerticalDrag = MathHelper.clamp(0.90 + descendBoost * 0.06 + pitchWeight * 0.03 - ascendPenalty * 0.05, 0.85, 0.995);
+        double strength = this.resistanceStrength.getValue();
+        double horizontalDrag = this.lerp(0.985, targetHorizontalDrag, strength);
+        double verticalDrag = this.lerp(0.99, targetVerticalDrag, strength);
+        this.setX(motionX * horizontalDrag);
+        this.setY(motionY * verticalDrag);
+        this.setZ(motionZ * horizontalDrag);
+    }
+    
+    private double lerp(double start, double end, double delta) {
+        return start + (end - start) * delta;
     }
 
     @EventListener
     public void onMove(TravelEvent event) {
-        if (nullCheck() || !hasElytra || !isGliding() || event.isPost()) return;
-        if (mode.is(Mode.Freeze) || mode.is(Mode.Rotation) && freeze.getValue()) {
-            if (!MovementUtil.isMoving() && !mc.options.jumpKey.isPressed() && !mc.options.sneakKey.isPressed()) {
-                event.cancel();
+        if (ElytraFly.nullCheck() || !this.hasElytra || !this.isGliding() || event.isPost()) return;
+
+        if ((this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)) && this.followPlayer.getValue()) {
+            Vec3d targetPos = this.getFollowTargetPos();
+            if (targetPos != null) {
+                this.applyFollowMotion(targetPos);
+                if (this.mode.is(Mode.Control) || this.mode.is(Mode.Freeze)) {
+                    event.cancel();
+                    ElytraFly.mc.player.move(MovementType.SELF, ElytraFly.mc.player.getVelocity());
+                }
                 return;
             }
         }
-        if (mode.getValue() == Mode.Control) {
-            if (firework.getValue()) {
-                if (!(mc.options.sneakKey.isPressed() && mc.options.jumpKey.isPressed())) {
-                    if (mc.options.sneakKey.isPressed()) {
-                        setY(-sneakDownSpeed.getValue());
-                    } else if (mc.options.jumpKey.isPressed()) {
-                        setY(upFactor.getValue());
+
+        if ((this.mode.is(Mode.Freeze) || this.mode.is(Mode.Rotation) && this.freeze.getValue()) && !MovementUtil.isMoving() && !ElytraFly.mc.options.jumpKey.isPressed() && !ElytraFly.mc.options.sneakKey.isPressed()) {
+            event.cancel();
+            return;
+        }
+
+        if (this.mode.getValue() == Mode.Control) {
+            if (this.firework.getValue()) {
+                if (!ElytraFly.mc.options.sneakKey.isPressed() || !ElytraFly.mc.options.jumpKey.isPressed()) {
+                    if (ElytraFly.mc.options.sneakKey.isPressed()) {
+                        this.setY(-this.sneakDownSpeed.getValue());
+                    } else if (ElytraFly.mc.options.jumpKey.isPressed()) {
+                        this.setY(this.upFactor.getValue());
                     } else {
-                        setY(-0.00000000003D * downFactor.getValue());
+                        this.setY(-3.0E-11 * this.downFactor.getValue());
                     }
                 } else {
-                    setY(0);
+                    this.setY(0.0);
                 }
-                double[] dir = directionSpeed(speed.getValue());
-                setX(dir[0]);
-                setZ(dir[1]);
+                double[] dir = MovementUtil.directionSpeed(getEffectiveSpeed());
+                this.setX(dir[0]);
+                this.setZ(dir[1]);
             } else {
-                Vec3d lookVec = getRotationVec(mc.getRenderTickCounter().getDynamicDeltaTicks());
+                Vec3d lookVec = this.getRotationVec(mc.getRenderTickCounter().getDynamicDeltaTicks());
                 double lookDist = Math.sqrt(lookVec.x * lookVec.x + lookVec.z * lookVec.z);
-                double motionDist = Math.sqrt(getX() * getX() + getZ() * getZ());
-                if (mc.options.sneakKey.isPressed()) {
-                    setY(-sneakDownSpeed.getValue());
-                } else if (!mc.options.jumpKey.isPressed()) {
-                    setY(-0.00000000003D * downFactor.getValue());
+                double motionDist = Math.sqrt(this.getX() * this.getX() + this.getZ() * this.getZ());
+                if (ElytraFly.mc.options.sneakKey.isPressed()) {
+                    this.setY(-this.sneakDownSpeed.getValue());
+                } else if (!ElytraFly.mc.options.jumpKey.isPressed()) {
+                    this.setY(-3.0E-11 * this.downFactor.getValue());
                 }
-                if (mc.options.jumpKey.isPressed()) {
-                    if (motionDist > upFactor.getValue() / upFactor.getMax()) {
-                        double rawUpSpeed = motionDist * 0.01325D;
-                        setY(getY() + rawUpSpeed * 3.2D);
-                        setX(getX() - lookVec.x * rawUpSpeed / lookDist);
-                        setZ(getZ() - lookVec.z * rawUpSpeed / lookDist);
+                if (ElytraFly.mc.options.jumpKey.isPressed()) {
+                    if (motionDist > this.upFactor.getValue() / this.upFactor.getMax()) {
+                        double rawUpSpeed = motionDist * 0.01325;
+                        this.setY(this.getY() + rawUpSpeed * 3.2);
+                        this.setX(this.getX() - lookVec.x * rawUpSpeed / lookDist);
+                        this.setZ(this.getZ() - lookVec.z * rawUpSpeed / lookDist);
                     } else {
-                        double[] dir = directionSpeed(speed.getValue());
-                        setX(dir[0]);
-                        setZ(dir[1]);
+                        double[] dir = MovementUtil.directionSpeed(getEffectiveSpeed());
+                        this.setX(dir[0]);
+                        this.setZ(dir[1]);
                     }
                 }
-                if (lookDist > 0.0D) {
-                    setX(getX() + (lookVec.x / lookDist * motionDist - getX()) * 0.1D);
-                    setZ(getZ() + (lookVec.z / lookDist * motionDist - getZ()) * 0.1D);
+                if (lookDist > 0.0) {
+                    this.setX(this.getX() + (lookVec.x / lookDist * motionDist - this.getX()) * 0.1);
+                    this.setZ(this.getZ() + (lookVec.z / lookDist * motionDist - this.getZ()) * 0.1);
                 }
-                if (!mc.options.jumpKey.isPressed()) {
-                    double[] dir = directionSpeed(speed.getValue());
-                    setX(dir[0]);
-                    setZ(dir[1]);
+                if (!ElytraFly.mc.options.jumpKey.isPressed()) {
+                    double[] dir = MovementUtil.directionSpeed(getEffectiveSpeed());
+                    this.setX(dir[0]);
+                    this.setZ(dir[1]);
                 }
-                if (!noDrag.getValue()) {
-                    setY(getY() * 0.9900000095367432D);
-                    setX(getX() * 0.9800000190734863D);
-                    setZ(getZ() * 0.9900000095367432D);
+                if (!this.noDrag.getValue()) {
+                    // ResistanceAdapt: 抗性适应阻力
+                    if (this.resistanceAdapt.getValue()) {
+                        this.applyResistanceAdapt();
+                    } else {
+                        this.setY(this.getY() * 0.99);
+                        this.setX(this.getX() * 0.98);
+                        this.setZ(this.getZ() * 0.99);
+                    }
                 }
-                double finalDist = Math.sqrt(getX() * getX() + getZ() * getZ());
-                if (speedLimit.getValue() && finalDist > maxSpeed.getValue()) {
-                    setX(getX() * maxSpeed.getValue() / finalDist);
-                    setZ(getZ() * maxSpeed.getValue() / finalDist);
+                double finalDist = Math.sqrt(this.getX() * this.getX() + this.getZ() * this.getZ());
+                if (this.speedLimit.getValue() && finalDist > this.maxSpeed.getValue()) {
+                    this.setX(this.getX() * this.maxSpeed.getValue() / finalDist);
+                    this.setZ(this.getZ() * this.maxSpeed.getValue() / finalDist);
                 }
                 event.cancel();
-                mc.player.move(MovementType.SELF, mc.player.getVelocity());
+                ElytraFly.mc.player.move(MovementType.SELF, ElytraFly.mc.player.getVelocity());
             }
         }
     }
 
-    private double getX() {
-        return getMotionX();
+    private void applyFollowMotion(Vec3d targetPos) {
+        Vec3d delta = targetPos.subtract(ElytraFly.mc.player.getEntityPos());
+        double distXZ = Math.hypot(delta.x, delta.z);
+        double dy = targetPos.y - ElytraFly.mc.player.getEyeY();
+
+        if (ElytraFly.mc.options.sneakKey.isPressed()) {
+            this.setY(-this.sneakDownSpeed.getValue());
+        } else if (ElytraFly.mc.options.jumpKey.isPressed()) {
+            this.setY(this.upFactor.getValue());
+        } else {
+            if (dy > 0.35) {
+                this.setY(Math.min(this.upFactor.getValue(), 0.15 + dy * 0.35));
+            } else if (dy < -1.5) {
+                this.setY(-this.sneakDownSpeed.getValue());
+            } else {
+                this.setY(-3.0E-11 * this.downFactor.getValue());
+            }
+        }
+
+        if (distXZ > 1.0E-4) {
+            double spd = getEffectiveSpeed();
+            double slowRange = 3.0;
+            double factor = MathHelper.clamp(distXZ / slowRange, 0.0, 1.0);
+            if (distXZ < 1.0) factor = 0.0;
+            spd *= factor;
+            this.setX(delta.x / distXZ * spd);
+            this.setZ(delta.z / distXZ * spd);
+        } else {
+            this.setX(0.0);
+            this.setZ(0.0);
+        }
+
+        if (this.avoid.getValue() && ElytraFly.mc.world != null && distXZ > 1.0E-4) {
+            Vec3d start = ElytraFly.mc.player.getEntityPos().add(0.0, ElytraFly.mc.player.getHeight() * 0.5, 0.0);
+            Vec3d forward = new Vec3d(delta.x / distXZ, 0.0, delta.z / distXZ);
+            double checkDist = this.avoidRange.getValue();
+            double forwardHitDist = this.raycastHitDist(start, forward, checkDist);
+            if (forwardHitDist <= checkDist) {
+                Vec3d left = new Vec3d(-forward.z, 0.0, forward.x);
+                Vec3d right = new Vec3d(forward.z, 0.0, -forward.x);
+                Vec3d leftDir = forward.add(left.multiply(0.75));
+                Vec3d rightDir = forward.add(right.multiply(0.75));
+                if (leftDir.lengthSquared() > 1.0E-8) leftDir = leftDir.normalize();
+                else leftDir = forward;
+                if (rightDir.lengthSquared() > 1.0E-8) rightDir = rightDir.normalize();
+                else rightDir = forward;
+                double leftHitDist = this.raycastHitDist(start, leftDir, checkDist);
+                double rightHitDist = this.raycastHitDist(start, rightDir, checkDist);
+                Vec3d side = leftHitDist > rightHitDist ? left : right;
+                double sidePush = this.avoidSide.getValue();
+                this.setX(this.getX() + side.x * sidePush);
+                this.setZ(this.getZ() + side.z * sidePush);
+                if (!ElytraFly.mc.options.jumpKey.isPressed() && !ElytraFly.mc.options.sneakKey.isPressed()) {
+                    this.setY(Math.max(this.getY(), this.avoidUp.getValue()));
+                }
+            }
+        }
+        
+        if (!this.noDrag.getValue()) {
+            // ResistanceAdapt: 抗性适应阻力
+            if (this.resistanceAdapt.getValue()) {
+                this.applyResistanceAdapt();
+            } else {
+                this.setY(this.getY() * 0.99);
+                this.setX(this.getX() * 0.98);
+                this.setZ(this.getZ() * 0.99);
+            }
+        }
+        double finalDist = Math.sqrt(this.getX() * this.getX() + this.getZ() * this.getZ());
+        if (this.speedLimit.getValue() && finalDist > this.maxSpeed.getValue()) {
+            this.setX(this.getX() * this.maxSpeed.getValue() / finalDist);
+            this.setZ(this.getZ() * this.maxSpeed.getValue() / finalDist);
+        }
     }
 
-    private void setX(double f) {
-        setMotionX(f);
+    private double getX() { return MovementUtil.getMotionX(); }
+    private void setX(double f) { MovementUtil.setMotionX(f); }
+    private double getY() { return MovementUtil.getMotionY(); }
+    private void setY(double f) { MovementUtil.setMotionY(f); }
+    private double getZ() { return MovementUtil.getMotionZ(); }
+    private void setZ(double f) { MovementUtil.setMotionZ(f); }
+
+    private void getInfinitePitch() {
+        this.lastInfinitePitch = this.infinitePitch;
+        double currentPlayerSpeed = Math.hypot(ElytraFly.mc.player.getX() - ElytraFly.mc.player.lastX, ElytraFly.mc.player.getZ() - ElytraFly.mc.player.lastZ);
+        if (ElytraFly.mc.player.getY() < this.infiniteMaxHeight.getValue()) {
+            if (currentPlayerSpeed * 72.0 < this.infiniteMinSpeed.getValue() && !this.down) this.down = true;
+            if (currentPlayerSpeed * 72.0 > this.infiniteMaxSpeed.getValue() && this.down) this.down = false;
+        } else this.down = true;
+        this.infinitePitch = this.down ? (this.infinitePitch += 3.0f) : (this.infinitePitch -= 3.0f);
+        this.infinitePitch = MathUtil.clamp(this.infinitePitch, -40.0f, 40.0f);
     }
 
-    private double getY() {
-        return getMotionY();
+    /**
+     * 模块对外暴露的「是否处于鞘翅飞行」判定。
+     * 方法名沿用仓库1 原版的 isGliding()：Aura / AutoCrystal / Surround / Scaffold /
+     * SpeedMine 等 10 个模块都调用 ElytraFly.INSTANCE.isGliding()，替换模块时必须保留此签名。
+     * 内部实现来自仓库2 的 isFallFlying()，其中 MC API 已按 1.21.11 改为 player.isGliding()。
+     */
+    public boolean isGliding() {
+        return ElytraFly.mc.player.isGliding() || this.packet.getValue() && this.hasElytra && !ElytraFly.mc.player.isOnGround() || this.flying;
     }
 
-    private void setY(double f) {
-        setMotionY(f);
+    private Vec3d getFollowTargetPos() {
+        if (ElytraFly.mc.world == null || ElytraFly.mc.player == null) return null;
+        PlayerEntity self = ElytraFly.mc.player;
+        double maxRange = this.range.getValue();
+        double maxRangeSq = maxRange * maxRange;
+        float maxFov = this.fov.getValueFloat();
+        int maxCount = Math.max(1, this.count.getValueInt());
+        ArrayList<PlayerEntity> candidates = new ArrayList<>();
+        for (PlayerEntity p : ElytraFly.mc.world.getPlayers()) {
+            if (p == null || p == self || p.isRemoved() || !p.isAlive() || p.isSpectator() || RiyueClient.FRIEND.isFriend(p)) continue;
+            double d = self.squaredDistanceTo(p);
+            if (d > maxRangeSq) continue;
+            Vec3d pos = p.getEntityPos().add(0.0, p.getHeight() * 0.5, 0.0);
+            if (!RiyueClient.ROTATION.inFov(pos, maxFov)) continue;
+            candidates.add(p);
+        }
+        if (candidates.isEmpty()) return null;
+        candidates.sort(Comparator.comparingDouble(self::squaredDistanceTo));
+        int n = Math.min(maxCount, candidates.size());
+        int startIndex = this.targetSwitch.getValue() ? Math.floorMod(this.followSwitchIndex, candidates.size()) : 0;
+        double sx = 0, sy = 0, sz = 0;
+        for (int i = 0; i < n; ++i) {
+            PlayerEntity p = candidates.get((startIndex + i) % candidates.size());
+            Vec3d pos = p.getEntityPos().add(0.0, p.getHeight() * 0.5, 0.0);
+            sx += pos.x;
+            sy += pos.y;
+            sz += pos.z;
+        }
+        return new Vec3d(sx / n, sy / n, sz / n);
     }
 
-    private double getZ() {
-        return getMotionZ();
+    private double raycastHitDist(Vec3d start, Vec3d dir, double distance) {
+        if (ElytraFly.mc.world == null || ElytraFly.mc.player == null) return distance + 1.0;
+        Vec3d end = start.add(dir.multiply(distance));
+        HitResult hit = ElytraFly.mc.world.raycast(new RaycastContext(start, end, RaycastContext.ShapeType.OUTLINE, RaycastContext.FluidHandling.NONE, ElytraFly.mc.player));
+        if (hit == null || hit.getType() == HitResult.Type.MISS) return distance + 1.0;
+        return hit.getPos().distanceTo(start);
     }
 
-    private void setZ(double f) {
-        setMotionZ(f);
-    }
-
-    public enum Mode {
-        Control, Boost, Bounce, Freeze, None, Rotation, Pitch
+    public static enum Mode {
+        Control, Boost, Bounce, Freeze, None, Rotation, Pitch;
     }
 
     public class FireWorkTweak {
-
         boolean press;
-
         @EventListener
         public void onTick(ClientTickEvent event) {
-            if (nullCheck() || event.isPost()) return;
-            if (inventory.getValue() && !EntityUtil.inInventory()) return;
-            if (mc.currentScreen == null) {
-                if (fireWork.isPressed()) {
-                    if (!press) {
-                        if (fireworkTimer.passed(delay.getValueInt()) && (!mc.player.isUsingItem() || !usingPause.getValue()) && isGliding()) {
-                            off();
-                            fireworkTimer.reset();
-                        }
+            if (Module.nullCheck() || event.isPost()) return;
+            if (ElytraFly.this.inventory.getValue() && !EntityUtil.inInventory()) return;
+            if (Wrapper.mc.currentScreen == null) {
+                if (ElytraFly.this.fireWork.isPressed()) {
+                    if (!(this.press || !ElytraFly.this.fireworkTimer.passed(ElytraFly.this.delay.getValueInt()) || Wrapper.mc.player.isUsingItem() && ElytraFly.this.usingPause.getValue() || !ElytraFly.this.isGliding())) {
+                        ElytraFly.this.off();
+                        ElytraFly.this.fireworkTimer.reset();
                     }
-                    press = true;
+                    this.press = true;
                 } else {
-                    press = false;
+                    this.press = false;
                 }
             } else {
-                press = false;
+                this.press = false;
             }
         }
-    }
-
-    private boolean down;
-    private float lastInfinitePitch;
-    private float infinitePitch;
-
-    private void getInfinitePitch() {
-        lastInfinitePitch = infinitePitch;
-        double currentPlayerSpeed = Math.hypot(mc.player.getX() - mc.player.lastX, mc.player.getZ() - mc.player.lastZ);
-        if (mc.player.getY() < infiniteMaxHeight.getValue()) {
-            if (currentPlayerSpeed * 72f < infiniteMinSpeed.getValue() && !down)
-                down = true;
-            if (currentPlayerSpeed * 72f > infiniteMaxSpeed.getValue() && down)
-                down = false;
-        } else down = true;
-
-        if (down) infinitePitch += 3;
-        else infinitePitch -= 3;
-
-        infinitePitch = MathUtil.clamp(infinitePitch, -40, 40);
-    }
-
-    public boolean isGliding() {
-        return mc.player.getPose() == EntityPose.GLIDING || packet.getValue() && hasElytra && !mc.player.isOnGround() || flying;
     }
 }

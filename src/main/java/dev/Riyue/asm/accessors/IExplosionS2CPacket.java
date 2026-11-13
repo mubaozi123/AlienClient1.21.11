@@ -2,6 +2,7 @@ package dev.Riyue.asm.accessors;
 
 import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
@@ -13,4 +14,8 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface IExplosionS2CPacket {
     @Accessor("playerKnockback")
     java.util.Optional<net.minecraft.util.math.Vec3d> getPlayerKnockbackCompat();
+
+    @Mutable
+    @Accessor("playerKnockback")
+    void setPlayerKnockback(java.util.Optional<net.minecraft.util.math.Vec3d> knockback);
 }

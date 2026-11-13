@@ -33,6 +33,12 @@ import java.util.Objects;
 @Mixin(InGameHud.class)
 public abstract class MixinInGameHud {
 
+    @Unique
+    private static final net.minecraft.entity.EquipmentSlot[] RIYUE_ARMOR_SLOTS = {
+            net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.entity.EquipmentSlot.CHEST,
+            net.minecraft.entity.EquipmentSlot.LEGS, net.minecraft.entity.EquipmentSlot.FEET
+    };
+
     @Final
     @Shadow
     private MinecraftClient client;
@@ -73,7 +79,7 @@ public abstract class MixinInGameHud {
                 int w = this.getHeartRows(t) - 1;
                 y += w * 10;
             }
-            for (net.minecraft.entity.EquipmentSlot slot : new net.minecraft.entity.EquipmentSlot[]{net.minecraft.entity.EquipmentSlot.HEAD, net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.entity.EquipmentSlot.LEGS, net.minecraft.entity.EquipmentSlot.FEET}) {
+            for (net.minecraft.entity.EquipmentSlot slot : RIYUE_ARMOR_SLOTS) {
                 ItemStack armor = this.client.player.getEquippedStack(slot);
                 x -= 20;
                 if (armor.isEmpty()) continue;
@@ -93,6 +99,7 @@ public abstract class MixinInGameHud {
                 }
             }
         }
+        dev.Riyue.api.utils.render.ImmediateDrawUtil.flushBatches();
     }
 
     @Shadow

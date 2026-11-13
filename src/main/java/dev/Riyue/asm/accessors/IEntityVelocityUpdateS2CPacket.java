@@ -2,6 +2,7 @@ package dev.Riyue.asm.accessors;
 
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
@@ -13,4 +14,8 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface IEntityVelocityUpdateS2CPacket {
     @Accessor("velocity")
     net.minecraft.util.math.Vec3d getVelocityVec();
+
+    @Mutable
+    @Accessor("velocity")
+    void setVelocity(net.minecraft.util.math.Vec3d velocity);
 }

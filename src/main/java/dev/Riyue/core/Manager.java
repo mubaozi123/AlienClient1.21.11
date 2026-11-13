@@ -1,15 +1,14 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.MinecraftClient
- */
 package dev.Riyue.core;
 
-import java.io.File;
-import net.fabricmc.loader.api.FabricLoader;
+import dev.Riyue.RiyueClient;
 import net.minecraft.client.MinecraftClient;
 
+import java.io.File;
+
+/**
+ * 配置/数据文件夹辅助（移植自 Loppu 的 dev.luminous.core.Manager）。
+ * 提供客户端运行目录下的子文件夹与文件访问，用于套装(kit)等持久化数据。
+ */
 public class Manager {
     public static final MinecraftClient mc = MinecraftClient.getInstance();
 
@@ -19,15 +18,10 @@ public class Manager {
     }
 
     public static File getFolder() {
-        // 使用 Fabric Loader 的游戏目录，而不是 mc.runDirectory。
-        // mc 是 static final，若类在窗口创建前被初始化就会永久为 null，
-        // 导致所有配置文件读写在启动阶段直接 NPE。
-        File folder = new File(FabricLoader.getInstance().getGameDir().toFile(),
-                dev.Riyue.RiyueClient.NAME.toLowerCase());
+        File folder = new File(Manager.mc.runDirectory.getPath() + File.separator + RiyueClient.NAME.toLowerCase());
         if (!folder.exists()) {
             folder.mkdirs();
         }
         return folder;
     }
 }
-

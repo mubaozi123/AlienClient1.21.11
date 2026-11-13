@@ -16,10 +16,17 @@ import dev.Riyue.mod.modules.impl.client.AntiCheat;
 import dev.Riyue.mod.modules.impl.exploit.Blink;
 import dev.Riyue.mod.modules.impl.movement.ElytraFly;
 import dev.Riyue.mod.modules.impl.movement.Velocity;
+import dev.Riyue.mod.modules.impl.mace.GroundMace;
+import dev.Riyue.mod.modules.impl.mace.TPMace;
+import dev.Riyue.mod.modules.impl.mace.VoidMace;
+import dev.Riyue.mod.modules.impl.mace.MaceAura;
+import dev.Riyue.mod.modules.settings.enums.SwingSide;
 import dev.Riyue.mod.modules.settings.enums.Timing;
 import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
 import dev.Riyue.mod.modules.settings.impl.EnumSetting;
 import dev.Riyue.mod.modules.settings.impl.SliderSetting;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
@@ -30,276 +37,295 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static dev.Riyue.api.utils.world.BlockUtil.*;
-
 public class AutoWeb extends Module {
-    public static AutoWeb INSTANCE;
-    public static boolean force = false;
-    public static boolean ignore = false;
-    public final EnumSetting<Page> page = add(new EnumSetting<>("Page", Page.General));
-    public final SliderSetting placeDelay =
-            add(new SliderSetting("PlaceDelay", 50, 0, 500, () -> page.getValue() == Page.General));
-    public final SliderSetting blocksPer =
-            add(new SliderSetting("BlocksPer", 2, 1, 10, () -> page.getValue() == Page.General));
-    public final SliderSetting predictTicks =
-            add(new SliderSetting("PredictTicks", 2, 0.0, 50, 1, () -> page.getValue() == Page.General));
-    public final SliderSetting maxWebs =
-            add(new SliderSetting("MaxWebs", 2, 1, 8, 1, () -> page.getValue() == Page.General));
-    public final SliderSetting offset =
-            add(new SliderSetting("Offset", 0.25, 0.0, 0.3, 0.01, () -> page.getValue() == Page.General));
-    public final SliderSetting placeRange =
-            add(new SliderSetting("PlaceRange", 5.0, 0.0, 6.0, 0.1, () -> page.getValue() == Page.General));
-    public final SliderSetting targetRange =
-            add(new SliderSetting("TargetRange", 8.0, 0.0, 8.0, 0.1, () -> page.getValue() == Page.General));
-    final ArrayList<BlockPos> pos = new ArrayList<>();
-    private final BooleanSetting preferAnchor = add(new BooleanSetting("PreferAnchor", true, () -> page.getValue() == Page.General));
-    private final BooleanSetting detectMining =
-            add(new BooleanSetting("DetectMining", true, () -> page.getValue() == Page.General));
-    private final EnumSetting<Timing> timing =
-            add(new EnumSetting<>("Timing", Timing.All, () -> page.getValue() == Page.General));
-    private final BooleanSetting feet =
-            add(new BooleanSetting("Feet", true, () -> page.getValue() == Page.General));
-    private final BooleanSetting feetExtend =
-            add(new BooleanSetting("FeetExtend", true, () -> page.getValue() == Page.General));
-    private final BooleanSetting face =
-            add(new BooleanSetting("Face", true, () -> page.getValue() == Page.General));
-    private final BooleanSetting down =
-            add(new BooleanSetting("Down", true, () -> page.getValue() == Page.General));
-    private final BooleanSetting inventorySwap =
-            add(new BooleanSetting("InventorySwap", true, () -> page.getValue() == Page.General));
-    private final BooleanSetting usingPause =
-            add(new BooleanSetting("UsingPause", true, () -> page.getValue() == Page.General));
-    private final BooleanSetting rotate =
-            add(new BooleanSetting("Rotate", true, () -> page.getValue() == Page.Rotate).setParent());
-    private final BooleanSetting yawStep =
-            add(new BooleanSetting("YawStep", false, () -> rotate.isOpen() && page.getValue() == Page.Rotate).setParent());
-    private final BooleanSetting whenElytra =
-            add(new BooleanSetting("FallFlying", true, () -> rotate.isOpen() && yawStep.isOpen() && page.getValue() == Page.Rotate));
-    private final SliderSetting steps =
-            add(new SliderSetting("Steps", 0.3, 0.1, 1.0, 0.01, () -> rotate.isOpen() && yawStep.isOpen() && page.getValue() == Page.Rotate));
-    private final BooleanSetting checkFov =
-            add(new BooleanSetting("OnlyLooking", true, () -> rotate.isOpen() && yawStep.isOpen() && page.getValue() == Page.Rotate));
-    private final SliderSetting fov =
-            add(new SliderSetting("Fov", 20, 0, 360, 0.1, () -> rotate.isOpen() && yawStep.isOpen() && checkFov.getValue() && page.getValue() == Page.Rotate));
-    private final SliderSetting priority = add(new SliderSetting("Priority", 10, 0, 100, () -> rotate.isOpen() && yawStep.isOpen() && page.getValue() == Page.Rotate));
-    private final Timer timer = new Timer();
-    public Vec3d directionVec = null;
-    int progress = 0;
+   public static AutoWeb INSTANCE;
+   public static boolean force = false;
+   public static boolean ignore = false;
+   public final EnumSetting<AutoWeb.Page> page = this.add(new EnumSetting("Page", AutoWeb.Page.General));
+   public final SliderSetting placeDelay = this.add(new SliderSetting("PlaceDelay", 50, 0, 500, () -> this.page.getValue() == AutoWeb.Page.General));
+   public final SliderSetting blocksPer = this.add(new SliderSetting("BlocksPer", 2, 1, 10, () -> this.page.getValue() == AutoWeb.Page.General));
+   public final SliderSetting predictTicks = this.add(
+      new SliderSetting("PredictTicks", 2.0, 0.0, 50.0, 1.0, () -> this.page.getValue() == AutoWeb.Page.General)
+   );
+   public final SliderSetting maxWebs = this.add(new SliderSetting("MaxWebs", 2.0, 1.0, 8.0, 1.0, () -> this.page.getValue() == AutoWeb.Page.General));
+   public final SliderSetting offset = this.add(new SliderSetting("Offset", 0.25, 0.0, 0.3, 0.01, () -> this.page.getValue() == AutoWeb.Page.General));
+   public final SliderSetting placeRange = this.add(new SliderSetting("PlaceRange", 5.0, 0.0, 6.0, 0.1, () -> this.page.getValue() == AutoWeb.Page.General));
+   public final SliderSetting targetRange = this.add(new SliderSetting("TargetRange", 8.0, 0.0, 8.0, 0.1, () -> this.page.getValue() == AutoWeb.Page.General));
+   final ArrayList<BlockPos> pos = new ArrayList();
+   private final BooleanSetting preferAnchor = this.add(new BooleanSetting("PreferAnchor", true, () -> this.page.getValue() == AutoWeb.Page.General));
+   private final BooleanSetting detectMining = this.add(new BooleanSetting("DetectMining", true, () -> this.page.getValue() == AutoWeb.Page.General));
+   private final EnumSetting<Timing> timing = this.add(new EnumSetting("Timing", Timing.All, () -> this.page.getValue() == AutoWeb.Page.General));
+   private final BooleanSetting feet = this.add(new BooleanSetting("Feet", true, () -> this.page.getValue() == AutoWeb.Page.General));
+   private final BooleanSetting feetExtend = this.add(new BooleanSetting("FeetExtend", true, () -> this.page.getValue() == AutoWeb.Page.General));
+   private final BooleanSetting face = this.add(new BooleanSetting("Face", true, () -> this.page.getValue() == AutoWeb.Page.General));
+   private final BooleanSetting down = this.add(new BooleanSetting("Down", true, () -> this.page.getValue() == AutoWeb.Page.General));
+   private final BooleanSetting inventorySwap = this.add(new BooleanSetting("InventorySwap", true, () -> this.page.getValue() == AutoWeb.Page.General));
+   private final BooleanSetting usingPause = this.add(new BooleanSetting("UsingPause", true, () -> this.page.getValue() == AutoWeb.Page.General));
+   private final BooleanSetting rotate = this.add(new BooleanSetting("Rotate", true, () -> this.page.getValue() == AutoWeb.Page.Rotate).setParent());
+   private final BooleanSetting yawStep = this.add(
+      new BooleanSetting("YawStep", false, () -> this.rotate.isOpen() && this.page.getValue() == AutoWeb.Page.Rotate).setParent()
+   );
+   private final BooleanSetting whenElytra = this.add(
+      new BooleanSetting("FallFlying", true, () -> this.rotate.isOpen() && this.yawStep.isOpen() && this.page.getValue() == AutoWeb.Page.Rotate)
+   );
+   private final SliderSetting steps = this.add(
+      new SliderSetting("Steps", 0.3, 0.1, 1.0, 0.01, () -> this.rotate.isOpen() && this.yawStep.isOpen() && this.page.getValue() == AutoWeb.Page.Rotate)
+   );
+   private final BooleanSetting checkFov = this.add(
+      new BooleanSetting("OnlyLooking", true, () -> this.rotate.isOpen() && this.yawStep.isOpen() && this.page.getValue() == AutoWeb.Page.Rotate)
+   );
+   private final SliderSetting fov = this.add(
+      new SliderSetting(
+         "Fov",
+         20.0,
+         0.0,
+         360.0,
+         0.1,
+         () -> this.rotate.isOpen() && this.yawStep.isOpen() && this.checkFov.getValue() && this.page.getValue() == AutoWeb.Page.Rotate
+      )
+   );
+   private final SliderSetting priority = this.add(
+      new SliderSetting("Priority", 10, 0, 100, () -> this.rotate.isOpen() && this.yawStep.isOpen() && this.page.getValue() == AutoWeb.Page.Rotate)
+   );
+   private final Timer timer = new Timer();
+   public Vec3d directionVec = null;
+   int progress = 0;
 
-    public AutoWeb() {
-        super("AutoWeb", Category.Combat);
-        setChinese("蜘蛛网光环");
-        INSTANCE = this;
-    }
+   public AutoWeb() {
+      super("AutoWeb", Category.Combat);
+      this.setChinese("蜘蛛网光环");
+      INSTANCE = this;
+   }
 
-    @Override
-    public String getInfo() {
-        if (pos.isEmpty()) return null;
-        return "Working";
-    }
+   @Override
+   public String getInfo() {
+      return this.pos.isEmpty() ? null : "Working";
+   }
 
-    private boolean shouldYawStep() {
-        if (!whenElytra.getValue() && (mc.player.isGliding() || ElytraFly.INSTANCE.isOn() && ElytraFly.INSTANCE.isGliding()))
+   private boolean shouldYawStep() {
+      return this.whenElytra.getValue() || !mc.player.isGliding() && (!ElytraFly.INSTANCE.isOn() || !ElytraFly.INSTANCE.isGliding())
+         ? this.yawStep.getValue() && !Velocity.INSTANCE.noRotation()
+         : false;
+   }
+
+   private static boolean isMaceActive() {
+      return (GroundMace.INSTANCE != null && GroundMace.INSTANCE.isOn())
+              || (TPMace.INSTANCE != null && TPMace.INSTANCE.isOn())
+              || (VoidMace.INSTANCE != null && VoidMace.INSTANCE.isOn())
+              || (MaceAura.INSTANCE != null && MaceAura.INSTANCE.isOn());
+   }
+
+   @EventListener
+   public void onRotate(RotationEvent event) {
+      if (this.rotate.getValue() && this.shouldYawStep() && this.directionVec != null) {
+         event.setTarget(this.directionVec, this.steps.getValueFloat(), this.priority.getValueFloat());
+      }
+   }
+
+   @EventListener
+   public void onTick(ClientTickEvent event) {
+      if (!nullCheck()) {
+         if (isMaceActive()) {
+            return;
+         }
+         if ((!this.timing.is(Timing.Pre) || !event.isPost()) && (!this.timing.is(Timing.Post) || !event.isPre())) {
+            if (force) {
+               ignore = true;
+            }
+
+            this.update();
+            ignore = false;
+         }
+      }
+   }
+
+   @Override
+   public void onDisable() {
+      force = false;
+   }
+
+   private void update() {
+      if (this.timer.passed(this.placeDelay.getValueInt())) {
+         if (!this.inventorySwap.getValue() || EntityUtil.inInventory()) {
+            this.pos.clear();
+            this.progress = 0;
+            this.directionVec = null;
+            if (!this.preferAnchor.getValue() || AutoAnchor.INSTANCE.currentPos == null) {
+               if (this.getWebSlot() != -1) {
+                  if (!Blink.INSTANCE.isOn() || !Blink.INSTANCE.pauseModule.getValue()) {
+                     if (!this.usingPause.getValue() || !mc.player.isUsingItem()) {
+                        label168:
+                        for (PlayerEntity player : CombatUtil.getEnemies(this.targetRange.getValue())) {
+                           Vec3d playerPos = this.predictTicks.getValue() > 0.0
+                              ? PredictUtil.getPos(player, this.predictTicks.getValueInt())
+                              : player.getEntityPos();
+                           int webs = 0;
+                           if (this.feet.getValue()
+                              && this.placeWeb(new BlockPosX(playerPos.getX(), playerPos.getY(), playerPos.getZ()))) {
+                              webs++;
+                           }
+
+                           if (this.down.getValue()) {
+                              this.placeWeb(new BlockPosX(playerPos.getX(), playerPos.getY() - 0.8, playerPos.getZ()));
+                           }
+
+                           List<BlockPos> list = new ArrayList();
+
+                           for (float x : new float[]{0.0F, this.offset.getValueFloat(), -this.offset.getValueFloat()}) {
+                              for (float z : new float[]{0.0F, this.offset.getValueFloat(), -this.offset.getValueFloat()}) {
+                                 for (float y : new float[]{0.0F, 1.0F, -1.0F}) {
+                                    BlockPosX pos = new BlockPosX(playerPos.getX() + x, playerPos.getY() + y, playerPos.getZ() + z);
+                                    if (!list.contains(pos)) {
+                                       list.add(pos);
+                                       if (this.isTargetHere(pos, player)
+                                          && mc.world.getBlockState(pos).getBlock() == Blocks.COBWEB
+                                          && !RiyueClient.BREAK.isMining(pos)) {
+                                          webs++;
+                                       }
+                                    }
+                                 }
+                              }
+                           }
+
+                           if (!(webs >= this.maxWebs.getValueFloat()) || ignore) {
+                              boolean skip = false;
+                              if (this.feetExtend.getValue()) {
+                                 label142:
+                                 for (float x : new float[]{0.0F, this.offset.getValueFloat(), -this.offset.getValueFloat()}) {
+                                    for (float z : new float[]{0.0F, this.offset.getValueFloat(), -this.offset.getValueFloat()}) {
+                                       BlockPosX pos = new BlockPosX(playerPos.getX() + x, playerPos.getY(), playerPos.getZ() + z);
+                                       if (this.isTargetHere(pos, player) && this.placeWeb(pos)) {
+                                          if (++webs >= this.maxWebs.getValueFloat()) {
+                                             skip = true;
+                                             break label142;
+                                          }
+                                       }
+                                    }
+                                 }
+                              }
+
+                              if (!skip && this.face.getValue()) {
+                                 for (float x : new float[]{0.0F, this.offset.getValueFloat(), -this.offset.getValueFloat()}) {
+                                    for (float zx : new float[]{0.0F, this.offset.getValueFloat(), -this.offset.getValueFloat()}) {
+                                       BlockPosX pos = new BlockPosX(
+                                          playerPos.getX() + x, playerPos.getY() + 1.1, playerPos.getZ() + zx
+                                       );
+                                       if (this.isTargetHere(pos, player) && this.placeWeb(pos)) {
+                                          if (++webs >= this.maxWebs.getValueFloat()) {
+                                             continue label168;
+                                          }
+                                       }
+                                    }
+                                 }
+                              }
+                           }
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   private boolean isTargetHere(BlockPos pos, PlayerEntity target) {
+      return new Box(pos).intersects(target.getBoundingBox());
+   }
+
+   private boolean placeWeb(BlockPos pos) {
+      if (this.pos.contains(pos)) {
+         return false;
+      } else {
+         // 注：原 Loppu 在此处联动检查 nagisa 的 BasePlacer / HoleKick 目标位置以避免冲突；
+         // 该 nagisa 功能族未并入本客户端，故省略此联动（不影响 AutoWeb 核心放网逻辑）。
+         this.pos.add(pos);
+         if (this.progress >= this.blocksPer.getValueInt()) {
             return false;
-        return yawStep.getValue() && !Velocity.INSTANCE.noRotation();
-    }
-
-    @EventListener
-    public void onRotate(RotationEvent event) {
-        if (rotate.getValue() && shouldYawStep() && directionVec != null) {
-            event.setTarget(directionVec, steps.getValueFloat(), priority.getValueFloat());
-        }
-    }
-
-    @EventListener
-    public void onTick(ClientTickEvent event) {
-        if (nullCheck()) return;
-        if (timing.is(Timing.Pre) && event.isPost() || timing.is(Timing.Post) && event.isPre()) return;
-        if (force) ignore = true;
-        update();
-        ignore = false;
-    }
-
-    @Override
-    public void onDisable() {
-        force = false;
-    }
-
-    private void update() {
-        if (!timer.passed(placeDelay.getValueInt())) {
-            return;
-        }
-        if (inventorySwap.getValue() && !EntityUtil.inInventory()) return;
-        pos.clear();
-        progress = 0;
-        directionVec = null;
-        if (preferAnchor.getValue() && AutoAnchor.INSTANCE.currentPos != null) {
-            return;
-        }
-        if (getWebSlot() == -1) {
-            return;
-        }
-        if (Blink.INSTANCE.isOn() && Blink.INSTANCE.pauseModule.getValue()) return;
-        if (usingPause.getValue() && mc.player.isUsingItem()) {
-            return;
-        }
-        for (PlayerEntity player : CombatUtil.getEnemies(targetRange.getValue())) {
-            Vec3d playerPos = predictTicks.getValue() > 0 ? PredictUtil.getPos(player, predictTicks.getValueInt()) : player.getEntityPos();
-            int webs = 0;
-            if (feet.getValue()) {
-                if (placeWeb(new BlockPosX(playerPos.getX(), playerPos.getY(), playerPos.getZ()))) {
-                    webs++;
-                }
-            }
-            if (down.getValue()) {
-                placeWeb(new BlockPosX(playerPos.getX(), playerPos.getY() - 0.8, playerPos.getZ()));
-            }
-            List<BlockPos> list = new ArrayList<>();
-            for (float x : new float[]{0, offset.getValueFloat(), -offset.getValueFloat()}) {
-                for (float z : new float[]{0, offset.getValueFloat(), -offset.getValueFloat()}) {
-                    for (float y : new float[]{0, 1, -1}) {
-                        BlockPosX pos = new BlockPosX(playerPos.getX() + x, playerPos.getY() + y, playerPos.getZ() + z);
-                        if (!list.contains(pos)) {
-                            list.add(pos);
-                            if (isTargetHere(pos, player) && mc.world.getBlockState(pos).getBlock() == Blocks.COBWEB && !RiyueClient.BREAK.isMining(pos)) {
-                                webs++;
-                            }
-                        }
-                    }
-                }
-            }
-            if (webs >= maxWebs.getValueFloat() && !ignore) {
-                continue;
-            }
-            boolean skip = false;
-            if (feetExtend.getValue()) {
-                start:
-                for (float x : new float[]{0, offset.getValueFloat(), -offset.getValueFloat()}) {
-                    for (float z : new float[]{0, offset.getValueFloat(), -offset.getValueFloat()}) {
-                        BlockPosX pos = new BlockPosX(playerPos.getX() + x, playerPos.getY(), playerPos.getZ() + z);
-                        if (isTargetHere(pos, player)) {
-                            if (placeWeb(pos)) {
-                                webs++;
-                                if (webs >= maxWebs.getValueFloat()) {
-                                    skip = true;
-                                    break start;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if (skip) continue;
-            if (face.getValue()) {
-                start:
-                for (float x : new float[]{0, offset.getValueFloat(), -offset.getValueFloat()}) {
-                    for (float z : new float[]{0, offset.getValueFloat(), -offset.getValueFloat()}) {
-                        BlockPosX pos = new BlockPosX(playerPos.getX() + x, playerPos.getY() + 1.1, playerPos.getZ() + z);
-                        if (isTargetHere(pos, player)) {
-                            if (placeWeb(pos)) {
-                                webs++;
-                                if (webs >= maxWebs.getValueFloat()) {
-                                    break start;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private boolean isTargetHere(BlockPos pos, PlayerEntity target) {
-        return new Box(pos).intersects(target.getBoundingBox());
-    }
-
-    private boolean placeWeb(BlockPos pos) {
-        if (this.pos.contains(pos)) return false;
-        this.pos.add(pos);
-        if (progress >= blocksPer.getValueInt()) return false;
-        if (getWebSlot() == -1) {
+         } else if (this.getWebSlot() == -1) {
             return false;
-        }
-        if (detectMining.getValue() && (RiyueClient.BREAK.isMining(pos))) return false;
-        if (BlockUtil.getPlaceSide(pos, placeRange.getValue()) != null && (mc.world.isAir(pos) || ignore && getBlock(pos) == Blocks.COBWEB) && pos.getY() < 320) {
+         } else if (this.detectMining.getValue() && RiyueClient.BREAK.isMining(pos)) {
+            return false;
+         } else if (BlockUtil.getPlaceSide(pos, this.placeRange.getValue()) != null
+            && (mc.world.isAir(pos) || ignore && BlockUtil.getBlock(pos) == Blocks.COBWEB)
+            && pos.getY() < 320) {
             int oldSlot = mc.player.getInventory().selectedSlot;
-            int webSlot = getWebSlot();
-            if (!placeBlock(pos, rotate.getValue(), webSlot)) return false;
-            BlockUtil.placedPos.add(pos);
-            progress++;
-            if (inventorySwap.getValue()) {
-                doSwap(webSlot);
-                EntityUtil.syncInventory();
+            int webSlot = this.getWebSlot();
+            if (!this.placeBlock(pos, this.rotate.getValue(), webSlot)) {
+               return false;
             } else {
-                doSwap(oldSlot);
-            }
-            force = false;
-            timer.reset();
-            return true;
-        }
-        return false;
-    }
+               BlockUtil.placedPos.add(pos);
+               this.progress++;
+               if (this.inventorySwap.getValue()) {
+                  this.doSwap(webSlot);
+                  EntityUtil.syncInventory();
+               } else {
+                  this.doSwap(oldSlot);
+               }
 
-    public boolean placeBlock(BlockPos pos, boolean rotate, int slot) {
-        Direction side = getPlaceSide(pos);
-        if (side == null) {
-            if (allowAirPlace()) {
-                return clickBlock(pos, Direction.DOWN, rotate, slot);
+               force = false;
+               this.timer.reset();
+               return true;
             }
+         } else {
             return false;
-        }
-        return clickBlock(pos.offset(side), side.getOpposite(), rotate, slot);
-    }
+         }
+      }
+   }
 
-    public boolean clickBlock(BlockPos pos, Direction side, boolean rotate, int slot) {
-        Vec3d directionVec = new Vec3d(pos.getX() + 0.5 + side.getVector().getX() * 0.5, pos.getY() + 0.5 + side.getVector().getY() * 0.5, pos.getZ() + 0.5 + side.getVector().getZ() * 0.5);
-        if (rotate) {
-            if (!faceVector(directionVec)) return false;
-        }
-        doSwap(slot);
-        EntityUtil.swingHand(Hand.MAIN_HAND, AntiCheat.INSTANCE.interactSwing.getValue());
-        BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
-        Module.sendSequencedPacket(id -> new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, id));
-        if (rotate && !shouldYawStep()) {
+   public boolean placeBlock(BlockPos pos, boolean rotate, int slot) {
+      Direction side = BlockUtil.getPlaceSide(pos);
+      if (side == null) {
+         return BlockUtil.allowAirPlace() ? this.clickBlock(pos, Direction.DOWN, rotate, slot) : false;
+      } else {
+         return this.clickBlock(pos.offset(side), side.getOpposite(), rotate, slot);
+      }
+   }
+
+   public boolean clickBlock(BlockPos pos, Direction side, boolean rotate, int slot) {
+      Vec3d directionVec = new Vec3d(
+         pos.getX() + 0.5 + side.getVector().getX() * 0.5,
+         pos.getY() + 0.5 + side.getVector().getY() * 0.5,
+         pos.getZ() + 0.5 + side.getVector().getZ() * 0.5
+      );
+      if (rotate && !this.faceVector(directionVec)) {
+         return false;
+      } else {
+         this.doSwap(slot);
+         EntityUtil.swingHand(Hand.MAIN_HAND, (SwingSide)AntiCheat.INSTANCE.interactSwing.getValue());
+         BlockHitResult result = new BlockHitResult(directionVec, side, pos, false);
+         Module.sendSequencedPacket(id -> new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, result, id));
+         if (rotate && !this.shouldYawStep()) {
             RiyueClient.ROTATION.snapBack();
-        }
-        return true;
-    }
+         }
 
-    private boolean faceVector(Vec3d directionVec) {
-        if (!shouldYawStep()) {
-            RiyueClient.ROTATION.lookAt(directionVec);
-            return true;
-        } else {
-            this.directionVec = directionVec;
-            if (RiyueClient.ROTATION.inFov(directionVec, fov.getValueFloat())) {
-                return true;
-            }
-        }
-        return !checkFov.getValue();
-    }
+         return true;
+      }
+   }
 
-    private void doSwap(int slot) {
-        if (inventorySwap.getValue()) {
-            InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
-        } else {
-            InventoryUtil.switchToSlot(slot);
-        }
-    }
+   private boolean faceVector(Vec3d directionVec) {
+      if (!this.shouldYawStep()) {
+         RiyueClient.ROTATION.lookAt(directionVec);
+         return true;
+      } else {
+         this.directionVec = directionVec;
+         return RiyueClient.ROTATION.inFov(directionVec, this.fov.getValueFloat()) ? true : !this.checkFov.getValue();
+      }
+   }
 
-    private int getWebSlot() {
-        if (inventorySwap.getValue()) {
-            return InventoryUtil.findBlockInventorySlot(Blocks.COBWEB);
-        } else {
-            return InventoryUtil.findBlock(Blocks.COBWEB);
-        }
-    }
+   private void doSwap(int slot) {
+      if (this.inventorySwap.getValue()) {
+         InventoryUtil.inventorySwap(slot, mc.player.getInventory().selectedSlot);
+      } else {
+         InventoryUtil.switchToSlot(slot);
+      }
+   }
 
-    public enum Page {
-        General,
-        Rotate
-    }
+   private int getWebSlot() {
+      return this.inventorySwap.getValue() ? InventoryUtil.findBlockInventorySlot(Blocks.COBWEB) : InventoryUtil.findBlock(Blocks.COBWEB);
+   }
+
+   public static enum Page {
+      General,
+      Rotate;
+   }
 }

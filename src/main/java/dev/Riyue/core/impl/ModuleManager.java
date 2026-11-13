@@ -5,12 +5,14 @@ import dev.Riyue.api.events.impl.Render2DEvent;
 import dev.Riyue.api.events.impl.Render3DEvent;
 import dev.Riyue.api.utils.Wrapper;
 import dev.Riyue.api.utils.path.BaritoneUtil;
+import dev.Riyue.api.utils.render.ImmediateDrawUtil;
 import dev.Riyue.api.utils.render.Render3DScheduler;
 import dev.Riyue.mod.Mod;
 import dev.Riyue.mod.modules.Module;
 import dev.Riyue.mod.modules.impl.client.*;
 import dev.Riyue.mod.modules.impl.combat.*;
 import dev.Riyue.mod.modules.impl.exploit.*;
+import dev.Riyue.mod.modules.impl.mace.*;
 
 import dev.Riyue.mod.modules.impl.misc.*;
 import dev.Riyue.mod.modules.impl.movement.*;
@@ -45,6 +47,7 @@ public class ModuleManager implements Wrapper {
         addModule(new SkyBox());
         addModule(new NoTerrainScreen());
         addModule(new AutoCrystal());
+        addModule(new Crystalbot());
         addModule(new Ambience());
         addModule(new AntiHunger());
         addModule(new AntiVoid());
@@ -85,6 +88,15 @@ public class ModuleManager implements Wrapper {
         addModule(new Burrow());
         addModule(new Punctuation());
         addModule(new MaceSpoof());
+        addModule(new FlatMace());
+        addModule(new GroundMace());
+        addModule(new HitBoxMace());
+        addModule(new LagMace());
+        addModule(new LagSpoof());
+        addModule(new MaceAura());
+        addModule(new SkyMace());
+        addModule(new TPMace());
+        addModule(new VoidMace());
         addModule(new CameraClip());
         addModule(new ChatAppend());
         addModule(new ClickGui());
@@ -114,6 +126,7 @@ public class ModuleManager implements Wrapper {
         addModule(new SkinFlicker());
         addModule(new EntityControl());
         addModule(new NameTags());
+        addModule(new NameTags2D());
         addModule(new ShulkerViewer());
         addModule(new PingSpoof());
         addModule(new FakePlayer());
@@ -174,6 +187,14 @@ public class ModuleManager implements Wrapper {
         addModule(new ViewModel());
         addModule(new XCarry());
         addModule(new Zoom());
+        // ===== 以下模块移植自 Loppu client =====
+        addModule(new AutoKouZi());
+        addModule(new PopEz());
+        addModule(new AntiSlowFalling());
+        addModule(new BackPackHUD());
+        addModule(new WinRateAdvisor());
+        addModule(new HolePush());
+        addModule(new HeadTrap());
         modules.sort(Comparator.comparing(Mod::getName));
     }
 
@@ -246,6 +267,7 @@ public class ModuleManager implements Wrapper {
             if (ClientSetting.INSTANCE.debug.getValue())
                 CommandManager.sendMessage("§4An error has occurred (Render3DEvent) Message: [" + e.getMessage() + "]");
         }
+        ImmediateDrawUtil.flushBatches();
     }
 
     public boolean render3DQueue(MatrixStack matrices) {
@@ -286,6 +308,7 @@ public class ModuleManager implements Wrapper {
             }
         }
         Render3DScheduler.INSTANCE.flush(matrices);
+        ImmediateDrawUtil.flushBatches();
     }
 
     public void addModule(Module module) {

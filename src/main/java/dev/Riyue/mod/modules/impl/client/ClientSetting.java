@@ -22,6 +22,8 @@ public class ClientSetting extends Module {
     // MixinMinecraftClient.fpsHook 另有 AMD 驱动检测，命中时无论如何都保留原版帧率限制。
     public final BooleanSetting fuckFPSLimit = add(new BooleanSetting("FuckFPSLimit", false, () -> page.is(Page.Game)));
     private final BooleanSetting portalGui = add(new BooleanSetting("BlockTickNausea", true, () -> page.is(Page.Game)));
+    // 性能：OptimizedCalc 用 8 角采样替代全网格 raycast，未开启时每轮爆炸伤害计算
+    // 要做近百条遮挡射线（AutoCrystal 开启时的主要卡顿源之一），默认改为开启。
     public final BooleanSetting optimizedCalc = add(new BooleanSetting("OptimizedCalc", false, () -> page.is(Page.Game)));
     public final BooleanSetting mioCompatible = add(new BooleanSetting("MioCompatible", false, () -> page.is(Page.Game)));
 

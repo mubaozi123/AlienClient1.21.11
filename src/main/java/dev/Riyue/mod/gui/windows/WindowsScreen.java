@@ -49,6 +49,7 @@ public class WindowsScreen
         for (WindowBase window : this.getVisibleWindows()) {
             window.render(context, mouseX, mouseY);
         }
+        dev.Riyue.api.utils.render.ImmediateDrawUtil.flushBatches();
     }
 
     @Override

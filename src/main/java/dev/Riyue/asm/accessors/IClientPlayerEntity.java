@@ -7,6 +7,8 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 @Mixin(value={ClientPlayerEntity.class})
 public interface IClientPlayerEntity {
     @Accessor(value="ticksSinceLastPositionPacketSent")
+    public int getTicksSinceLastPositionPacketSent();
+    @Accessor(value="ticksSinceLastPositionPacketSent")
     public void setTicksSinceLastPositionPacketSent(int var1);
     @Accessor(value="lastYawClient")
     public float getLastYaw();

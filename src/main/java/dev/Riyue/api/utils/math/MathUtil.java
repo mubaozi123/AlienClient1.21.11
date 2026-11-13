@@ -180,6 +180,19 @@ public class MathUtil implements Wrapper {
 
         double rangeSq = range * range;
 
+        // 性能：先做 O(1) 可行性预检。循环中的点 y 恒 >= bottom.y、水平偏移方向朝向眼睛，
+        // 因此任何候选点的距离平方 >= minDxzSq + max(0, yGap)^2（yGap 为方块底部与眼睛的高差）。
+        // 若该下界已超过 rangeSq，暴力网格循环必然无解，直接返回 null。
+        {
+            double closestX = Math.max(bottom.x - halfWidth, Math.min(eye.x, bottom.x + halfWidth));
+            double closestZ = Math.max(bottom.z - halfWidth, Math.min(eye.z, bottom.z + halfWidth));
+            double dxzSq = (closestX - eye.x) * (closestX - eye.x) + (closestZ - eye.z) * (closestZ - eye.z);
+            double yGap = Math.max(0.0, bottom.y - eye.y);
+            if (dxzSq + yGap * yGap > rangeSq) {
+                return null;
+            }
+        }
+
         for (double yOffset = 0; yOffset <= boxSize; yOffset += step) {
             for (double xOffset = 0; xOffset <= halfWidth; xOffset += step) {
                 for (double zOffset = 0; zOffset <= halfWidth; zOffset += step) {

@@ -304,6 +304,11 @@ public abstract class Module extends Mod {
             public String getIcon() {
                 return "7";
             }
+        }, Mace {
+            @Override
+            public String getIcon() {
+                return "c";
+            }
         };
 
         public abstract String getIcon();

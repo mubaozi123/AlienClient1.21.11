@@ -167,6 +167,8 @@ public abstract class MixinClientPlayerEntity extends AbstractClientPlayerEntity
 
     @Inject(method = "sendMovementPackets", at = @At("HEAD"))
     private void onSendMovementPacketsHead(CallbackInfo info) {
+        // zio Velocity Walls 模式：在 vanilla 构建移动包前操纵 ticks/lastYaw（LocalPlayerSendPositionEvent 语义）
+        Velocity.onSendMovementPacketsHead();
         this.riyue$applyRotation();
 
         if (PacketControl.INSTANCE.isOn() && PacketControl.INSTANCE.positionSync.getValue()) {

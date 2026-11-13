@@ -23,7 +23,7 @@ public abstract class MixinWorld {
     @Inject(method = "getBlockState", at = @At("HEAD"), cancellable = true)
     public void blockStateHook(BlockPos pos, CallbackInfoReturnable<BlockState> cir) {
         if (mc.world != null && mc.world.isInBuildLimit(pos)) {
-            if (SelfTrap.airList.contains(pos)) {
+            if (!SelfTrap.airList.isEmpty() && SelfTrap.airList.contains(pos)) {
                 cir.setReturnValue(Blocks.AIR.getDefaultState());
                 return;
             }
@@ -32,9 +32,18 @@ public abstract class MixinWorld {
                 BlockPos modifyPos = CombatUtil.modifyPos;
                 BlockState modifyBlockState = CombatUtil.modifyBlockState;
                 if (terrainIgnore || modifyPos != null) {
-                    WorldChunk worldChunk = mc.world.getChunk(pos.getX() >> 4, pos.getZ() >> 4);
+                    WorldChunk worldChunk = CombatUtil.cachedChunk(mc.world, pos.getX() >> 4, pos.getZ() >> 4);
+                    if (worldChunk == null) {
+                        return;
+                    }
 
                     BlockState tempState = worldChunk.getBlockState(pos);
+                    if (tempState.isAir()) {
+                        // terrainIgnore 下空气本来就返回 AIR（与原值相同），直接短路
+                        if (modifyPos == null || !pos.equals(modifyPos)) {
+                            return;
+                        }
+                    }
 
                     if (modifyPos != null && modifyBlockState != null) {
                         if (pos.equals(modifyPos)) {
@@ -48,7 +57,10 @@ public abstract class MixinWorld {
                         cir.setReturnValue(Blocks.AIR.getDefaultState());
                     }
                 } else if (InteractTweaks.INSTANCE.isActive) {
-                    WorldChunk worldChunk = mc.world.getChunk(pos.getX() >> 4, pos.getZ() >> 4);
+                    WorldChunk worldChunk = CombatUtil.cachedChunk(mc.world, pos.getX() >> 4, pos.getZ() >> 4);
+                    if (worldChunk == null) {
+                        return;
+                    }
 
                     BlockState tempState = worldChunk.getBlockState(pos);
                     if (tempState.getBlock() == Blocks.BEDROCK
