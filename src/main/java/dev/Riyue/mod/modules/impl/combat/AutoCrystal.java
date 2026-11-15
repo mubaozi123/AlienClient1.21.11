@@ -87,6 +87,8 @@ public class AutoCrystal
     // 新增：手持重锤时暂停
     private final BooleanSetting macePause = this.add(new BooleanSetting("MacePause", false, () -> this.page.getValue() == Page.Check));
     private final SliderSetting switchCooldown = this.add(new SliderSetting("SwitchPause", 100, 0, 1000, () -> this.page.getValue() == Page.Check).setSuffix("ms"));
+    private final BooleanSetting switchCrystal = this.add(new BooleanSetting("SwitchCrystal", true, () -> this.page.getValue() == Page.Check));
+    private final SliderSetting switchTicks = this.add(new SliderSetting("SwitchTicks", 3, 1, 20, () -> this.page.getValue() == Page.Check && this.switchCrystal.isOpen()).setSuffix("tick"));
     private final SliderSetting targetRange = this.add(new SliderSetting("TargetRange", 12.0, 0.0, 20.0, () -> this.page.getValue() == Page.Check).setSuffix("m"));
     private final SliderSetting updateDelay = this.add(new SliderSetting("UpdateDelay", 50, 0, 1000, () -> this.page.getValue() == Page.Check).setSuffix("ms"));
     private final BooleanSetting rotate = this.add(new BooleanSetting("Rotate", true, () -> this.page.getValue() == Page.Rotation).setParent());
@@ -192,6 +194,9 @@ public class AutoCrystal
     double currentFade = 0.0;
     private EndCrystalEntity tempBreakCrystal;
     private EndCrystalEntity breakCrystal;
+    private final java.util.Map<EndCrystalEntity, Float> crystalDamageMap = new java.util.HashMap<>();
+    private EndCrystalEntity activeCrystal = null;
+    private int crystalSwitchTick = 0;
     private BlockPos tempPos;
     private BlockPos syncPos;
     private Vec3d placeVec3d;
@@ -402,6 +407,7 @@ public class AutoCrystal
         boolean needBasePlace = this.basePlace.getValue() && this.baseTimer.passedMs(this.delay.getValue()) && this.getBlock() != -1;
         this.tempBreakCrystal = null;
         this.breakDamage = 0.0f;
+        this.crystalDamageMap.clear();
         this.tempPos = null;
         this.tempDamage = 0.0f;
         this.tempBasePos = null;
@@ -418,23 +424,59 @@ public class AutoCrystal
             float damage;
             float selfDamage;
             Vec3d attackVec;
-            for (Entity entity : RiyueClient.THREAD.getEntities()) {
-                if (!(entity instanceof EndCrystalEntity)) continue;
-                EndCrystalEntity crystal = (EndCrystalEntity)entity;
-                if (entity.age < this.minAge.getValueInt() || (attackVec = this.getAttackVec(crystal.getEntityPos())) == null || !AutoCrystal.mc.player.canSee((Entity)crystal) && AutoCrystal.mc.player.getEyePos().distanceTo(attackVec) > this.wallRange.getValue()) continue;
-                selfDamage = this.calculateDamage(crystal.getEntityPos(), self.player, self.predict);
-                for (PlayerEntityPredict pap : list) {
-                    damage = this.calculateDamage(crystal.getEntityPos(), pap.player, pap.predict);
-                    if (!(damage > this.breakDamage) || (double)selfDamage > this.maxSelf.getValue() || this.reserve.getValue() > 0.0 && (double)selfDamage > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue() || damage < EntityUtil.getHealth((Entity)pap.player) && ((double)damage < this.getDamage(pap.player) || this.balance.getValue() && (this.getDamage(pap.player) == this.forceMin.getValue() ? (double)damage < (double)selfDamage - 2.5 : (double)damage < (double)selfDamage + this.balanceOffset.getValue()))) continue;
-                    this.breakDamage = damage;
+        // 收集所有可攻击水晶候选（每个取最高伤害），用于每 N tick 轮换攻击目标
+        java.util.List<EndCrystalEntity> crystalCandidates = new java.util.ArrayList<>();
+        for (Entity entity : RiyueClient.THREAD.getEntities()) {
+            if (!(entity instanceof EndCrystalEntity)) continue;
+            EndCrystalEntity crystal = (EndCrystalEntity)entity;
+            if (entity.age < this.minAge.getValueInt() || (attackVec = this.getAttackVec(crystal.getEntityPos())) == null || !AutoCrystal.mc.player.canSee((Entity)crystal) && AutoCrystal.mc.player.getEyePos().distanceTo(attackVec) > this.wallRange.getValue()) continue;
+            selfDamage = this.calculateDamage(crystal.getEntityPos(), self.player, self.predict);
+            for (PlayerEntityPredict pap : list) {
+                damage = this.calculateDamage(crystal.getEntityPos(), pap.player, pap.predict);
+                if (!(damage > this.breakDamage) || (double)selfDamage > this.maxSelf.getValue() || this.reserve.getValue() > 0.0 && (double)selfDamage > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue() || damage < EntityUtil.getHealth((Entity)pap.player) && ((double)damage < this.getDamage(pap.player) || this.balance.getValue() && (this.getDamage(pap.player) == this.forceMin.getValue() ? (double)damage < (double)selfDamage - 2.5 : (double)damage < (double)selfDamage + this.balanceOffset.getValue()))) continue;
+                this.breakDamage = damage;
+                if (!this.crystalDamageMap.containsKey(crystal) || damage > this.crystalDamageMap.get(crystal)) {
+                    this.crystalDamageMap.put(crystal, damage);
+                    if (!crystalCandidates.contains(crystal)) {
+                        crystalCandidates.add(crystal);
+                    }
+                }
+                if (!this.switchCrystal.getValue()) {
                     this.tempBreakCrystal = crystal;
                     this.displayTarget = pap.player;
                 }
             }
-            if (this.doCrystal.getValue() && this.tempBreakCrystal != null && !shouldReturn) {
-                this.doBreak(this.tempBreakCrystal);
-                this.tempBreakCrystal = null;
+        }
+        if (this.switchCrystal.getValue()) {
+            crystalCandidates.sort((a, b) -> Float.compare(this.crystalDamageMap.get(b), this.crystalDamageMap.get(a)));
+            if (!crystalCandidates.isEmpty()) {
+                this.crystalSwitchTick++;
+                // 达到切换周期、或当前锁定目标已失效（被打掉/消失）时，轮换到下一个候选
+                if (this.crystalSwitchTick >= this.switchTicks.getValueInt()
+                        || this.activeCrystal == null
+                        || !crystalCandidates.contains(this.activeCrystal)) {
+                    this.crystalSwitchTick = 0;
+                    int idx = (this.activeCrystal == null) ? 0
+                            : (crystalCandidates.indexOf(this.activeCrystal) + 1) % crystalCandidates.size();
+                    this.activeCrystal = crystalCandidates.get(idx);
+                }
+                this.tempBreakCrystal = this.activeCrystal;
+                float bestDmg = -1.0f;
+                PlayerEntity bestTarget = null;
+                for (PlayerEntityPredict pap : list) {
+                    float d = this.calculateDamage(this.activeCrystal.getEntityPos(), pap.player, pap.predict);
+                    if (d > bestDmg) {
+                        bestDmg = d;
+                        bestTarget = pap.player;
+                    }
+                }
+                this.displayTarget = bestTarget;
             }
+        }
+        if (this.doCrystal.getValue() && this.tempBreakCrystal != null && !shouldReturn) {
+            this.doBreak(this.tempBreakCrystal);
+            this.tempBreakCrystal = null;
+        }
             for (BlockPos pos : BlockUtil.getSphere((float)this.breakRange.getValue() + 1.5f)) {
                 boolean base = false;
                 CombatUtil.modifyPos = null;
