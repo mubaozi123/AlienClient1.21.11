@@ -48,6 +48,7 @@ import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
+import dev.Riyue.asm.accessors.IPlayerInteractEntityC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.network.packet.s2c.play.DeathMessageS2CPacket;
@@ -63,7 +64,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.entity.EntityType;
 
 import java.awt.Color;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1286,60 +1286,15 @@ public class Crystalbot extends Module {
      * lookup also works when the runtime field name is intermediary.
      */
     private static PlayerInteractEntityC2SPacket attackPacketById(int entityId) {
+        // Build a well-formed ATTACK packet. The static factory targets mc.player by
+        // default; we override only the entity id via the mixin accessor (the same
+        // mechanism Criticals uses to read it), which is remap-safe at runtime.
+        // Avoids fragile reflection that could otherwise leave the packet aimed at
+        // the local player — the cause of crystals never exploding.
         PlayerInteractEntityC2SPacket packet = PlayerInteractEntityC2SPacket.attack(
                 mc.player, mc.player.isSneaking());
-        boolean patched = false;
-        try {
-            Field field = PlayerInteractEntityC2SPacket.class.getDeclaredField("entityId");
-            field.setAccessible(true);
-            field.setInt(packet, entityId);
-            patched = true;
-        } catch (Throwable ignored) {
-            // fall through to type based lookup
-        }
-        if (!patched) {
-            try {
-                for (Field field : PlayerInteractEntityC2SPacket.class.getDeclaredFields()) {
-                    if (field.getType() == int.class) {
-                        field.setAccessible(true);
-                        field.setInt(packet, entityId);
-                        patched = true;
-                        break;
-                    }
-                }
-            } catch (Throwable ignored) {
-                // fall through
-            }
-        }
-        if (patched) {
-            return packet;
-        }
-        // Last resort: invoke the private (int, boolean, InteractTypeHandler)
-        // constructor by parameter types, using the static ATTACK handler field.
-        try {
-            Object handler = null;
-            for (Field field : PlayerInteractEntityC2SPacket.class.getDeclaredFields()) {
-                if (java.lang.reflect.Modifier.isStatic(field.getModifiers())
-                        && field.getType().getName().endsWith("InteractTypeHandler")) {
-                    field.setAccessible(true);
-                    handler = field.get(null);
-                    break;
-                }
-            }
-            for (java.lang.reflect.Constructor<?> constructor
-                    : PlayerInteractEntityC2SPacket.class.getDeclaredConstructors()) {
-                Class<?>[] params = constructor.getParameterTypes();
-                if (params.length == 3 && params[0] == int.class && params[1] == boolean.class
-                        && params[2].getName().endsWith("InteractTypeHandler")) {
-                    constructor.setAccessible(true);
-                    return (PlayerInteractEntityC2SPacket) constructor.newInstance(
-                            entityId, mc.player.isSneaking(), handler);
-                }
-            }
-        } catch (Throwable ignored) {
-            // give up: callers must not send a packet that would attack ourselves
-        }
-        return null;
+        ((IPlayerInteractEntityC2SPacket) packet).setEntityId(entityId);
+        return packet;
     }
 
     private boolean attackEntityById(int entityId, boolean instantAttack) {
@@ -1349,12 +1304,14 @@ public class Crystalbot extends Module {
         if (lastInteractionId != -1 && isMovementSyncEnabled()) {
             return false;
         }
-        PlayerInteractEntityC2SPacket packet = attackPacketById(entityId);
+        Entity targetEntity = mc.world.getEntityById(entityId);
+        PlayerInteractEntityC2SPacket packet = (targetEntity != null && !instantAttack)
+                ? PlayerInteractEntityC2SPacket.attack(targetEntity, mc.player.isSneaking())
+                : attackPacketById(entityId);
         if (packet == null) {
             return false;
         }
         int previousSlot = mc.player.getInventory().selectedSlot;
-        Entity targetEntity = mc.world.getEntityById(entityId);
         boolean switchedForWeakness = targetEntity instanceof EndCrystalEntity && selectWeaknessWeapon();
         lastInteractionId = entityId;
 

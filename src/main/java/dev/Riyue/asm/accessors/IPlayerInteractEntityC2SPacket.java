@@ -8,4 +8,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface IPlayerInteractEntityC2SPacket {
     @Accessor("entityId")
     int getEntityId();
+
+    @Accessor("entityId")
+    void setEntityId(int id);
 }
