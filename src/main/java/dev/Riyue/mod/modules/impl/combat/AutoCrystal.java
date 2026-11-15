@@ -87,8 +87,8 @@ public class AutoCrystal
     // 新增：手持重锤时暂停
     private final BooleanSetting macePause = this.add(new BooleanSetting("MacePause", false, () -> this.page.getValue() == Page.Check));
     private final SliderSetting switchCooldown = this.add(new SliderSetting("SwitchPause", 100, 0, 1000, () -> this.page.getValue() == Page.Check).setSuffix("ms"));
-    private final BooleanSetting switchCrystal = this.add(new BooleanSetting("SwitchCrystal", true, () -> this.page.getValue() == Page.Check));
-    private final SliderSetting switchTicks = this.add(new SliderSetting("SwitchTicks", 3, 1, 20, () -> this.page.getValue() == Page.Check && this.switchCrystal.isOpen()).setSuffix("tick"));
+    private final BooleanSetting switchCrystal = this.add(new BooleanSetting("SwitchCrystal", true, () -> this.page.getValue() == Page.Check && this.autoSwap.getValue() == SwapMode.Silent));
+    private final SliderSetting switchTicks = this.add(new SliderSetting("SwitchTicks", 3, 1, 20, () -> this.page.getValue() == Page.Check && this.switchCrystal.isOpen() && this.autoSwap.getValue() == SwapMode.Silent).setSuffix("tick"));
     private final SliderSetting targetRange = this.add(new SliderSetting("TargetRange", 12.0, 0.0, 20.0, () -> this.page.getValue() == Page.Check).setSuffix("m"));
     private final SliderSetting updateDelay = this.add(new SliderSetting("UpdateDelay", 50, 0, 1000, () -> this.page.getValue() == Page.Check).setSuffix("ms"));
     private final BooleanSetting rotate = this.add(new BooleanSetting("Rotate", true, () -> this.page.getValue() == Page.Rotation).setParent());
@@ -441,13 +441,13 @@ public class AutoCrystal
                         crystalCandidates.add(crystal);
                     }
                 }
-                if (!this.switchCrystal.getValue()) {
+                if (!this.switchCrystal.getValue() || this.autoSwap.getValue() != SwapMode.Silent) {
                     this.tempBreakCrystal = crystal;
                     this.displayTarget = pap.player;
                 }
             }
         }
-        if (this.switchCrystal.getValue()) {
+        if (this.switchCrystal.getValue() && this.autoSwap.getValue() == SwapMode.Silent) {
             crystalCandidates.sort((a, b) -> Float.compare(this.crystalDamageMap.get(b), this.crystalDamageMap.get(a)));
             if (!crystalCandidates.isEmpty()) {
                 this.crystalSwitchTick++;
