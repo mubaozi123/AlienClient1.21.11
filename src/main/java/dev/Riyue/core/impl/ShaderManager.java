@@ -33,9 +33,12 @@ implements Wrapper {
     private static final int UBO_SIZE = 112;
     private static final String[] SHADER_NAMES = new String[]{"solid", "pulse", "smoke", "gradient", "snow", "flow", "rainbow", "skybox"};
     private static final RenderPipeline[] PIPELINES = new RenderPipeline[Shader.values().length];
+    private static final Color TRANSPARENT = new Color(0, 0, 0, 0);
     static final Timer timer = new Timer();
     private static final List<RenderTask> tasks = new ArrayList<RenderTask>();
     public float time = 0.0f;
+    /** zio ShaderRegistry.renderingHands 的等价状态；由 ShaderModule 的手部绘制任务维护。 */
+    public volatile boolean renderingHands = false;
     private Framebuffer shaderBuffer;
 
     static {
@@ -93,82 +96,117 @@ implements Wrapper {
         }
     }
 
+    /**
+     * 构造 RiyueParams UBO。
+     *
+     * <p>管线结构（RenderPipeline / GpuBuffer / RenderPass / Framebuffer）完全保留仓库1 原实现；
+     * 这里只把 open-zio ShaderModule 的设置通过 {@link ZioShaderAdapter} 等价映射进
+     * 原有 7 个 vec4 槽位，使 zio 的颜色、速度、发光、渐变、淡出等语义在不改动
+     * GLSL 资源的前提下生效。</p>
+     *
+     * <p>zio 的 Colors/Glow/Decorator 分组布尔只是 UI 分组（渲染端没有 getValue 读取），
+     * 因此这里统一以 {@link ZioShaderAdapter#active}（= {@code ZioMode}）作为总开关：
+     * 开启时 zio 参数无条件生效；关闭时全部回落仓库1 原设置，画面 100% 等价改动前。</p>
+     */
     private GpuBuffer buildUniforms(Shader shader) {
         ShaderModule module = ShaderModule.INSTANCE;
-        Color color = module.fill.getValue();
-        float rawTime = (float)timer.getMs() / 5.0f;
-        this.time = rawTime * module.speed.getValueFloat() * 0.004f;
+        int width = mc.getWindow().getScaledWidth();
+        int height = mc.getWindow().getScaledHeight();
+        float rawTime = (float) timer.getMs() / 5.0f;
+        Std140Builder builder = Std140Builder.intoBuffer(ByteBuffer.allocateDirect(UBO_SIZE));
+        if (module == null) {
+            for (int i = 0; i < 7; i++) {
+                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+            }
+            return this.finishUniforms(builder);
+        }
+
+        boolean zioActive = ZioShaderAdapter.active(module);
+        // zio 的 Colors/Glow 分组是 UI-only；以 ZioMode 作为唯一总开关（见 ZioShaderAdapter.active）。
+        Color baseColor = ZioShaderAdapter.primary(module, module.fill.getValue());
+        Color smokeFirst = ZioShaderAdapter.primary(module, module.smoke1.getValue());
+        Color outline = ZioShaderAdapter.secondary(module, module.fill.getValue());
+        Color fillSecond = ZioShaderAdapter.third(module, module.smoke3.getValue());
+        Color outlineSecond = ZioShaderAdapter.fourth(module, module.smoke4.getValue());
+        Color middleFill = ZioShaderAdapter.middle(module, module.smoke3.getValue());
+        Color middleOutline = ZioShaderAdapter.middleOutline(module, module.smoke4.getValue());
+
+        this.time = rawTime * ZioShaderAdapter.speed(module, shader) * 0.004f;
         if (shader == Shader.Skybox) {
             // skybox 使用独立速度，此处仅推进原始时间基准
             this.time = rawTime * 0.004f;
         }
-        int width = mc.getWindow().getScaledWidth();
-        int height = mc.getWindow().getScaledHeight();
-        float mixFactor = (float)color.getAlpha() / 255.0f;
-        float glowRadius = module.radius.getValueFloat();
-        float glowQuality = module.smoothness.getValueFloat();
-        float glowDivider = module.divider.getValueFloat();
-        float glowMaxSample = module.maxSample.getValueFloat();
-        Std140Builder builder = Std140Builder.intoBuffer(ByteBuffer.allocateDirect(UBO_SIZE));
+        float alphaMul = ZioShaderAdapter.alphaMultiplier(module);
+        float mixFactor = (float) baseColor.getAlpha() / 255.0f * alphaMul;
+        float glowRadius = ZioShaderAdapter.glowRadius(module, module.radius.getValueFloat());
+        float glowQuality = ZioShaderAdapter.glowQuality(module, module.smoothness.getValueFloat());
+        float glowDivider = ZioShaderAdapter.glowDivider(module, module.divider.getValueFloat());
+        float glowMaxSample = ZioShaderAdapter.maxSample(module, module.maxSample.getValueFloat());
+        float gradientStep = ZioShaderAdapter.gradientFactor(module, module.step.getValueFloat());
+        float moreGradient = ZioShaderAdapter.gradientMore(module, 1.0f);
+        float glowAlpha = ZioShaderAdapter.glowAlpha(module, module.alpha.getValueFloat() / 255.0f);
+        float flags = ZioShaderAdapter.flags(module);
+        float decorator = ZioShaderAdapter.decorator(module);
+
         switch (shader) {
             case Solid: {
-                this.putColor(builder, color, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4((float)width, (float)height, 0.0f, mixFactor);
+                this.putColor(builder, baseColor, 0.0f);
+                this.putColor(builder, zioActive ? outline : TRANSPARENT, 0.0f);
+                builder.putVec4((float) width, (float) height, 0.0f, mixFactor);
                 builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(module.alpha.getValueFloat() / 255.0f, 0.0f, 0.0f, 0.0f);
+                this.putColor(builder, zioActive ? fillSecond : TRANSPARENT, 0.0f);
+                this.putColor(builder, zioActive ? outlineSecond : TRANSPARENT, 0.0f);
+                builder.putVec4(glowAlpha, gradientStep, moreGradient, flags);
                 break;
             }
             case Pulse: {
-                this.putColor(builder, color, 0.0f);
-                this.putColor(builder, module.pulse.getValue(), 0.0f);
-                builder.putVec4((float)width, (float)height, this.time, mixFactor);
+                this.putColor(builder, baseColor, 0.0f);
+                this.putColor(builder, ZioShaderAdapter.secondary(module, module.pulse.getValue()), 0.0f);
+                builder.putVec4((float) width, (float) height, this.time, mixFactor);
                 builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(module.alpha.getValueFloat() / 255.0f, module.pulseSpeed.getValueFloat(), 0.0f, 0.0f);
+                this.putColor(builder, zioActive ? fillSecond : TRANSPARENT, 0.0f);
+                this.putColor(builder, zioActive ? outlineSecond : TRANSPARENT, 0.0f);
+                builder.putVec4(glowAlpha, module.pulseSpeed.getValueFloat(), gradientStep, flags);
                 break;
             }
             case Smoke: {
-                this.putColor(builder, module.smoke1.getValue(), mixFactor);
-                this.putColor(builder, module.smoke2.getValue(), 0.0f);
-                builder.putVec4((float)width, (float)height, this.time, 0.0f);
+                this.putColor(builder, smokeFirst, mixFactor);
+                this.putColor(builder, ZioShaderAdapter.secondary(module, module.smoke2.getValue()), 0.0f);
+                builder.putVec4((float) width, (float) height, this.time, 0.0f);
                 builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                this.putColor(builder, module.smoke3.getValue(), (float)module.octaves.getValue());
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+                this.putColor(builder, ZioShaderAdapter.third(module, module.smoke3.getValue()), (float) module.octaves.getValue());
+                this.putColor(builder, zioActive ? outlineSecond : TRANSPARENT, 0.0f);
+                builder.putVec4(gradientStep, moreGradient, flags, decorator);
                 break;
             }
             case Gradient: {
-                this.putColor(builder, module.smoke1.getValue(), mixFactor);
-                this.putColor(builder, module.smoke2.getValue(), 0.0f);
-                builder.putVec4((float)width, (float)height, this.time * 30.0f, 0.0f);
+                this.putColor(builder, smokeFirst, mixFactor);
+                this.putColor(builder, ZioShaderAdapter.secondary(module, module.smoke2.getValue()), 0.0f);
+                builder.putVec4((float) width, (float) height, this.time * 30.0f, 0.0f);
                 builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                this.putColor(builder, module.smoke3.getValue(), (float)module.octaves.getValue());
-                this.putColor(builder, module.smoke4.getValue(), 0.0f);
-                builder.putVec4(module.step.getValueFloat(), 1.0f, 0.0f, 0.0f);
+                this.putColor(builder, zioActive ? middleFill : module.smoke3.getValue(), (float) module.octaves.getValue());
+                this.putColor(builder, zioActive ? middleOutline : module.smoke4.getValue(), 0.0f);
+                builder.putVec4(gradientStep, moreGradient, flags, decorator);
                 break;
             }
             case Snow: {
-                this.putColor(builder, color, mixFactor);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4((float)width, (float)height, this.time, 0.0f);
+                this.putColor(builder, baseColor, mixFactor);
+                this.putColor(builder, zioActive ? outline : TRANSPARENT, 0.0f);
+                builder.putVec4((float) width, (float) height, this.time, 0.0f);
                 builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+                this.putColor(builder, zioActive ? fillSecond : TRANSPARENT, 0.0f);
+                this.putColor(builder, zioActive ? outlineSecond : TRANSPARENT, 0.0f);
+                builder.putVec4(gradientStep, moreGradient, flags, decorator);
                 break;
             }
             case Flow: {
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4((float)width, (float)height, this.time, mixFactor);
+                this.putColor(builder, zioActive ? baseColor : TRANSPARENT, 0.0f);
+                this.putColor(builder, zioActive ? outline : TRANSPARENT, 0.0f);
+                builder.putVec4((float) width, (float) height, this.time, mixFactor);
                 builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+                this.putColor(builder, zioActive ? fillSecond : TRANSPARENT, 0.0f);
+                this.putColor(builder, zioActive ? outlineSecond : TRANSPARENT, 0.0f);
+                builder.putVec4(gradientStep, moreGradient, flags, decorator);
                 break;
             }
             case Skybox: {
@@ -179,31 +217,39 @@ implements Wrapper {
                 float skySpeed = sky != null ? sky.speed.getValueFloat() : 4.0f;
                 float skyOpacity = sky != null ? sky.opacity.getValueFloat() : 1.0f;
                 boolean applyAll = sky != null && sky.applyAll.getValue();
-                this.putColor(builder, skyColor, (float)skyColor.getAlpha() / 255.0f);
-                this.putColor(builder, skyBg, (float)skyBg.getAlpha() / 255.0f);
-                builder.putVec4((float)width, (float)height, this.time * skySpeed, skyOpacity);
+                this.putColor(builder, skyColor, (float) skyColor.getAlpha() / 255.0f);
+                this.putColor(builder, skyBg, (float) skyBg.getAlpha() / 255.0f);
+                builder.putVec4((float) width, (float) height, this.time * skySpeed, skyOpacity);
                 builder.putVec4(skyScale, skySpeed, applyAll ? 1.0f : 0.0f, 0.0f);
                 builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
                 builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
                 builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
                 break;
             }
-            default: {
-                builder.putVec4(0.0f, 0.0f, 0.0f, mixFactor);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4((float)width, (float)height, this.time, 0.0f);
+            default: { // Rainbow
+                if (zioActive) {
+                    this.putColor(builder, baseColor, mixFactor);
+                } else {
+                    builder.putVec4(0.0f, 0.0f, 0.0f, mixFactor);
+                }
+                this.putColor(builder, zioActive ? outline : TRANSPARENT, 0.0f);
+                builder.putVec4((float) width, (float) height, this.time, 0.0f);
                 builder.putVec4(glowRadius, glowQuality, glowDivider, glowMaxSample);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-                builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
+                this.putColor(builder, zioActive ? fillSecond : TRANSPARENT, 0.0f);
+                this.putColor(builder, zioActive ? outlineSecond : TRANSPARENT, 0.0f);
+                builder.putVec4(glowAlpha, gradientStep, moreGradient, flags);
             }
         }
+        return this.finishUniforms(builder);
+    }
+
+    private GpuBuffer finishUniforms(Std140Builder builder) {
         ByteBuffer data = builder.get();
         return RenderSystem.getDevice().createBuffer(() -> "riyue_shader_uniforms", GpuBuffer.USAGE_UNIFORM, data);
     }
 
     private void putColor(Std140Builder builder, Color color, float w) {
-        builder.putVec4((float)color.getRed() / 255.0f, (float)color.getGreen() / 255.0f, (float)color.getBlue() / 255.0f, w);
+        builder.putVec4((float) color.getRed() / 255.0f, (float) color.getGreen() / 255.0f, (float) color.getBlue() / 255.0f, w);
     }
 
     /**
@@ -266,8 +312,7 @@ implements Wrapper {
         builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
         builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
         builder.putVec4(0.0f, 0.0f, 0.0f, 0.0f);
-        ByteBuffer data = builder.get();
-        return RenderSystem.getDevice().createBuffer(() -> "riyue_sky_uniforms", GpuBuffer.USAGE_UNIFORM, data);
+        return this.finishUniforms(builder);
     }
 
     public void reloadShaders() {

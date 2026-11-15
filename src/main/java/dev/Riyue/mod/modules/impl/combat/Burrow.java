@@ -88,6 +88,11 @@ extends Module {
         INSTANCE = this;
     }
 
+    /** 是否正在放置方块（供 AutoCrystal 的 BurrowSync 使用，等价于 Loppu Burrow.isPlacing） */
+    public boolean isPlacing() {
+        return this.progress > 0 || !this.placePos.isEmpty();
+    }
+
     @EventListener
     public void onUpdate(ClientTickEvent event) {
         if (this.inventory.getValue() && !EntityUtil.inInventory()) {

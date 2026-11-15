@@ -11,6 +11,7 @@ import dev.Riyue.mod.Mod;
 import dev.Riyue.mod.modules.Module;
 import dev.Riyue.mod.modules.impl.client.*;
 import dev.Riyue.mod.modules.impl.combat.*;
+import dev.Riyue.mod.modules.impl.combat.HoleKick;
 import dev.Riyue.mod.modules.impl.exploit.*;
 import dev.Riyue.mod.modules.impl.mace.*;
 
@@ -48,6 +49,7 @@ public class ModuleManager implements Wrapper {
         addModule(new NoTerrainScreen());
         addModule(new AutoCrystal());
         addModule(new Crystalbot());
+        addModule(new HoleKick());
         addModule(new Ambience());
         addModule(new AntiHunger());
         addModule(new AntiVoid());

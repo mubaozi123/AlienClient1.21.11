@@ -2,10 +2,20 @@ package dev.Riyue.mod.modules.impl.combat;
 
 import dev.Riyue.RiyueClient;
 import dev.Riyue.api.events.eventbus.EventListener;
-import dev.Riyue.api.events.impl.*;
+import dev.Riyue.api.events.impl.ClientTickEvent;
+import dev.Riyue.api.events.impl.EntitySpawnedEvent;
+import dev.Riyue.api.events.impl.PacketEvent;
+import dev.Riyue.api.events.impl.Render3DEvent;
+import dev.Riyue.api.events.impl.RotationEvent;
 import dev.Riyue.api.utils.combat.CombatUtil;
 import dev.Riyue.api.utils.entity.PlayerEntityPredict;
-import dev.Riyue.api.utils.math.*;
+import dev.Riyue.api.utils.math.AnimateUtil;
+import dev.Riyue.api.utils.math.Animation;
+import dev.Riyue.api.utils.math.DamageUtils;
+import dev.Riyue.api.utils.math.Easing;
+import dev.Riyue.api.utils.math.ExplosionUtil;
+import dev.Riyue.api.utils.math.MathUtil;
+import dev.Riyue.api.utils.math.Timer;
 import dev.Riyue.api.utils.player.EntityUtil;
 import dev.Riyue.api.utils.player.InventoryUtil;
 import dev.Riyue.api.utils.render.ColorUtil;
@@ -15,14 +25,25 @@ import dev.Riyue.api.utils.world.BlockPosX;
 import dev.Riyue.api.utils.world.BlockUtil;
 import dev.Riyue.asm.accessors.IEntity;
 import dev.Riyue.mod.modules.Module;
+import dev.Riyue.mod.modules.impl.client.ClickGui;
 import dev.Riyue.mod.modules.impl.client.ClientSetting;
 import dev.Riyue.mod.modules.impl.exploit.Blink;
 import dev.Riyue.mod.modules.impl.movement.ElytraFly;
 import dev.Riyue.mod.modules.impl.movement.Velocity;
 import dev.Riyue.mod.modules.impl.player.SpeedMine;
+import dev.Riyue.mod.modules.impl.player.AutoPot;
 import dev.Riyue.mod.modules.settings.enums.SwingSide;
 import dev.Riyue.mod.modules.settings.enums.Timing;
-import dev.Riyue.mod.modules.settings.impl.*;
+import dev.Riyue.mod.modules.settings.impl.BindSetting;
+import dev.Riyue.mod.modules.settings.impl.BooleanSetting;
+import dev.Riyue.mod.modules.settings.impl.ColorSetting;
+import dev.Riyue.mod.modules.settings.impl.EnumSetting;
+import dev.Riyue.mod.modules.settings.impl.SliderSetting;
+import java.awt.Color;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
@@ -43,12 +64,8 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
-
-import java.awt.*;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
+import net.minecraft.client.gui.screen.ingame.ShulkerBoxScreen;
+import net.minecraft.screen.GenericContainerScreenHandler;
 
 public class AutoCrystal
         extends Module {
@@ -67,6 +84,8 @@ public class AutoCrystal
     private final BooleanSetting preferAnchor = this.add(new BooleanSetting("PreferAnchor", true, () -> this.page.getValue() == Page.Check));
     private final BooleanSetting breakOnlyHasCrystal = this.add(new BooleanSetting("OnlyHold", true, () -> this.page.getValue() == Page.Check));
     private final BooleanSetting eatingPause = this.add(new BooleanSetting("EatingPause", true, () -> this.page.getValue() == Page.Check));
+    // 新增：手持重锤时暂停
+    private final BooleanSetting macePause = this.add(new BooleanSetting("MacePause", false, () -> this.page.getValue() == Page.Check));
     private final SliderSetting switchCooldown = this.add(new SliderSetting("SwitchPause", 100, 0, 1000, () -> this.page.getValue() == Page.Check).setSuffix("ms"));
     private final SliderSetting targetRange = this.add(new SliderSetting("TargetRange", 12.0, 0.0, 20.0, () -> this.page.getValue() == Page.Check).setSuffix("m"));
     private final SliderSetting updateDelay = this.add(new SliderSetting("UpdateDelay", 50, 0, 1000, () -> this.page.getValue() == Page.Check).setSuffix("ms"));
@@ -152,13 +171,18 @@ public class AutoCrystal
     private final SliderSetting forceMin = this.add(new SliderSetting("ForceMin", 1.5, 0.0, 36.0, () -> this.page.getValue() == Page.Misc && this.lethalOverride.isOpen()).setSuffix("dmg"));
     private final BooleanSetting armorBreaker = this.add(new BooleanSetting("ArmorBreaker", true, () -> this.page.getValue() == Page.Misc).setParent());
     private final SliderSetting maxDurable = this.add(new SliderSetting("MaxDurable", 8, 0, 100, () -> this.page.getValue() == Page.Misc && this.armorBreaker.isOpen()).setSuffix("%"));
-    private final SliderSetting armorBreakerDamage = this.add(new SliderSetting("AutoMineMin", 3.0, 0.0, 36.0, () -> this.page.getValue() == Page.Misc && this.armorBreaker.isOpen()).setSuffix("dmg"));
+    private final SliderSetting armorBreakerDamage = this.add(new SliderSetting("BreakerMin", 3.0, 0.0, 36.0, () -> this.page.getValue() == Page.Misc && this.armorBreaker.isOpen()).setSuffix("dmg"));
     private final BooleanSetting forceWeb = this.add(new BooleanSetting("WebReset", true, () -> this.page.getValue() == Page.Misc).setParent());
     public final BooleanSetting airPlace = this.add(new BooleanSetting("AirPlace", false, () -> this.page.getValue() == Page.Misc && this.forceWeb.isOpen()));
     public final BooleanSetting replace = this.add(new BooleanSetting("Replace", false, () -> this.page.getValue() == Page.Misc && this.forceWeb.isOpen()));
+    private final BooleanSetting pauseInContainer = this.add(new BooleanSetting("ContainerPause", false, () -> this.page.getValue() == Page.Misc));
     private final SliderSetting hurtTime = this.add(new SliderSetting("HurtTime", 10.0, 0.0, 10.0, 1.0, () -> this.page.getValue() == Page.Misc));
     private final SliderSetting waitHurt = this.add(new SliderSetting("WaitHurt", 10.0, 0.0, 10.0, 1.0, () -> this.page.getValue() == Page.Misc));
     private final SliderSetting syncTimeout = this.add(new SliderSetting("WaitTimeOut", 500.0, 0.0, 2000.0, 10.0, () -> this.page.getValue() == Page.Misc));
+    private final BooleanSetting potSync = this.add(new BooleanSetting("PotSync", false, () -> this.page.getValue() == Page.Misc));
+    private final BooleanSetting potionSync = this.add(new BooleanSetting("PotionSync", false, () -> this.page.getValue() == Page.Misc));
+    private final BooleanSetting prioritizeBurrow = this.add(new BooleanSetting("PrioritizeBurrow", false, () -> this.page.getValue() == Page.Misc).setParent());
+    private final EnumSetting<BurrowSyncMode> burrowSyncMode = this.add(new EnumSetting<BurrowSyncMode>("BurrowSync", BurrowSyncMode.NoSwitch, () -> this.page.getValue() == Page.Misc && this.prioritizeBurrow.isOpen()));
     private final Timer syncTimer = new Timer();
     public PlayerEntity displayTarget;
     public float breakDamage;
@@ -324,6 +348,10 @@ public class AutoCrystal
             this.lastBreakTimer.reset();
             return true;
         }
+        if (this.pauseInContainer.getValue() && this.isInContainerScreen()) {
+            this.lastBreakTimer.reset();
+            return true;
+        }
         if (this.preferAnchor.getValue() && AutoAnchor.INSTANCE.currentPos != null) {
             this.lastBreakTimer.reset();
             return true;
@@ -332,7 +360,32 @@ public class AutoCrystal
             this.lastBreakTimer.reset();
             return true;
         }
+        // 新增：手持重锤时暂停所有动作
+        if (this.macePause.getValue() && AutoCrystal.mc.player.getMainHandStack().getItem() == Items.MACE) {
+            this.lastBreakTimer.reset();
+            return true;
+        }
+        // PotSync：AutoPot 正在扔药水时暂停
+        if (this.potSync.getValue() && AutoPot.INSTANCE != null && AutoPot.INSTANCE.isOn() && AutoPot.INSTANCE.isActuallyThrowing()) {
+            this.lastBreakTimer.reset();
+            return true;
+        }
+        // BurrowSync：Burrow 激活时暂停放置
+        if (this.prioritizeBurrow.getValue() && Burrow.INSTANCE != null && Burrow.INSTANCE.isOn()) {
+            if (this.burrowSyncMode.getValue() == BurrowSyncMode.PausePlace) {
+                this.lastBreakTimer.reset();
+                return true;
+            } else if (this.burrowSyncMode.getValue() == BurrowSyncMode.NoSwitch && Burrow.INSTANCE.isPlacing()) {
+                this.lastBreakTimer.reset();
+                return true;
+            }
+        }
         return false;
+    }
+
+    private boolean isInContainerScreen() {
+        return mc.currentScreen instanceof ShulkerBoxScreen ||
+                mc.player.currentScreenHandler instanceof GenericContainerScreenHandler;
     }
 
     private void calcCrystalPos() {
@@ -378,7 +431,7 @@ public class AutoCrystal
                     this.displayTarget = pap.player;
                 }
             }
-            if (!this.thread.getValue() && this.doCrystal.getValue() && this.tempBreakCrystal != null && !shouldReturn) {
+            if (this.doCrystal.getValue() && this.tempBreakCrystal != null && !shouldReturn) {
                 this.doBreak(this.tempBreakCrystal);
                 this.tempBreakCrystal = null;
             }
@@ -391,13 +444,7 @@ public class AutoCrystal
                     CombatUtil.modifyBlockState = Blocks.OBSIDIAN.getDefaultState();
                     base = true;
                 }
-                // 性能：先做便宜的方块/几何过滤（canTouch/canPlaceCrystal），绝大多数
-                // 候选位置（非黑曜石/基岩底座）在此被剔除，避免对每个位置都跑
-                // getAttackVec 的暴力网格搜索（数千次迭代）和 behindWall 的 raycast。
-                // 这些条件均为纯查询且相互独立，调整顺序不影响结果。
-                if (base && RiyueClient.BREAK.isMining(pos.down()) && this.detectMining.getValue() || !this.canTouch(pos.down()) || !this.canPlaceCrystal(pos, true, false)) continue;
-                attackVec = this.getAttackVec(pos.toBottomCenterPos());
-                if (attackVec == null || this.behindWall(pos, attackVec)) continue;
+                if (base && RiyueClient.BREAK.isMining(pos.down()) && this.detectMining.getValue() || (attackVec = this.getAttackVec(pos.toBottomCenterPos())) == null || this.behindWall(pos, attackVec) || !this.canTouch(pos.down()) || !this.canPlaceCrystal(pos, true, false)) continue;
                 selfDamage = base ? this.calculateBaseDamage(pos, self.player, self.predict) : this.calculateDamage(pos, self.player, self.predict);
                 for (PlayerEntityPredict pap : list) {
                     if (base && this.onlyBelow.getValue() && (double)pos.getY() - 0.5 > pap.player.getY()) continue;
@@ -430,7 +477,7 @@ public class AutoCrystal
                             float selfDamage2;
                             if (direction == Direction.DOWN || direction == Direction.UP || !this.canPlaceCrystal(offsetPos.offset(direction), false, false) || !((double)(selfDamage2 = this.calculateDamage(offsetPos.offset(direction), self.player, self.predict)) < this.maxSelf.getValue()) || this.reserve.getValue() > 0.0 && (double)selfDamage2 > (double)(AutoCrystal.mc.player.getHealth() + AutoCrystal.mc.player.getAbsorptionAmount()) - this.reserve.getValue()) continue;
                             this.tempPos = offsetPos.offset(direction);
-                            if (!this.thread.getValue() && this.doCrystal.getValue() && this.tempPos != null && !shouldReturn) {
+                            if (this.doCrystal.getValue() && this.tempPos != null && !shouldReturn) {
                                 this.doCrystal(this.tempPos);
                             }
                             return;
@@ -439,7 +486,7 @@ public class AutoCrystal
                 }
             }
         }
-        if (!this.thread.getValue() && this.doCrystal.getValue() && this.tempPos != null && !shouldReturn) {
+        if (this.doCrystal.getValue() && this.tempPos != null && !shouldReturn) {
             this.doCrystal(this.tempPos);
         }
     }
@@ -457,16 +504,7 @@ public class AutoCrystal
         BlockPos obsPos = pos.down();
         BlockPos boost = obsPos.up();
         BlockPos boost2 = boost.up();
-        // 性能：原实现连续两次 getBlock(obsPos)（各一次完整 getBlockState），合并为一次
-        net.minecraft.block.Block baseBlock = BlockUtil.getBlock(obsPos);
-        if (baseBlock != Blocks.BEDROCK && baseBlock != Blocks.OBSIDIAN) {
-            return false;
-        }
-        return BlockUtil.getClickSideStrict(obsPos) != null
-                && this.noEntityBlockCrystal(boost, ignoreCrystal, ignoreItem)
-                && this.noEntityBlockCrystal(boost2, ignoreCrystal, ignoreItem)
-                && (AutoCrystal.mc.world.isAir(boost) || (BlockUtil.hasCrystal(boost) && BlockUtil.getBlock(boost) == Blocks.FIRE))
-                && (!ClientSetting.INSTANCE.lowVersion.getValue() || AutoCrystal.mc.world.isAir(boost2));
+        return !(BlockUtil.getBlock(obsPos) != Blocks.BEDROCK && BlockUtil.getBlock(obsPos) != Blocks.OBSIDIAN || BlockUtil.getClickSideStrict(obsPos) == null || !this.noEntityBlockCrystal(boost, ignoreCrystal, ignoreItem) || !this.noEntityBlockCrystal(boost2, ignoreCrystal, ignoreItem) || !AutoCrystal.mc.world.isAir(boost) && (!BlockUtil.hasCrystal(boost) || BlockUtil.getBlock(boost) != Blocks.FIRE) || ClientSetting.INSTANCE.lowVersion.getValue() && !AutoCrystal.mc.world.isAir(boost2));
     }
 
     private boolean noEntityBlockCrystal(BlockPos pos, boolean ignoreCrystal, boolean ignoreItem) {
@@ -506,6 +544,9 @@ public class AutoCrystal
     }
 
     private void doPlace(BlockPos pos) {
+        if (this.eatingPause.getValue() && AutoCrystal.mc.player.isUsingItem()) {
+            return;
+        }
         if (!this.baseTimer.passed((long)this.delay.getValue())) {
             return;
         }
@@ -538,7 +579,6 @@ public class AutoCrystal
             CombatUtil.modifyBlockState = Blocks.AIR.getDefaultState();
         }
         if (this.terrainIgnore.getValue()) {
-            CombatUtil.invalidateChunkCache();
             CombatUtil.terrainIgnore = true;
         }
         float damage = ExplosionUtil.calculateDamage(pos, player, predict, 6.0f);
@@ -549,7 +589,6 @@ public class AutoCrystal
 
     public float calculateBaseDamage(BlockPos pos, PlayerEntity player, PlayerEntity predict) {
         if (this.terrainIgnore.getValue()) {
-            CombatUtil.invalidateChunkCache();
             CombatUtil.terrainIgnore = true;
         }
         float damage = DamageUtils.overridingExplosionDamage(player, predict, new Vec3d((double)pos.getX() + 0.5, (double)pos.getY(), (double)pos.getZ() + 0.5), 12.0f, pos.down(), Blocks.OBSIDIAN.getDefaultState());
@@ -591,6 +630,9 @@ public class AutoCrystal
     private void doBreak(EndCrystalEntity entity) {
         BlockPos crystalPos;
         Vec3d attackVec;
+        if (this.eatingPause.getValue() && AutoCrystal.mc.player.isUsingItem()) {
+            return;
+        }
         this.noPosTimer.reset();
         if (!this.breakSetting.getValue()) {
             return;
@@ -651,6 +693,9 @@ public class AutoCrystal
     }
 
     private void doBreak(BlockPos pos) {
+        if (this.eatingPause.getValue() && AutoCrystal.mc.player.isUsingItem()) {
+            return;
+        }
         this.noPosTimer.reset();
         if (!this.breakSetting.getValue()) {
             return;
@@ -714,6 +759,9 @@ public class AutoCrystal
     }
 
     private void doPlace(BlockPos pos, boolean rotate) {
+        if (this.eatingPause.getValue() && AutoCrystal.mc.player.isUsingItem()) {
+            return;
+        }
         this.noPosTimer.reset();
         if (!this.place.getValue()) {
             return;
@@ -848,6 +896,12 @@ public class AutoCrystal
 
     }
 
+    public enum BurrowSyncMode {
+        PausePlace,
+        NoSwitch;
+
+    }
+
     private class CrystalRender {
         private CrystalRender() {
         }
@@ -885,4 +939,3 @@ public class AutoCrystal
         }
     }
 }
-
